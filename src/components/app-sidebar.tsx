@@ -3,15 +3,21 @@
 import * as React from "react";
 import {
   AudioWaveform,
+  UserPlus,
   BookOpen,
   Bot,
   Command,
   Frame,
   GalleryVerticalEnd,
+  ClipboardCheck,
+  NotebookPen,
   Map,
   PieChart,
   Settings2,
   SquareTerminal,
+  Users,
+  Box,
+  ChartNoAxesCombined,
 } from "lucide-react";
 
 import { NavMain } from "@/components/nav-main";
@@ -31,127 +37,62 @@ const data = {
   user: {
     name: "Damaga",
     email: "@damagaproject.com",
-    avatar: "/photos/damaga-logo.png",
+    avatar: "/photos/logo/DAMAGA SUITES MRR.png",
   },
-  teams: [
-    {
-      name: "Acme Inc",
-      logo: GalleryVerticalEnd,
-      plan: "Enterprise",
-    },
-    {
-      name: "Acme Corp.",
-      logo: AudioWaveform,
-      plan: "Startup",
-    },
-    {
-      name: "Evil Corp.",
-      logo: Command,
-      plan: "Free",
-    },
-  ],
   navMain: [
     {
-      title: "Playground",
+      title: "Home",
       url: "#",
       icon: SquareTerminal,
       isActive: true,
+      // Hapus items atau jangan tulis sama sekali
+      // items: [],  ← jangan ada
+    },
+    {
+      title: "Client Relations",
+      url: "#",
+      icon: UserPlus,
       items: [
         {
-          title: "History",
-          url: "#",
-        },
-        {
-          title: "Starred",
-          url: "#",
-        },
-        {
-          title: "Settings",
+          title: "Guest History Record",
           url: "#",
         },
       ],
     },
     {
-      title: "Models",
+      title: "Reservations",
       url: "#",
-      icon: Bot,
+      icon: NotebookPen,
       items: [
-        {
-          title: "Genesis",
-          url: "#",
-        },
-        {
-          title: "Explorer",
-          url: "#",
-        },
-        {
-          title: "Quantum",
-          url: "#",
-        },
+        { title: "Book A Room", url: "#" },
+        { title: "Reservation History", url: "#" },
       ],
     },
     {
-      title: "Documentation",
+      title: "Front Desk",
       url: "#",
-      icon: BookOpen,
+      icon: Users,
       items: [
-        {
-          title: "Introduction",
-          url: "#",
-        },
-        {
-          title: "Get Started",
-          url: "#",
-        },
-        {
-          title: "Tutorials",
-          url: "#",
-        },
-        {
-          title: "Changelog",
-          url: "#",
-        },
+        { title: "Expected Arrivals", url: "#" },
+        { title: "In House", url: "#" },
+        { title: "Expected Departures", url: "#" },
       ],
     },
     {
-      title: "Settings",
+      title: "Inventory",
       url: "#",
-      icon: Settings2,
+      icon: Box,
       items: [
-        {
-          title: "General",
-          url: "#",
-        },
-        {
-          title: "Team",
-          url: "#",
-        },
-        {
-          title: "Billing",
-          url: "#",
-        },
-        {
-          title: "Limits",
-          url: "#",
-        },
+        { title: "Availability", url: "#" },
+        { title: "Room Status", url: "#" },
       ],
     },
-  ],
-  projects: [
     {
-      name: "Design Engineering",
+      title: "Financial",
       url: "#",
-      icon: Frame,
-    },
-    {
-      name: "Sales & Marketing",
-      url: "#",
-      icon: PieChart,
-    },
-    {
-      name: "Travel",
-      url: "#",
-      icon: Map,
+      icon: ChartNoAxesCombined,
+      // Hapus items atau biarkan kosong
+      // items: [],  ← jangan ada
     },
   ],
 };
@@ -168,7 +109,6 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
 
       <SidebarContent>
         <NavMain items={data.navMain} />
-        <NavProjects projects={data.projects} />
       </SidebarContent>
 
       {/* Footer bisa dikosongkan atau buat tombol lain */}
