@@ -4,6 +4,7 @@ import "./globals.css";
 import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/app-sidebar";
 
+
 const geistSans = Geist({
   variable: "--font-geist-sans",
   subsets: ["latin"],
@@ -24,10 +25,11 @@ export default function Layout({ children }: { children: React.ReactNode }) {
     <html>
       <body>
         <SidebarProvider>
-          <AppSidebar />
-          <main>
-            <SidebarTrigger />
-            {children}
+          <AppSidebar /> {/* Sidebar tetap di kiri */}
+          <main className="ml-64 p-4 min-h-screen">
+            {" "}
+            {/* ml-64 = lebar sidebar */}
+         
           </main>
         </SidebarProvider>
       </body>

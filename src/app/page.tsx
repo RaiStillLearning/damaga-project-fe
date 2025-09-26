@@ -1,7 +1,12 @@
 import React from "react";
+import {
+  ResizableHandle,
+  ResizablePanel,
+  ResizablePanelGroup,
+} from "@/components/ui/resizable";
 
 const page = () => {
-  return <div></div>;
+  return <></>;
 };
 
 export default page;
