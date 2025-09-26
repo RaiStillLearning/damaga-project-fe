@@ -2,28 +2,16 @@
 
 import * as React from "react";
 import {
-  AudioWaveform,
   UserPlus,
-  BookOpen,
-  Bot,
-  Command,
-  Frame,
-  GalleryVerticalEnd,
-  ClipboardCheck,
   NotebookPen,
-  Map,
-  PieChart,
-  Settings2,
-  SquareTerminal,
   Users,
   Box,
   ChartNoAxesCombined,
+  House,
 } from "lucide-react";
 
 import { NavMain } from "@/components/nav-main";
-import { NavProjects } from "@/components/nav-projects";
 import { NavUser } from "@/components/nav-user";
-import { TeamSwitcher } from "@/components/team-switcher";
 import {
   Sidebar,
   SidebarContent,
@@ -43,7 +31,7 @@ const data = {
     {
       title: "Home",
       url: "#",
-      icon: SquareTerminal,
+      icon: House,
       isActive: true,
       // Hapus items atau jangan tulis sama sekali
       // items: [],  ← jangan ada
