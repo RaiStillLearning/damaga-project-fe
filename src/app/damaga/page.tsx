@@ -5,8 +5,10 @@ import {
   ResizablePanelGroup,
 } from "@/components/ui/resizable";
 
-const page = () => {
-  return <></>;
-};
-
-export default page;
+export default function DamagaHome() {
+  return (
+    <>
+      <h1>Helo</h1>
+    </>
+  );
+}
