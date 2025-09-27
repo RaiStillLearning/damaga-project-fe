@@ -25,16 +25,13 @@ export default function DamagaLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html>
-      <body>
-        <SidebarProvider>
-          <AppSidebar /> {/* Sidebar tetap di kiri */}
-          <main>
-            <SidebarTrigger />
-            {/* Konten utama */}
-          </main>
-        </SidebarProvider>
-      </body>
-    </html>
+    <SidebarProvider>
+      <AppSidebar /> {/* Sidebar tetap di kiri */}
+      <main>
+        <SidebarTrigger />
+        {/* Konten utama */}
+        {children}
+      </main>
+    </SidebarProvider>
   );
 }

@@ -8,7 +8,7 @@ import {
 export default function DamagaHome() {
   return (
     <>
-      <h1>Helo</h1>
+      <h1>hello</h1>
     </>
   );
 }
