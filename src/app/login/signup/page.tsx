@@ -80,7 +80,7 @@ export default function SignUpPage() {
 
       <CardFooter className="flex flex-col gap-2">
         <Button type="submit" className="w-full">
-          Sign Up
+          <a href="/login">Sign up</a>
         </Button>
         <p className="text-muted-foreground text-sm">
           {" "}
