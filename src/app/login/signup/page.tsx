@@ -10,19 +10,27 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import Image from "next/image";
 
 const divisions = [
-  { value: "Lorem", label: "Lorem" },
-  { value: "Lorem", label: "Lorem" },
-  { value: "Lorem", label: "Lorem" },
-  { value: "Lorem", label: "Lorem" },
-  { value: "Lorem", label: "Lorem" },
+  { value: "Lorem1", label: "Lorem 1" },
+  { value: "Lorem2", label: "Lorem 2" },
+  { value: "Lorem3", label: "Lorem 3" },
+  { value: "Lorem4", label: "Lorem 4" },
+  { value: "Lorem5", label: "Lorem 5" },
 ];
 
 export default function SignUpPage() {
   return (
     <Card className="w-full max-w-sm mx-auto">
       <CardHeader>
+        <Image
+          src="/photos/logo/DAMAGA SUITES MRR.png"
+          alt="DAMAGA Logo"
+          width={150}
+          height={150}
+          className="mx-auto"
+        />
         <CardTitle>Create your account</CardTitle>
         <CardDescription>Fill the form below to sign up</CardDescription>
       </CardHeader>
@@ -45,8 +53,8 @@ export default function SignUpPage() {
               <option value="" disabled>
                 Select your division
               </option>
-              {divisions.map((div) => (
-                <option key={div.value} value={div.value}>
+              {divisions.map((div, idx) => (
+                <option key={idx} value={div.value}>
                   {div.label}
                 </option>
               ))}
@@ -74,9 +82,10 @@ export default function SignUpPage() {
         <Button type="submit" className="w-full">
           Sign Up
         </Button>
-        <Button variant="outline" className="w-full">
-          Sign Up with Google
-        </Button>
+        <p className="text-muted-foreground text-sm">
+          {" "}
+          I`ll promise never share your data with anyone else. pinky promise!
+        </p>
       </CardFooter>
     </Card>
   );
