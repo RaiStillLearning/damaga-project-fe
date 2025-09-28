@@ -4,7 +4,6 @@ import {
   Card,
   CardHeader,
   CardContent,
-  CardFooter,
   CardTitle,
   CardDescription,
 } from "@/components/ui/card";
@@ -52,8 +51,12 @@ export default function SignUpPage() {
 
       setMessage("Signup berhasil! Redirecting...");
       setTimeout(() => router.push("/login"), 1000);
-    } catch (err: any) {
-      setMessage(err.message);
+    } catch (err) {
+      if (err instanceof Error) {
+        setMessage(err.message);
+      } else {
+        setMessage("Terjadi kesalahan");
+      }
     } finally {
       setLoading(false);
     }

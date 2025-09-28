@@ -34,20 +34,20 @@ export default function ForgotPasswordPage() {
         }
       );
 
-      const data = await res.json();
+      const data: { message?: string; error?: string } = await res.json();
 
       if (!res.ok) throw new Error(data.error || "Failed to send OTP");
 
-      setMessage(data.message);
+      setMessage(data.message || "");
 
-      // redirect ke halaman OTP validation + bawa email lewat query
       setTimeout(() => {
         router.push(
           `/forgot-password/verify?email=${encodeURIComponent(email)}`
         );
-      }, 1000); // delay 1 detik biar user lihat pesan
-    } catch (err: any) {
-      setMessage(err.message);
+      }, 1000);
+    } catch (err) {
+      if (err instanceof Error) setMessage(err.message);
+      else setMessage("Terjadi kesalahan");
     } finally {
       setLoading(false);
     }

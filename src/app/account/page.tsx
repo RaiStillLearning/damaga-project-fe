@@ -14,6 +14,7 @@ import {
   CardDescription,
 } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
+import Image from "next/image";
 
 export default function AccountPage() {
   const router = useRouter();
@@ -93,7 +94,7 @@ export default function AccountPage() {
             <div className="relative">
               <div className="h-24 w-24 rounded-lg bg-muted flex items-center justify-center overflow-hidden">
                 {user.avatar && user.avatar !== "/placeholder-avatar.jpg" ? (
-                  <img
+                  <Image
                     src={user.avatar}
                     alt={user.name}
                     className="h-full w-full object-cover"

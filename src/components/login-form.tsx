@@ -13,7 +13,14 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useRouter } from "next/navigation";
-import { useState, useEffect } from "react";
+import { useState } from "react";
+
+interface User {
+  _id: string;
+  username: string;
+  email: string;
+  divisi: string;
+}
 
 export function LoginForm({
   className,
@@ -22,7 +29,7 @@ export function LoginForm({
   const router = useRouter();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [users, setUsers] = useState<any[]>([]);
+  const [users, setUsers] = useState<User[]>([]);
 
   // login function
   async function handleSubmit(e: React.FormEvent) {
