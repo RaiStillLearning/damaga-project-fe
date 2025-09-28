@@ -149,7 +149,7 @@ export function LoginForm({
       </Card>
 
       {/* tampilkan list user kalau mau */}
-      {users.length > 0 && (
+      {/* {users.length > 0 && (
         <div className="mt-4">
           <h2 className="text-lg font-bold">Users List:</h2>
           <ul>
@@ -160,7 +160,7 @@ export function LoginForm({
             ))}
           </ul>
         </div>
-      )}
+      )} */}
 
       <div className="text-muted-foreground text-center text-xs text-balance *:[a]:underline *:[a]:underline-offset-4 *:[a]:hover:text-primary">
         By clicking continue, you agree to our <a href="#">Terms of Service</a>{" "}
