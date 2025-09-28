@@ -1,0 +1,22 @@
+import "../../globals.css";
+
+export const metadata = {
+  title: "Sign Up",
+  description: "Create a new account",
+};
+
+export default function SignUpLayout({
+  children,
+}: {
+  children: React.ReactNode;
+}) {
+  return (
+    <html lang="en">
+      <body>
+        <main className="flex min-h-screen items-center justify-center bg-muted p-6">
+          {children}
+        </main>
+      </body>
+    </html>
+  );
+}

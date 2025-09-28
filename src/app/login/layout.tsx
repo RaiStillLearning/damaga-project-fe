@@ -1,9 +1,9 @@
-import "./globals.css";
+import "../globals.css";
 import type { Metadata } from "next";
 
 export const metadata: Metadata = {
   title: "Damaga",
-  description: "Damaga project reservation",
+  description: "Damaga project reservastion",
 };
 
 export default function RootLayout({
@@ -13,9 +13,9 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en">
-      <body className="min-h-screen">
-        {/* Debug: Tambahkan styling untuk melihat konten */}
-        <div className="min-h-screen p-6">{children}</div>
+      <body>
+        {/* navbar / wrapper global bisa di sini */}
+        {children}
       </body>
     </html>
   );
