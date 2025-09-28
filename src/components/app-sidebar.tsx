@@ -30,7 +30,7 @@ const data = {
   navMain: [
     {
       title: "Home",
-      url: "#",
+      url: "/damaga",
       icon: House,
       isActive: true,
       // Hapus items atau jangan tulis sama sekali
