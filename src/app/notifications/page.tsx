@@ -1,9 +1,14 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
 import { Card, CardContent } from "@/components/ui/card";
+import { ArrowLeft } from "lucide-react";
+import { Button } from "@/components/ui/button";
 
 export default function NotificationsPage() {
+  const router = useRouter();
+
   const notifications = [
     {
       id: 1,
@@ -25,6 +30,16 @@ export default function NotificationsPage() {
 
   return (
     <div className="w-full max-w-3xl mx-auto p-6 space-y-6">
+      {/* Back Button */}
+      <Button
+        variant="outline"
+        className="flex items-center gap-2"
+        onClick={() => router.push("/damaga")}
+      >
+        <ArrowLeft className="h-4 w-4" />
+        Back
+      </Button>
+
       <h1 className="text-3xl font-bold text-foreground">Notifications</h1>
 
       <div className="space-y-4">

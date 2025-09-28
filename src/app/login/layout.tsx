@@ -1,22 +1,12 @@
-import "../globals.css";
-import type { Metadata } from "next";
-
-export const metadata: Metadata = {
-  title: "Damaga",
-  description: "Damaga project reservastion",
-};
-
-export default function RootLayout({
+// src/app/login/layout.tsx
+export default function LoginLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
   return (
     <html lang="en">
-      <body>
-        {/* navbar / wrapper global bisa di sini */}
-        {children}
-      </body>
+      <body className="min-h-screen">{children}</body>
     </html>
   );
 }

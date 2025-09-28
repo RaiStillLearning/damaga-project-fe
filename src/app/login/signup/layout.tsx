@@ -11,12 +11,8 @@ export default function SignUpLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="en">
-      <body>
-        <main className="flex min-h-screen items-center justify-center bg-muted p-6">
-          {children}
-        </main>
-      </body>
-    </html>
+    <main className="flex min-h-screen items-center justify-center bg-muted p-6">
+      {children}
+    </main>
   );
 }

@@ -49,6 +49,10 @@ export function NavUser({
     window.location.href = "/login";
   };
 
+  const handleNotificationsClick = () => {
+    router.push("/notifications");
+  };
+
   const handleAccountClick = () => {
     router.push("/account");
   };
@@ -97,7 +101,7 @@ export function NavUser({
                 <BadgeCheck />
                 Account
               </DropdownMenuItem>
-              <DropdownMenuItem>
+              <DropdownMenuItem onClick={handleNotificationsClick}>
                 <Bell />
                 Notifications
               </DropdownMenuItem>
