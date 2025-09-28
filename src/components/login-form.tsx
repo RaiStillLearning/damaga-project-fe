@@ -13,7 +13,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 
 export function LoginForm({
   className,
@@ -22,19 +22,57 @@ export function LoginForm({
   const router = useRouter();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [users, setUsers] = useState<any[]>([]);
 
-  function handleSubmit(e: React.FormEvent) {
+  // login function
+  async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
 
-    // contoh login dummy
-    if (email === "admin@example.com" && password === "123") {
-      // simpan status login sementara
-      localStorage.setItem("isLoggedIn", "true");
+    try {
+      const res = await fetch(
+        `${process.env.NEXT_PUBLIC_API_URL}/api/auth/login`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ email, password }),
+        }
+      );
 
-      // redirect ke /damaga
+      const data = await res.json();
+
+      if (!res.ok || !data.token) {
+        return alert(data.error || "Login gagal");
+      }
+
+      localStorage.setItem("token", data.token);
+
+      // setelah login, ambil data users
+      await fetchUsers();
+
       router.push("/damaga");
-    } else {
-      alert("Email atau password salah!");
+    } catch (err) {
+      console.error(err);
+      alert("Terjadi kesalahan, coba lagi.");
+    }
+  }
+
+  // fetch users function
+  async function fetchUsers() {
+    const token = localStorage.getItem("token");
+    if (!token) return alert("Anda harus login");
+
+    try {
+      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/users`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      const data = await res.json();
+
+      if (!res.ok) return alert(data.error || "Gagal ambil users");
+
+      setUsers(data.data); // simpan ke state kalau mau ditampilkan
+      console.log("Users:", data);
+    } catch (err) {
+      console.error(err);
     }
   }
 
@@ -71,7 +109,7 @@ export function LoginForm({
                   <div className="flex items-center">
                     <Label htmlFor="password">Password</Label>
                     <a
-                      href="#"
+                      href="/forgot-password"
                       className="ml-auto text-sm underline-offset-4 hover:underline"
                     >
                       Forgot your password?
@@ -102,6 +140,21 @@ export function LoginForm({
           </form>
         </CardContent>
       </Card>
+
+      {/* tampilkan list user kalau mau */}
+      {users.length > 0 && (
+        <div className="mt-4">
+          <h2 className="text-lg font-bold">Users List:</h2>
+          <ul>
+            {users.map((u) => (
+              <li key={u._id}>
+                {u.username} - {u.email} - {u.divisi}
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
+
       <div className="text-muted-foreground text-center text-xs text-balance *:[a]:underline *:[a]:underline-offset-4 *:[a]:hover:text-primary">
         By clicking continue, you agree to our <a href="#">Terms of Service</a>{" "}
         and <a href="#">Privacy Policy</a>.

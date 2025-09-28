@@ -1,4 +1,5 @@
-import React from "react";
+"use client";
+import { useState } from "react";
 import {
   Card,
   CardHeader,
@@ -7,10 +8,11 @@ import {
   CardTitle,
   CardDescription,
 } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Button } from "@/components/ui/button";
 import Image from "next/image";
+import { useRouter } from "next/navigation";
 
 const divisions = [
   { value: "Lorem1", label: "Lorem 1" },
@@ -21,72 +23,121 @@ const divisions = [
 ];
 
 export default function SignUpPage() {
+  const router = useRouter();
+  const [username, setUsername] = useState("");
+  const [divisi, setDivisi] = useState("");
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [message, setMessage] = useState("");
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setLoading(true);
+    setMessage("");
+
+    try {
+      const res = await fetch(
+        `${process.env.NEXT_PUBLIC_API_URL}/api/auth/signup`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ username, divisi, email, password }),
+        }
+      );
+
+      const data = await res.json();
+
+      if (!res.ok) throw new Error(data.error || "Signup failed");
+
+      setMessage("Signup berhasil! Redirecting...");
+      setTimeout(() => router.push("/login"), 1000);
+    } catch (err: any) {
+      setMessage(err.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return (
-    <Card className="w-full max-w-sm mx-auto">
-      <CardHeader>
-        <Image
-          src="/logo/DAMAGA SUITES MRR.png"
-          alt="DAMAGA Logo"
-          width={150}
-          height={150}
-          className="mx-auto"
-        />
-        <CardTitle>Create your account</CardTitle>
-        <CardDescription>Fill the form below to sign up</CardDescription>
-      </CardHeader>
+    <div className="flex min-h-screen items-center justify-center p-6 w-100">
+      <Card className="w-full max-w-sm">
+        <CardHeader className="text-center">
+          <Image
+            src="/logo/DAMAGA SUITES MRR.png"
+            alt="Logo"
+            width={150}
+            height={150}
+            className="mx-auto"
+          />
+          <CardTitle>Create your account</CardTitle>
+          <CardDescription>Fill the form below to sign up</CardDescription>
+        </CardHeader>
 
-      <CardContent>
-        <form className="flex flex-col gap-4">
-          <div className="grid gap-2">
-            <Label htmlFor="name">Name</Label>
-            <Input id="name" type="text" placeholder="Your Username" required />
-          </div>
+        <CardContent>
+          <form className="flex flex-col gap-4" onSubmit={handleSubmit}>
+            <div className="grid gap-2">
+              <Label htmlFor="name">Name</Label>
+              <Input
+                id="name"
+                type="text"
+                placeholder="Your Username"
+                required
+                value={username}
+                onChange={(e) => setUsername(e.target.value)}
+              />
+            </div>
 
-          <div className="grid gap-2">
-            <Label htmlFor="division">Division</Label>
-            <select
-              id="division"
-              className="border rounded px-3 py-2"
-              defaultValue=""
-              required
-            >
-              <option value="" disabled>
-                Select your division
-              </option>
-              {divisions.map((div, idx) => (
-                <option key={idx} value={div.value}>
-                  {div.label}
+            <div className="grid gap-2">
+              <Label htmlFor="division">Division</Label>
+              <select
+                id="division"
+                className="border rounded px-3 py-2"
+                required
+                value={divisi}
+                onChange={(e) => setDivisi(e.target.value)}
+              >
+                <option value="" disabled>
+                  Select your division
                 </option>
-              ))}
-            </select>
-          </div>
+                {divisions.map((d, i) => (
+                  <option key={i} value={d.value}>
+                    {d.label}
+                  </option>
+                ))}
+              </select>
+            </div>
 
-          <div className="grid gap-2">
-            <Label htmlFor="email">Email</Label>
-            <Input
-              id="email"
-              type="email"
-              placeholder="you@example.com"
-              required
-            />
-          </div>
+            <div className="grid gap-2">
+              <Label htmlFor="email">Email</Label>
+              <Input
+                id="email"
+                type="email"
+                placeholder="you@example.com"
+                required
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+              />
+            </div>
 
-          <div className="grid gap-2">
-            <Label htmlFor="password">Password</Label>
-            <Input id="password" type="password" required />
-          </div>
-        </form>
-      </CardContent>
+            <div className="grid gap-2">
+              <Label htmlFor="password">Password</Label>
+              <Input
+                id="password"
+                type="password"
+                required
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+              />
+            </div>
 
-      <CardFooter className="flex flex-col gap-2">
-        <Button type="submit" className="w-full">
-          <a href="/login">Sign up</a>
-        </Button>
-        <p className="text-muted-foreground text-sm">
-          {" "}
-          I`ll promise never share your data with anyone else. pinky promise!
-        </p>
-      </CardFooter>
-    </Card>
+            <Button type="submit" className="w-full" disabled={loading}>
+              {loading ? "Signing up..." : "Sign up"}
+            </Button>
+            {message && <p className="text-center text-sm mt-2">{message}</p>}
+          </form>
+        </CardContent>
+      </Card>
+    </div>
   );
 }
