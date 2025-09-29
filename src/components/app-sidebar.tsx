@@ -21,7 +21,7 @@ import {
 } from "@/components/ui/sidebar";
 
 type UserType = {
-  name: string;
+  username: string;
   email: string;
   avatar?: string;
 };
@@ -69,7 +69,7 @@ const data = {
 
 export function AppSidebar(props: React.ComponentProps<typeof Sidebar>) {
   const [user, setUser] = useState<UserType>({
-    name: "",
+    username: "",
     email: "",
     avatar: "/default-avatar.png",
   });
@@ -79,15 +79,18 @@ export function AppSidebar(props: React.ComponentProps<typeof Sidebar>) {
       try {
         const res = await fetch("http://localhost:5000/api/profile", {
           headers: {
-            Authorization: `Bearer ${localStorage.getItem("token")}`, // token dari login
+            Authorization: `Bearer ${localStorage.getItem("token")}`,
           },
         });
 
+        if (!res.ok) throw new Error("Failed to fetch profile");
+
         const data = await res.json();
+
         setUser({
-          name: data.username, // ✅ ambil dari backend
+          username: data.username,
           email: data.email,
-          avatar: "/default-avatar.png", // bisa diganti kalau ada avatar di DB
+          avatar: data.avatar || "/default-avatar.png", // ✅ ambil avatar dari DB
         });
       } catch (err) {
         console.error("Error fetching profile:", err);

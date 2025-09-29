@@ -32,7 +32,7 @@ import { useRouter } from "next/navigation";
 
 // 🔹 Tambahin tipe user props
 type UserType = {
-  name: string;
+  username: string;
   email: string;
   avatar?: string;
 };
@@ -55,7 +55,7 @@ export function NavUser({ user }: { user: UserType }) {
     router.push("/account");
   };
 
-  if (!user?.name) {
+  if (!user?.username) {
     return (
       <SidebarMenu>
         <SidebarMenuItem>
@@ -75,13 +75,13 @@ export function NavUser({ user }: { user: UserType }) {
               className="data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-accent-foreground"
             >
               <Avatar className="h-8 w-8 rounded-lg">
-                <AvatarImage src={user.avatar} alt={user.name} />
+                <AvatarImage src={user.avatar} alt={user.username} />
                 <AvatarFallback className="rounded-lg">
-                  {user.name[0]}
+                  {user.username[0]}
                 </AvatarFallback>
               </Avatar>
               <div className="grid flex-1 text-left text-sm leading-tight">
-                <span className="truncate font-medium">{user.name}</span>
+                <span className="truncate font-medium">{user.username}</span>
                 <span className="truncate text-xs">{user.email}</span>
               </div>
               <ChevronsUpDown className="ml-auto size-4" />
@@ -96,13 +96,13 @@ export function NavUser({ user }: { user: UserType }) {
             <DropdownMenuLabel className="p-0 font-normal">
               <div className="flex items-center gap-2 px-1 py-1.5 text-left text-sm">
                 <Avatar className="h-8 w-8 rounded-lg">
-                  <AvatarImage src={user.avatar} alt={user.name} />
+                  <AvatarImage src={user.avatar} alt={user.username} />
                   <AvatarFallback className="rounded-lg">
-                    {user.name[0]}
+                    {user.username[0]}
                   </AvatarFallback>
                 </Avatar>
                 <div className="grid flex-1 text-left text-sm leading-tight">
-                  <span className="truncate font-medium">{user.name}</span>
+                  <span className="truncate font-medium">{user.username}</span>
                   <span className="truncate text-xs">{user.email}</span>
                 </div>
               </div>
