@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { BadgeCheck, Bell, ChevronsUpDown, LogOut } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import {
@@ -30,22 +30,43 @@ import {
 } from "@/components/ui/alert-dialog";
 import { useRouter } from "next/navigation";
 
-export function NavUser({
-  user,
-}: {
-  user: {
+export function NavUser() {
+  const { isMobile } = useSidebar();
+  const [open, setOpen] = useState(false);
+  const [user, setUser] = useState<{
     name: string;
     email: string;
     avatar: string;
-  };
-}) {
-  const { isMobile } = useSidebar();
-  const [open, setOpen] = useState(false);
+  } | null>(null);
   const router = useRouter();
 
+  // ambil profile dari backend
+  useEffect(() => {
+    const token = localStorage.getItem("token");
+    if (!token) return;
+
+    const cached = localStorage.getItem("user");
+    if (cached) {
+      setUser(JSON.parse(cached));
+    }
+
+    fetch("http://localhost:5000/api/profile", {
+      headers: { Authorization: `Bearer ${token}` },
+    })
+      .then((res) => res.json())
+      .then((data) => {
+        setUser({
+          name: data.username,
+          email: data.email,
+          avatar: data.avatar || "/default-avatar.png",
+        });
+        localStorage.setItem("user", JSON.stringify(data)); // update cache
+      })
+      .catch((err) => console.error("Gagal fetch profile:", err));
+  }, []);
+
   const handleLogout = () => {
-    // logika logout lu di sini
-    // misal clear token dll
+    localStorage.removeItem("token"); // hapus token biar ga bisa akses lagi
     window.location.href = "/login";
   };
 
@@ -56,6 +77,16 @@ export function NavUser({
   const handleAccountClick = () => {
     router.push("/account");
   };
+
+  if (!user) {
+    return (
+      <SidebarMenu>
+        <SidebarMenuItem>
+          <div className="p-2 text-sm text-muted-foreground">Loading...</div>
+        </SidebarMenuItem>
+      </SidebarMenu>
+    );
+  }
 
   return (
     <SidebarMenu>
@@ -68,7 +99,9 @@ export function NavUser({
             >
               <Avatar className="h-8 w-8 rounded-lg">
                 <AvatarImage src={user.avatar} alt={user.name} />
-                <AvatarFallback className="rounded-lg">CN</AvatarFallback>
+                <AvatarFallback className="rounded-lg">
+                  {user.name[0]}
+                </AvatarFallback>
               </Avatar>
               <div className="grid flex-1 text-left text-sm leading-tight">
                 <span className="truncate font-medium">{user.name}</span>
@@ -87,7 +120,9 @@ export function NavUser({
               <div className="flex items-center gap-2 px-1 py-1.5 text-left text-sm">
                 <Avatar className="h-8 w-8 rounded-lg">
                   <AvatarImage src={user.avatar} alt={user.name} />
-                  <AvatarFallback className="rounded-lg">CN</AvatarFallback>
+                  <AvatarFallback className="rounded-lg">
+                    {user.name[0]}
+                  </AvatarFallback>
                 </Avatar>
                 <div className="grid flex-1 text-left text-sm leading-tight">
                   <span className="truncate font-medium">{user.name}</span>
@@ -115,7 +150,7 @@ export function NavUser({
         </DropdownMenu>
       </SidebarMenuItem>
 
-      {/* AlertDialog */}
+      {/* AlertDialog Logout */}
       <AlertDialog open={open} onOpenChange={setOpen}>
         <AlertDialogContent>
           <AlertDialogHeader>

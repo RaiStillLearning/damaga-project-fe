@@ -1,6 +1,6 @@
 "use client";
 
-import * as React from "react";
+import React, { useEffect, useState } from "react";
 import {
   UserPlus,
   NotebookPen,
@@ -20,32 +20,20 @@ import {
   SidebarRail,
 } from "@/components/ui/sidebar";
 
-// This is sample data.
+type UserType = {
+  name: string;
+  email: string;
+  avatar: string;
+};
+
 const data = {
-  user: {
-    name: "Damaga",
-    email: "@damagaproject.com",
-    avatar: "/photos/logo/DAMAGA SUITES MRR.png",
-  },
   navMain: [
-    {
-      title: "Home",
-      url: "/damaga",
-      icon: House,
-      isActive: true,
-      // Hapus items atau jangan tulis sama sekali
-      // items: [],  ← jangan ada
-    },
+    { title: "Home", url: "/damaga", icon: House, isActive: true },
     {
       title: "Client Relations",
       url: "#",
       icon: UserPlus,
-      items: [
-        {
-          title: "Guest History Record",
-          url: "#",
-        },
-      ],
+      items: [{ title: "Guest History Record", url: "#" }],
     },
     {
       title: "Reservations",
@@ -75,33 +63,51 @@ const data = {
         { title: "Room Status", url: "#" },
       ],
     },
-    {
-      title: "Financial",
-      url: "#",
-      icon: ChartNoAxesCombined,
-      // Hapus items atau biarkan kosong
-      // items: [],  ← jangan ada
-    },
+    { title: "Financial", url: "#", icon: ChartNoAxesCombined },
   ],
 };
 
-export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
+export function AppSidebar(props: React.ComponentProps<typeof Sidebar>) {
+  const [user, setUser] = useState<UserType>({
+    name: "",
+    email: "",
+    avatar: "/default-avatar.png",
+  });
+
+  useEffect(() => {
+    const fetchUser = async () => {
+      try {
+        const res = await fetch("http://localhost:5000/api/profile", {
+          headers: {
+            Authorization: `Bearer ${localStorage.getItem("token")}`, // token dari login
+          },
+        });
+
+        const data = await res.json();
+        setUser({
+          name: data.username,
+          email: data.email,
+          avatar: "/default-avatar.png", // bisa diganti kalau ada avatar di DB
+        });
+      } catch (err) {
+        console.error("Error fetching profile:", err);
+      }
+    };
+
+    fetchUser();
+  }, []);
+
   return (
     <Sidebar collapsible="icon" {...props}>
       <SidebarHeader>
-        {/* User Profile di atas */}
-        <NavUser user={data.user} />
-
-        {/* Team Switcher tetap bisa di header */}
+        <NavUser user={user} />
       </SidebarHeader>
 
       <SidebarContent>
         <NavMain items={data.navMain} />
       </SidebarContent>
 
-      {/* Footer bisa dikosongkan atau buat tombol lain */}
-      <SidebarFooter>{/* misal tombol logout tambahan */}</SidebarFooter>
-
+      <SidebarFooter>{/* Tombol logout bisa disini */}</SidebarFooter>
       <SidebarRail />
     </Sidebar>
   );

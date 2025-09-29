@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import { Camera, ArrowLeft, Save } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
@@ -21,12 +21,30 @@ export default function AccountPage() {
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const [user, setUser] = useState({
-    name: "Zainuri",
-    email: "zainuri@damaga.com",
+    name: "",
+    email: "",
     avatar: "/placeholder-avatar.jpg",
   });
-
   const [isLoading, setIsLoading] = useState(false);
+
+  // fetch profile
+  useEffect(() => {
+    const token = localStorage.getItem("token");
+    if (!token) return router.push("/login");
+
+    fetch("http://localhost:5000/api/profile", {
+      headers: { Authorization: `Bearer ${token}` },
+    })
+      .then((res) => res.json())
+      .then((data) =>
+        setUser({
+          name: data.username,
+          email: data.email,
+          avatar: data.avatar || "/placeholder-avatar.jpg",
+        })
+      )
+      .catch(() => console.log("Failed to load profile"));
+  }, [router]);
 
   const handleImageChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
@@ -48,10 +66,36 @@ export default function AccountPage() {
   const handleSave = async () => {
     setIsLoading(true);
     try {
-      await new Promise((resolve) => setTimeout(resolve, 1500));
+      const token = localStorage.getItem("token");
+      if (!token) {
+        alert("Please login again");
+        return router.push("/login");
+      }
+
+      const res = await fetch("http://localhost:5000/api/profile", {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify(user),
+      });
+
+      if (!res.ok) throw new Error("Update failed");
+
+      const updated = await res.json();
+      setUser({
+        name: updated.username,
+        email: updated.email,
+        avatar: updated.avatar || "/placeholder-avatar.jpg",
+      });
+
+      // simpan lagi ke localStorage supaya NavUser ikut update
+      localStorage.setItem("user", JSON.stringify(updated));
+
       alert("Profile updated successfully!");
-    } catch {
-      alert("Failed to update profile.");
+    } catch (err) {
+      alert("Failed to update profile");
     } finally {
       setIsLoading(false);
     }
@@ -93,11 +137,13 @@ export default function AccountPage() {
           <div className="flex items-center gap-6">
             <div className="relative">
               <div className="h-24 w-24 rounded-lg bg-muted flex items-center justify-center overflow-hidden">
-                {user.avatar && user.avatar !== "/placeholder-avatar.jpg" ? (
+                {user.avatar ? (
                   <Image
                     src={user.avatar}
                     alt={user.name}
                     className="h-full w-full object-cover"
+                    width={96}
+                    height={96}
                   />
                 ) : (
                   <span className="text-2xl text-foreground font-bold">
