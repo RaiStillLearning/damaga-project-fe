@@ -23,7 +23,7 @@ import {
 type UserType = {
   name: string;
   email: string;
-  avatar: string;
+  avatar?: string;
 };
 
 const data = {
@@ -85,7 +85,7 @@ export function AppSidebar(props: React.ComponentProps<typeof Sidebar>) {
 
         const data = await res.json();
         setUser({
-          name: data.username,
+          name: data.username, // ✅ ambil dari backend
           email: data.email,
           avatar: "/default-avatar.png", // bisa diganti kalau ada avatar di DB
         });

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { BadgeCheck, Bell, ChevronsUpDown, LogOut } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import {
@@ -30,43 +30,20 @@ import {
 } from "@/components/ui/alert-dialog";
 import { useRouter } from "next/navigation";
 
-export function NavUser() {
+// 🔹 Tambahin tipe user props
+type UserType = {
+  name: string;
+  email: string;
+  avatar?: string;
+};
+
+export function NavUser({ user }: { user: UserType }) {
   const { isMobile } = useSidebar();
   const [open, setOpen] = useState(false);
-  const [user, setUser] = useState<{
-    name: string;
-    email: string;
-    avatar: string;
-  } | null>(null);
   const router = useRouter();
 
-  // ambil profile dari backend
-  useEffect(() => {
-    const token = localStorage.getItem("token");
-    if (!token) return;
-
-    const cached = localStorage.getItem("user");
-    if (cached) {
-      setUser(JSON.parse(cached));
-    }
-
-    fetch("http://localhost:5000/api/profile", {
-      headers: { Authorization: `Bearer ${token}` },
-    })
-      .then((res) => res.json())
-      .then((data) => {
-        setUser({
-          name: data.username,
-          email: data.email,
-          avatar: data.avatar || "/default-avatar.png",
-        });
-        localStorage.setItem("user", JSON.stringify(data)); // update cache
-      })
-      .catch((err) => console.error("Gagal fetch profile:", err));
-  }, []);
-
   const handleLogout = () => {
-    localStorage.removeItem("token"); // hapus token biar ga bisa akses lagi
+    localStorage.removeItem("token");
     window.location.href = "/login";
   };
 
@@ -78,7 +55,7 @@ export function NavUser() {
     router.push("/account");
   };
 
-  if (!user) {
+  if (!user?.name) {
     return (
       <SidebarMenu>
         <SidebarMenuItem>
