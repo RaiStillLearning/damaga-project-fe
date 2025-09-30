@@ -14,28 +14,22 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
-
-interface User {
-  _id: string;
-  username: string;
-  email: string;
-  divisi: string;
-}
+import { useUserContext } from "@/context/userContext";
 
 export function LoginForm({
   className,
   ...props
 }: React.ComponentProps<"div">) {
   const router = useRouter();
+  const { setUser } = useUserContext();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [users, setUsers] = useState<User[]>([]);
 
-  // login function
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
 
     try {
+      // 1️⃣ Panggil endpoint login
       const res = await fetch(
         `${process.env.NEXT_PUBLIC_API_URL}/api/auth/login`,
         {
@@ -46,40 +40,31 @@ export function LoginForm({
       );
 
       const data = await res.json();
+      console.log("Login response:", data);
 
-      if (!res.ok || !data.token) {
-        return alert(data.error || "Login gagal");
+      if (!data.user) {
+        console.error("User data missing:", data);
+        return alert("Data user tidak ditemukan, cek API login.");
       }
 
+      // 3️⃣ Set user di context
       localStorage.setItem("token", data.token);
 
-      // setelah login, ambil data users
-      await fetchUsers();
+      setUser(
+        {
+          username: data.user.username,
+          email: data.user.email,
+          divisi: data.user.divisi || "",
+          avatar: data.user.avatar || "",
+        },
+        data.token
+      );
 
+      // 4️⃣ Redirect ke dashboard
       router.push("/damaga");
     } catch (err) {
       console.error(err);
       alert("Terjadi kesalahan, coba lagi.");
-    }
-  }
-
-  // fetch users function
-  async function fetchUsers() {
-    const token = localStorage.getItem("token");
-    if (!token) return alert("Anda harus login");
-
-    try {
-      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/users`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      const data = await res.json();
-
-      if (!res.ok) return alert(data.error || "Gagal ambil users");
-
-      setUsers(data.data); // simpan ke state kalau mau ditampilkan
-      console.log("Users:", data);
-    } catch (err) {
-      console.error(err);
     }
   }
 
@@ -148,21 +133,7 @@ export function LoginForm({
         </CardContent>
       </Card>
 
-      {/* tampilkan list user kalau mau */}
-      {/* {users.length > 0 && (
-        <div className="mt-4">
-          <h2 className="text-lg font-bold">Users List:</h2>
-          <ul>
-            {users.map((u) => (
-              <li key={u._id}>
-                {u.username} - {u.email} - {u.divisi}
-              </li>
-            ))}
-          </ul>
-        </div>
-      )} */}
-
-      <div className="text-muted-foreground text-center text-xs text-balance *:[a]:underline *:[a]:underline-offset-4 *:[a]:hover:text-primary">
+      <div className="text-muted-foreground text-center text-xs mt-4">
         By clicking continue, you agree to our <a href="#">Terms of Service</a>{" "}
         and <a href="#">Privacy Policy</a>.
       </div>

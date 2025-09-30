@@ -21,7 +21,7 @@ export default function AccountPage() {
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const [user, setUser] = useState({
-    name: "",
+    username: "",
     email: "",
     avatar: "/placeholder-avatar.jpg",
   });
@@ -38,7 +38,7 @@ export default function AccountPage() {
       .then((res) => res.json())
       .then((data) =>
         setUser({
-          name: data.username,
+          username: data.username,
           email: data.email,
           avatar: data.avatar || "/placeholder-avatar.jpg",
         })
@@ -67,10 +67,7 @@ export default function AccountPage() {
     setIsLoading(true);
     try {
       const token = localStorage.getItem("token");
-      if (!token) {
-        alert("Please login again");
-        return router.push("/login");
-      }
+      if (!token) return router.push("/login");
 
       const res = await fetch("http://localhost:5000/api/profile", {
         method: "PUT",
@@ -78,20 +75,32 @@ export default function AccountPage() {
           "Content-Type": "application/json",
           Authorization: `Bearer ${token}`,
         },
-        body: JSON.stringify(user),
+        body: JSON.stringify({
+          username: user.username,
+          avatar: user.avatar,
+        }),
       });
 
       if (!res.ok) throw new Error("Update failed");
 
       const updated = await res.json();
-      setUser({
-        name: updated.username,
-        email: updated.email,
-        avatar: updated.avatar || "/placeholder-avatar.jpg",
-      });
 
-      // simpan lagi ke localStorage supaya NavUser ikut update
-      localStorage.setItem("user", JSON.stringify(updated));
+      // Fix: jangan ganti email, tetap dari state lama
+      setUser((prev) => ({
+        username: updated.username,
+        email: prev.email, // email tetap
+        avatar: updated.avatar || prev.avatar,
+      }));
+
+      // Update localStorage juga aman
+      localStorage.setItem(
+        "user",
+        JSON.stringify({
+          username: updated.username,
+          email: user.email, // tetap email lama
+          avatar: updated.avatar || user.avatar,
+        })
+      );
 
       alert("Profile updated successfully!");
     } catch (err) {
@@ -140,14 +149,14 @@ export default function AccountPage() {
                 {user.avatar ? (
                   <Image
                     src={user.avatar}
-                    alt={user.name}
+                    alt={user.username}
                     className="h-full w-full object-cover"
                     width={96}
                     height={96}
                   />
                 ) : (
                   <span className="text-2xl text-foreground font-bold">
-                    {user.name.charAt(0).toUpperCase()}
+                    {user.username.charAt(0).toUpperCase()}
                   </span>
                 )}
               </div>
@@ -169,7 +178,7 @@ export default function AccountPage() {
             </div>
             <div className="space-y-2">
               <h3 className="text-lg font-medium text-foreground">
-                {user.name}
+                {user.username}
               </h3>
               <p className="text-sm text-muted-foreground">{user.email}</p>
               <Button
@@ -192,7 +201,7 @@ export default function AccountPage() {
               <Label htmlFor="name">Full Name</Label>
               <Input
                 id="name"
-                value={user.name}
+                value={user.username}
                 onChange={(e) =>
                   setUser((prev) => ({ ...prev, name: e.target.value }))
                 }
@@ -205,9 +214,7 @@ export default function AccountPage() {
                 id="email"
                 type="email"
                 value={user.email}
-                onChange={(e) =>
-                  setUser((prev) => ({ ...prev, email: e.target.value }))
-                }
+                disabled
                 placeholder="Enter your email"
               />
             </div>

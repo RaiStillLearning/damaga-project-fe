@@ -29,37 +29,37 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { useRouter } from "next/navigation";
+import { useUserContext } from "@/context/userContext";
 
-// 🔹 Tambahin tipe user props
-type UserType = {
-  username: string;
-  email: string;
-  avatar?: string;
-};
-
-export function NavUser({ user }: { user: UserType }) {
+export function NavUser() {
   const { isMobile } = useSidebar();
   const [open, setOpen] = useState(false);
+  const { user, clearUser, loading } = useUserContext();
   const router = useRouter();
 
   const handleLogout = () => {
-    localStorage.removeItem("token");
-    window.location.href = "/login";
+    clearUser();
+    router.push("/login");
   };
 
-  const handleNotificationsClick = () => {
-    router.push("/notifications");
-  };
+  const handleNotificationsClick = () => router.push("/notifications");
+  const handleAccountClick = () => router.push("/account");
 
-  const handleAccountClick = () => {
-    router.push("/account");
-  };
-
-  if (!user?.username) {
+  if (loading) {
     return (
       <SidebarMenu>
         <SidebarMenuItem>
           <div className="p-2 text-sm text-muted-foreground">Loading...</div>
+        </SidebarMenuItem>
+      </SidebarMenu>
+    );
+  }
+
+  if (!user) {
+    return (
+      <SidebarMenu>
+        <SidebarMenuItem>
+          <div className="p-2 text-sm text-muted-foreground">Belum login</div>
         </SidebarMenuItem>
       </SidebarMenu>
     );
@@ -75,10 +75,17 @@ export function NavUser({ user }: { user: UserType }) {
               className="data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-accent-foreground"
             >
               <Avatar className="h-8 w-8 rounded-lg">
-                <AvatarImage src={user.avatar} alt={user.username} />
+                <AvatarImage
+                  src={user.avatar}
+                  alt={user.username || user.username}
+                />
                 <AvatarFallback className="rounded-lg">
-                  {user.username[0]}
+                  {(user.username || user.username)?.[0]}
                 </AvatarFallback>
+                <span className="truncate font-medium">
+                  {user.username || user.username}
+                </span>
+                <span className="truncate text-xs">{user.email}</span>
               </Avatar>
               <div className="grid flex-1 text-left text-sm leading-tight">
                 <span className="truncate font-medium">{user.username}</span>
@@ -87,6 +94,7 @@ export function NavUser({ user }: { user: UserType }) {
               <ChevronsUpDown className="ml-auto size-4" />
             </SidebarMenuButton>
           </DropdownMenuTrigger>
+
           <DropdownMenuContent
             className="w-[--radix-dropdown-menu-trigger-width] min-w-56 rounded-lg"
             side={isMobile ? "bottom" : "right"}
@@ -107,27 +115,27 @@ export function NavUser({ user }: { user: UserType }) {
                 </div>
               </div>
             </DropdownMenuLabel>
+
             <DropdownMenuSeparator />
+
             <DropdownMenuGroup>
               <DropdownMenuItem onClick={handleAccountClick}>
-                <BadgeCheck />
-                Account
+                <BadgeCheck /> Account
               </DropdownMenuItem>
               <DropdownMenuItem onClick={handleNotificationsClick}>
-                <Bell />
-                Notifications
+                <Bell /> Notifications
               </DropdownMenuItem>
             </DropdownMenuGroup>
+
             <DropdownMenuSeparator />
+
             <DropdownMenuItem onClick={() => setOpen(true)}>
-              <LogOut />
-              Logout
+              <LogOut /> Logout
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
       </SidebarMenuItem>
 
-      {/* AlertDialog Logout */}
       <AlertDialog open={open} onOpenChange={setOpen}>
         <AlertDialogContent>
           <AlertDialogHeader>
