@@ -19,9 +19,8 @@ type User = {
 type UserContextType = {
   user: User | null;
   loading: boolean;
-  setUser: (user: User, token?: string) => void; // ✅ tambahkan token optional
+  setUser: (user: User, token?: string) => void;
   clearUser: () => void;
-  setLoading: (loading: boolean) => void; // ✅ tambahkan setLoading
 };
 
 const UserContext = createContext<UserContextType>({
@@ -29,65 +28,16 @@ const UserContext = createContext<UserContextType>({
   setUser: () => {},
   clearUser: () => {},
   loading: true,
-  setLoading: () => {},
 });
 
 export function UserProvider({ children }: { children: ReactNode }) {
   const [user, setUserState] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    const token = localStorage.getItem("token");
-    const userFromStorage = localStorage.getItem("user");
-
-    if (token && userFromStorage) {
-      setUser(JSON.parse(userFromStorage));
-      setLoading(false);
-    } else {
-      setUser(null);
-      setLoading(false);
-    }
-
-    console.log("🔑 Token from localStorage:", token); // debug
-    const storedUser = localStorage.getItem("user");
-    if (storedUser) {
-      const parsedUser = JSON.parse(storedUser);
-      console.log("👤 Stored user:", parsedUser); // debug
-      setUserState(parsedUser);
-    }
-
-    fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/profile`, {
-      headers: { Authorization: `Bearer ${token}` },
-      cache: "no-store",
-    })
-      .then((res) => {
-        console.log("📡 Profile response status:", res.status);
-        if (res.status === 401)
-          throw new Error("Unauthorized: token invalid or expired");
-        return res.json();
-      })
-      .then((data) => {
-        if (data?.user) setUserState(data.user);
-        else clearUser();
-      })
-      .catch((err) => {
-        console.error("❌ Profile fetch error:", err);
-        clearUser();
-      })
-      .finally(() => setLoading(false));
-  }, []);
-
   const setUser = useCallback((user: User, token?: string) => {
-    console.log("💾 setUser called with:", user, token); // ✅ tambahkan log
     setUserState(user);
-    localStorage.setItem("user", JSON.stringify(user)); // ⚠️ ini tidak jalan
-    if (token) {
-      localStorage.setItem("token", token);
-    }
-    console.log(
-      "✅ After save - localStorage user:",
-      localStorage.getItem("user")
-    ); // ✅ debug
+    localStorage.setItem("user", JSON.stringify(user));
+    if (token) localStorage.setItem("token", token);
   }, []);
 
   const clearUser = useCallback(() => {
@@ -96,10 +46,44 @@ export function UserProvider({ children }: { children: ReactNode }) {
     localStorage.removeItem("token");
   }, []);
 
+  useEffect(() => {
+    const token = localStorage.getItem("token");
+    if (!token) {
+      setLoading(false);
+      return;
+    }
+
+    const fetchProfile = async () => {
+      try {
+        const res = await fetch(
+          `${process.env.NEXT_PUBLIC_API_URL}/api/profile`,
+          {
+            headers: { Authorization: `Bearer ${token}` },
+            cache: "no-store",
+          }
+        );
+
+        if (!res.ok) {
+          if (res.status === 401) throw new Error("Unauthorized");
+          throw new Error("Failed to fetch profile");
+        }
+
+        const data = await res.json();
+        if (data?.user) setUserState(data.user);
+        else clearUser();
+      } catch (err) {
+        console.error("Profile fetch error:", err);
+        clearUser();
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchProfile();
+  }, [clearUser]);
+
   return (
-    <UserContext.Provider
-      value={{ user, setUser, clearUser, loading, setLoading }}
-    >
+    <UserContext.Provider value={{ user, setUser, clearUser, loading }}>
       {children}
     </UserContext.Provider>
   );

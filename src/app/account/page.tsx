@@ -27,7 +27,7 @@ export default function AccountPage() {
   });
   const [isLoading, setIsLoading] = useState(false);
 
-  // fetch profile
+  // ✅ Ambil profile dari token
   useEffect(() => {
     const token = localStorage.getItem("token");
     if (!token) return router.push("/login");
@@ -36,16 +36,19 @@ export default function AccountPage() {
       headers: { Authorization: `Bearer ${token}` },
     })
       .then((res) => res.json())
-      .then((data) =>
-        setUser({
-          username: data.username,
-          email: data.email,
-          avatar: data.avatar || "/placeholder-avatar.jpg",
-        })
-      )
+      .then((data) => {
+        if (data.user) {
+          setUser({
+            username: data.user.username || "",
+            email: data.user.email || "",
+            avatar: data.user.avatar || "/placeholder-avatar.jpg",
+          });
+        }
+      })
       .catch(() => console.log("Failed to load profile"));
   }, [router]);
 
+  // ✅ Upload avatar preview
   const handleImageChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (!file) return;
@@ -63,6 +66,7 @@ export default function AccountPage() {
     reader.readAsDataURL(file);
   };
 
+  // ✅ Save profile (PUT ke backend)
   const handleSave = async () => {
     setIsLoading(true);
     try {
@@ -85,22 +89,15 @@ export default function AccountPage() {
 
       const updated = await res.json();
 
-      // Fix: jangan ganti email, tetap dari state lama
-      setUser((prev) => ({
+      // ✅ langsung ambil data dari backend, jangan pake prev
+      setUser({
         username: updated.username,
-        email: prev.email, // email tetap
-        avatar: updated.avatar || prev.avatar,
-      }));
+        email: updated.email,
+        avatar: updated.avatar || "/placeholder-avatar.jpg",
+      });
+      localStorage.setItem("user", JSON.stringify(updated.user));
 
-      // Update localStorage juga aman
-      localStorage.setItem(
-        "user",
-        JSON.stringify({
-          username: updated.username,
-          email: user.email, // tetap email lama
-          avatar: updated.avatar || user.avatar,
-        })
-      );
+      localStorage.setItem("user", JSON.stringify(updated));
 
       alert("Profile updated successfully!");
     } catch (err) {
@@ -142,14 +139,14 @@ export default function AccountPage() {
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-6">
-          {/* Profile Picture Section */}
+          {/* Avatar */}
           <div className="flex items-center gap-6">
             <div className="relative">
               <div className="h-24 w-24 rounded-lg bg-muted flex items-center justify-center overflow-hidden">
                 {user.avatar ? (
                   <Image
                     src={user.avatar}
-                    alt={user.username}
+                    alt={user.username || "User"}
                     className="h-full w-full object-cover"
                     width={96}
                     height={96}
@@ -195,15 +192,15 @@ export default function AccountPage() {
 
           <Separator />
 
-          {/* Form Fields */}
+          {/* Input fields */}
           <div className="grid gap-4">
             <div className="grid gap-2">
               <Label htmlFor="name">Full Name</Label>
               <Input
                 id="name"
-                value={user.username}
+                value={user.username || ""}
                 onChange={(e) =>
-                  setUser((prev) => ({ ...prev, name: e.target.value }))
+                  setUser((prev) => ({ ...prev, username: e.target.value }))
                 }
                 placeholder="Enter your full name"
               />
@@ -213,7 +210,7 @@ export default function AccountPage() {
               <Input
                 id="email"
                 type="email"
-                value={user.email}
+                value={user.email || ""}
                 disabled
                 placeholder="Enter your email"
               />
@@ -222,7 +219,7 @@ export default function AccountPage() {
 
           <Separator />
 
-          {/* Action Buttons */}
+          {/* Buttons */}
           <div className="flex justify-end gap-3">
             <Button variant="outline" onClick={() => router.back()}>
               Cancel
