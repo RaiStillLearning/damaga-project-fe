@@ -1,6 +1,5 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
 import {
   UserPlus,
   NotebookPen,
@@ -9,9 +8,9 @@ import {
   ChartNoAxesCombined,
   House,
 } from "lucide-react";
-
 import { NavMain } from "@/components/nav-main";
 import { NavUser } from "@/components/nav-user";
+// import { useUserContext } from "@/context/userContext";
 import {
   Sidebar,
   SidebarContent,
@@ -19,12 +18,6 @@ import {
   SidebarHeader,
   SidebarRail,
 } from "@/components/ui/sidebar";
-
-type UserType = {
-  username: string;
-  email: string;
-  avatar?: string;
-};
 
 const data = {
   navMain: [
@@ -68,49 +61,45 @@ const data = {
 };
 
 export function AppSidebar(props: React.ComponentProps<typeof Sidebar>) {
-  const [user, setUser] = useState<UserType>({
-    username: "",
-    email: "",
-    avatar: "/default-avatar.png",
-  });
+  // const { setUser, setLoading } = useUserContext();
 
-  useEffect(() => {
-    const fetchUser = async () => {
-      try {
-        const res = await fetch("http://localhost:5000/api/profile", {
-          headers: {
-            Authorization: `Bearer ${localStorage.getItem("token")}`,
-          },
-        });
+  // useEffect(() => {
+  //   const token = localStorage.getItem("token");
+  //   if (!token) return;
 
-        if (!res.ok) throw new Error("Failed to fetch profile");
-
-        const data = await res.json();
-
-        setUser({
-          username: data.username,
-          email: data.email,
-          avatar: data.avatar || "/default-avatar.png", // ✅ ambil avatar dari DB
-        });
-      } catch (err) {
-        console.error("Error fetching profile:", err);
-      }
-    };
-
-    fetchUser();
-  }, []);
+  //   setLoading(true);
+  //   fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/profile`, {
+  //     headers: { Authorization: `Bearer ${token}` },
+  //   })
+  //     .then((res) => {
+  //       if (!res.ok) {
+  //         throw new Error("Failed to fetch profile");
+  //       }
+  //       return res.json();
+  //     })
+  //     .then((data) => {
+  //       // ✅ Tambahkan null check
+  //       if (data && data.user) {
+  //         setUser(data.user, token);
+  //       }
+  //     })
+  //     .catch((error) => {
+  //       console.error("Failed to fetch profile:", error);
+  //       // Optional: clear user jika token invalid
+  //       // clearUser();
+  //     })
+  //     .finally(() => setLoading(false));
+  // }, [setUser, setLoading]);
 
   return (
     <Sidebar collapsible="icon" {...props}>
       <SidebarHeader>
         <NavUser />
       </SidebarHeader>
-
       <SidebarContent>
         <NavMain items={data.navMain} />
       </SidebarContent>
-
-      <SidebarFooter>{/* Tombol logout bisa disini */}</SidebarFooter>
+      <SidebarFooter>{/* logout button bisa disini */}</SidebarFooter>
       <SidebarRail />
     </Sidebar>
   );

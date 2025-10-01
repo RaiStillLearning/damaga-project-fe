@@ -29,7 +29,6 @@ export function LoginForm({
     e.preventDefault();
 
     try {
-      // 1️⃣ Panggil endpoint login
       const res = await fetch(
         `${process.env.NEXT_PUBLIC_API_URL}/api/auth/login`,
         {
@@ -39,28 +38,37 @@ export function LoginForm({
         }
       );
 
-      const data = await res.json();
-      console.log("Login response:", data);
-
-      if (!data.user) {
-        console.error("User data missing:", data);
-        return alert("Data user tidak ditemukan, cek API login.");
+      if (!res.ok) {
+        const errData = await res.json();
+        return alert("Login gagal: " + (errData.error || res.statusText));
       }
 
-      // 3️⃣ Set user di context
+      const data = await res.json();
+      console.log("🔐 Login response:", data); // ✅ debug
+
+      if (!data.user || !data.token) {
+        return alert("Login gagal: response invalid");
+      }
+
+      // Simpan token dulu
       localStorage.setItem("token", data.token);
 
+      // Simpan user di context
       setUser(
         {
           username: data.user.username,
           email: data.user.email,
+          avatar: data.user.avatar || "/default-avatar.png",
           divisi: data.user.divisi || "",
-          avatar: data.user.avatar || "",
         },
         data.token
       );
 
-      // 4️⃣ Redirect ke dashboard
+      console.log("✅ User & token saved"); // ✅ debug
+      console.log("Token in localStorage:", localStorage.getItem("token")); // ✅ debug
+      console.log("User in localStorage:", localStorage.getItem("user")); // ✅ debug
+
+      // Redirect ke dashboard
       router.push("/damaga");
     } catch (err) {
       console.error(err);
@@ -85,41 +93,39 @@ export function LoginForm({
         <CardContent>
           <form onSubmit={handleSubmit}>
             <div className="grid gap-6">
-              <div className="grid gap-6">
-                <div className="grid gap-3">
-                  <Label htmlFor="email">Email</Label>
-                  <Input
-                    id="email"
-                    type="email"
-                    placeholder="m@example.com"
-                    required
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                  />
-                </div>
-                <div className="grid gap-3">
-                  <div className="flex items-center">
-                    <Label htmlFor="password">Password</Label>
-                    <a
-                      href="/forgot-password"
-                      className="ml-auto text-sm underline-offset-4 hover:underline"
-                    >
-                      Forgot your password?
-                    </a>
-                  </div>
-                  <Input
-                    id="password"
-                    type="password"
-                    required
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                  />
-                </div>
-                <Button type="submit" className="w-full">
-                  Login
-                </Button>
+              <div className="grid gap-3">
+                <Label htmlFor="email">Email</Label>
+                <Input
+                  id="email"
+                  type="email"
+                  placeholder="m@example.com"
+                  required
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                />
               </div>
-              <div className="text-center text-sm">
+              <div className="grid gap-3">
+                <div className="flex items-center">
+                  <Label htmlFor="password">Password</Label>
+                  <a
+                    href="/forgot-password"
+                    className="ml-auto text-sm underline-offset-4 hover:underline"
+                  >
+                    Forgot your password?
+                  </a>
+                </div>
+                <Input
+                  id="password"
+                  type="password"
+                  required
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                />
+              </div>
+              <Button type="submit" className="w-full">
+                Login
+              </Button>
+              <div className="text-center text-sm mt-2">
                 Don&apos;t have an account?{" "}
                 <a
                   href="/login/signup/"
