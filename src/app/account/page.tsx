@@ -101,6 +101,7 @@ export default function AccountPage() {
 
       alert("Profile updated successfully!");
     } catch (err) {
+      console.error(err);
       alert("Failed to update profile");
     } finally {
       setIsLoading(false);
