@@ -25,12 +25,15 @@ export default function BookARoomForm() {
     TypeOfGuest: "",
     City: "",
     ZipCode: "",
+    Fax: "",
     RoomRate: "",
-    NoOfPerson: "",
+    NumberOfPerson: "",
     ArrTime: "",
     DeptTime: "",
     Payment: "",
     ReservationMadeBy: "Direct",
+    Request: "",
+    Clerk: "",
   });
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -57,7 +60,7 @@ export default function BookARoomForm() {
   };
 
   return (
-    <div className="w-full min-h-screen bg-gray-50 p-4 sm:p-6 lg:p-8">
+    <div className=" p-4 sm:p-6 lg:p-8">
       <div className="w-full max-w-7xl mx-auto">
         <div className="bg-white p-6 sm:p-8 lg:p-10 rounded-lg shadow-sm border">
           <h2 className="text-2xl sm:text-3xl font-semibold mb-6 sm:mb-8 text-sky-500">
@@ -165,6 +168,20 @@ export default function BookARoomForm() {
               />
             </div>
 
+            {/* Fax */}
+            <div className="w-full">
+              <Label className="text-sm font-medium mb-2 block text-sky-500">
+                Fax
+              </Label>
+              <Input
+                name="Fax"
+                value={formData.Fax}
+                onChange={handleChange}
+                placeholder="Enter Fax"
+                className="w-full h-10"
+              />
+            </div>
+
             {/* Room Type */}
             <div className="w-full">
               <Label className="text-sm font-medium mb-2 block text-sky-500">
@@ -205,13 +222,13 @@ export default function BookARoomForm() {
             {/* Number of Persons */}
             <div className="w-full">
               <Label className="text-sm font-medium mb-2 block text-sky-500">
-                No. of Persons
+                Number of Persons
               </Label>
               <Input
                 name="NoOfPerson"
                 type="number"
                 min="1"
-                value={formData.NoOfPerson}
+                value={formData.NumberOfPerson}
                 onChange={handleChange}
                 placeholder="Enter number"
                 className="w-full h-10"
@@ -330,14 +347,26 @@ export default function BookARoomForm() {
             </div>
           </div>
           <div className="w-full">
-            <Label className="text-sm font-medium mb-2 block text-sky-500">
+            <Label className="text-sm font-medium mb-2 block text-sky-500 mx-auto">
+              Request
+            </Label>
+            <Input
+              name="Request"
+              value={formData.Request}
+              onChange={handleChange}
+              placeholder="Enter Request"
+              className="w-full h-20"
+            />
+          </div>
+          <div className="w-full">
+            <Label className="text-sm font-medium mb-2 block text-sky-500 mt-4">
               Clerk
             </Label>
             <Input
-              name="FirstName"
-              value={formData.FirstName}
+              name="Clerk"
+              value={formData.Clerk}
               onChange={handleChange}
-              placeholder="Enter first name"
+              placeholder="Enter Clerk"
               className="w-full h-10"
             />
           </div>

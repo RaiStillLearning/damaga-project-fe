@@ -19,7 +19,7 @@ export default function DamagaLayout({
               <SidebarTrigger />
             </header>
 
-            <main className="flex-1 w-full p-4 sm:p-6 lg:p-8 overflow-auto bg-gray-50">
+            <main className="flex-1 w-full p-4 sm:p-6 lg:p-8 bg-[url('/BackgroundLayout/background-layout.jpg')] bg-cover bg-center overflow-auto bg-gray-50">
               <div className="w-full max-w-full">{children}</div>
             </main>
           </div>

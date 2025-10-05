@@ -254,7 +254,7 @@ export default function HomePage() {
     <div className="w-full max-w-7xl mx-auto">
       {/* Header Section */}
       <div className="mb-8">
-        <h1 className="text-3xl font-bold text-gray-900 mb-2">
+        <h1 className="text-3xl font-bold text-stone-900 mb-2">
           {user ? `Hello, ${user.username}!` : "Dashboard Utama"}
         </h1>
         <p
@@ -262,7 +262,7 @@ export default function HomePage() {
             localStorage.removeItem("token");
             router.push("/login");
           }}
-          className="text-gray-600 cursor-pointer hover:underline"
+          className="text-sky-600 cursor-pointer hover:underline"
         >
           Not You? <a href="/login">Sign In</a> as different user
         </p>
