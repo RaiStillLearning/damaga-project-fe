@@ -78,7 +78,7 @@ export function LoginForm({
 
   return (
     <div className={cn("flex flex-col gap-6", className)} {...props}>
-      <Card>
+      <Card className="bg-white shadow-xl border border-gray-200 rounded-2xl">
         <CardHeader className="text-center">
           <Image
             src="/logo/DAMAGA SUITES MRR.png"
@@ -87,59 +87,78 @@ export function LoginForm({
             height={150}
             className="mx-auto"
           />
-          <CardTitle className="text-xl">Welcome back</CardTitle>
-          <CardDescription>Login to continue to your account.</CardDescription>
+          <CardTitle className="text-xl text-gray-800 font-bold">
+            Welcome back
+          </CardTitle>
+          <CardDescription className="text-gray-500">
+            Login to continue to your account.
+          </CardDescription>
         </CardHeader>
+
         <CardContent>
-          <form onSubmit={handleSubmit}>
-            <div className="grid gap-6">
-              <div className="grid gap-3">
-                <Label htmlFor="email">Email</Label>
-                <Input
-                  id="email"
-                  type="email"
-                  placeholder="m@example.com"
-                  required
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                />
-              </div>
-              <div className="grid gap-3">
-                <div className="flex items-center">
-                  <Label htmlFor="password">Password</Label>
-                  <a
-                    href="/forgot-password"
-                    className="ml-auto text-sm underline-offset-4 hover:underline"
-                  >
-                    Forgot your password?
-                  </a>
-                </div>
-                <Input
-                  id="password"
-                  type="password"
-                  required
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                />
-              </div>
-              <Button type="submit" className="w-full">
-                Login
-              </Button>
-              <div className="text-center text-sm mt-2">
-                Don&apos;t have an account?{" "}
+          <form onSubmit={handleSubmit} className="space-y-6">
+            {/* Email */}
+            <div className="grid gap-2">
+              <Label htmlFor="email" className="text-gray-700 font-medium">
+                Email
+              </Label>
+              <Input
+                id="email"
+                type="email"
+                placeholder="m@example.com"
+                required
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                className="border-gray-300 focus:ring-2 focus:ring-sky-500"
+              />
+            </div>
+
+            {/* Password */}
+            <div className="grid gap-2">
+              <div className="flex items-center">
+                <Label htmlFor="password" className="text-gray-700 font-medium">
+                  Password
+                </Label>
                 <a
-                  href="/login/signup/"
-                  className="underline underline-offset-4"
+                  href="/forgot-password"
+                  className="ml-auto text-sm text-sky-600 hover:underline"
                 >
-                  Sign up
+                  Forgot your password?
                 </a>
               </div>
+              <Input
+                id="password"
+                type="password"
+                required
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                className="border-gray-300 focus:ring-2 focus:ring-sky-500"
+              />
+            </div>
+
+            {/* Button */}
+            <Button
+              type="submit"
+              className="w-full bg-sky-600 hover:bg-sky-700 text-white font-semibold shadow-md"
+            >
+              Login
+            </Button>
+
+            {/* Sign up link */}
+            <div className="text-center text-sm mt-2 text-gray-600">
+              Don&apos;t have an account?{" "}
+              <a
+                href="/login/signup/"
+                className="underline underline-offset-4 text-sky-600 font-medium"
+              >
+                Sign up
+              </a>
             </div>
           </form>
         </CardContent>
       </Card>
 
-      <div className="text-muted-foreground text-center text-xs mt-4">
+      <div className="text-center text-xs mt-4 text-stone-900">
         By clicking continue, you agree to our <a href="#">Terms of Service</a>{" "}
         and <a href="#">Privacy Policy</a>.
       </div>

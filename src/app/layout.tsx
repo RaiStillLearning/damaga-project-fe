@@ -3,7 +3,7 @@ import type { Metadata } from "next";
 
 export const metadata: Metadata = {
   title: "Damaga",
-  description: "Damaga project reservation",
+  description: "Damaga Uprak reservation",
 };
 
 export default function RootLayout({
@@ -13,9 +13,9 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en">
-      <body className="min-h-screen">
+      <body>
         {/* Debug: Tambahkan styling untuk melihat konten */}
-        <div className="min-h-screen p-6">{children}</div>
+        <div>{children}</div>
       </body>
     </html>
   );

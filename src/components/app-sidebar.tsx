@@ -26,15 +26,23 @@ const data = {
       title: "Client Relations",
       url: "#",
       icon: UserPlus,
-      items: [{ title: "Guest History Record", url: "#" }],
+      items: [
+        {
+          title: "Guest History Record",
+          url: "/damaga/ClientRelations/GuestHistoryRecord",
+        },
+      ],
     },
     {
       title: "Reservations",
       url: "#",
       icon: NotebookPen,
       items: [
-        { title: "Book A Room", url: "#" },
-        { title: "Reservation History", url: "#" },
+        { title: "Book A Room", url: "/damaga/Reservations/Book-A-Room" },
+        {
+          title: "Reservation History",
+          url: "/damaga/Reservations/ReservationHistory",
+        },
       ],
     },
     {

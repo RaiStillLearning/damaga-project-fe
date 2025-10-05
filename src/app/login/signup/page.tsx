@@ -64,7 +64,7 @@ export default function SignUpPage() {
 
   return (
     <div className="flex min-h-screen items-center justify-center p-6 w-100">
-      <Card className="w-full max-w-sm">
+      <Card className="w-full max-w-sm bg-white shadow-xl border border-gray-200 rounded-2xl ">
         <CardHeader className="text-center">
           <Image
             src="/logo/DAMAGA SUITES MRR.png"
@@ -134,7 +134,11 @@ export default function SignUpPage() {
               />
             </div>
 
-            <Button type="submit" className="w-full" disabled={loading}>
+            <Button
+              type="submit"
+              className="w-full bg-sky-600 hover:bg-sky-700 "
+              disabled={loading}
+            >
               {loading ? "Signing up..." : "Sign up"}
             </Button>
             {message && <p className="text-center text-sm mt-2">{message}</p>}
