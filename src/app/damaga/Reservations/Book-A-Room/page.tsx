@@ -92,6 +92,7 @@ export default function BookARoomForm() {
     Country: "",
     Phone: "",
     RoomType: "",
+    NoOfRoom: 0,
     ArrDate: new Date().toISOString().split("T")[0],
     DeptDate: new Date().toISOString().split("T")[0],
     TypeOfGuest: "",
@@ -126,6 +127,7 @@ export default function BookARoomForm() {
         "Country",
         "Phone",
         "RoomType",
+        "NoOfRoom",
         "TypeOfGuest",
         "City",
         "ZipCode",
@@ -184,6 +186,7 @@ export default function BookARoomForm() {
         Country: "",
         Phone: "",
         RoomType: "",
+        NoOfRoom: 0,
         ArrDate: new Date().toISOString().split("T")[0],
         DeptDate: new Date().toISOString().split("T")[0],
         TypeOfGuest: "",
@@ -393,6 +396,21 @@ export default function BookARoomForm() {
                   <SelectItem value="Suite">Suite</SelectItem>
                 </SelectContent>
               </Select>
+            </div>
+
+            {/* No Of Room*/}
+            <div className="w-full">
+              <Label className="text-sm font-medium mb-2 block text-sky-500">
+                No Of Room *
+              </Label>
+              <Input
+                name="NoOfRoom"
+                type="number"
+                value={formData.NoOfRoom}
+                onChange={handleChange}
+                placeholder="EnterNo Of Room"
+                className="w-full h-10"
+              />
             </div>
 
             {/* Type of Guest */}
