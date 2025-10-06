@@ -312,12 +312,14 @@ export default function HomePage() {
                 className={`relative group ${colors.bg} p-6 rounded-lg shadow-sm border-2 border-transparent ${colors.border} transition-all duration-200 cursor-pointer`}
                 onClick={() => handleNavigateToTile(tile.url)}
               >
+                {/* Close button - visible on mobile, hover on desktop */}
                 <button
                   onClick={(e) => {
                     e.stopPropagation();
                     handleRemoveTile(index);
                   }}
-                  className="absolute top-3 right-3 p-1.5 rounded-full bg-white shadow-md opacity-0 group-hover:opacity-100 transition-opacity hover:bg-red-50"
+                  className="absolute top-3 right-3 p-1.5 rounded-full bg-white shadow-md opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity hover:bg-red-50 z-10"
+                  aria-label="Remove tile"
                 >
                   <X className="h-4 w-4 text-red-500" />
                 </button>

@@ -55,7 +55,7 @@ export default function GuestHistoryRecord() {
     const interval = setInterval(() => {
       fetchAllData();
       setLastUpdate(new Date());
-    }, 10000);
+    }, 50000);
 
     return () => clearInterval(interval);
   }, []);
@@ -95,28 +95,71 @@ export default function GuestHistoryRecord() {
     setSearchParams({ ...searchParams, [e.target.name]: e.target.value });
   };
 
-  const handleSearch = async () => {
+  // Case-insensitive search dengan partial matching
+  const handleSearch = () => {
     setLoading(true);
+
     try {
-      const queryParams = new URLSearchParams();
-      Object.entries(searchParams).forEach(([key, value]) => {
-        if (value) queryParams.append(key, value);
+      const filtered = allData.filter((guest) => {
+        // Helper function untuk case-insensitive comparison
+        const matchesField = (
+          guestValue: string | number,
+          searchValue: string
+        ) => {
+          if (!searchValue) return true; // Jika field kosong, skip filter
+
+          const guestStr = String(guestValue).toLowerCase();
+          const searchStr = searchValue.toLowerCase();
+
+          return guestStr.includes(searchStr);
+        };
+
+        // Check semua field
+        const matchesFirstName = matchesField(
+          guest.FirstName || "",
+          searchParams.FirstName
+        );
+        const matchesLastName = matchesField(
+          guest.LastName || "",
+          searchParams.LastName
+        );
+        const matchesPhone = matchesField(
+          guest.Phone || "",
+          searchParams.Phone
+        );
+        const matchesCity = matchesField(guest.City || "", searchParams.City);
+        const matchesCountry = matchesField(
+          guest.Country || "",
+          searchParams.Country
+        );
+        const matchesRoomType = matchesField(
+          guest.RoomType || "",
+          searchParams.RoomType
+        );
+
+        // Date matching - exact match untuk tanggal
+        let matchesArrDate = true;
+        if (searchParams.ArrDate) {
+          const guestDate = new Date(guest.ArrDate).toISOString().split("T")[0];
+          matchesArrDate = guestDate === searchParams.ArrDate;
+        }
+
+        // Semua kondisi harus true (AND logic)
+        return (
+          matchesFirstName &&
+          matchesLastName &&
+          matchesPhone &&
+          matchesCity &&
+          matchesCountry &&
+          matchesRoomType &&
+          matchesArrDate
+        );
       });
 
-      const res = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL}/api/book-a-room?${queryParams}`,
-        {
-          method: "GET",
-          headers: { "Content-Type": "application/json" },
-        }
-      );
-
-      const data = await res.json();
-      const bookings = Array.isArray(data) ? data : data.bookings || [];
-      setGuestData(bookings);
+      setGuestData(filtered);
     } catch (err) {
       console.error(err);
-      alert("Gagal mengambil data guest");
+      alert("Gagal melakukan pencarian");
     } finally {
       setLoading(false);
     }
@@ -144,11 +187,11 @@ export default function GuestHistoryRecord() {
           </h2>
 
           {/* Auto Refresh Indicator */}
-          <div className="mb-6 flex items-center justify-between bg-sky-50 px-4 py-3 rounded-lg border border-sky-200">
+          <div className="mb-6 flex flex-col sm:flex-row items-start sm:items-center justify-between bg-sky-50 px-4 py-3 rounded-lg border border-sky-200 gap-3">
             <div className="flex items-center gap-2">
               <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
               <span className="text-sm text-gray-600">
-                Auto-refresh aktif (setiap 10 detik)
+                Auto-refresh aktif (setiap 50 detik)
               </span>
             </div>
             <div className="flex items-center gap-3">
@@ -166,7 +209,6 @@ export default function GuestHistoryRecord() {
               </Button>
             </div>
           </div>
-
           {/* Search Form */}
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5 sm:gap-6 mb-6">
             <div className="w-full">
