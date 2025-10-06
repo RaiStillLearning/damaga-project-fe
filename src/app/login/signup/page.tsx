@@ -143,6 +143,10 @@ export default function SignUpPage() {
             </Button>
             {message && <p className="text-center text-sm mt-2">{message}</p>}
           </form>
+
+          <blockquote className="mt-6 border-l-2 pl-6 italic">
+            I`ll never share your data with anyone else. Pinky promise!
+          </blockquote>
         </CardContent>
       </Card>
     </div>
