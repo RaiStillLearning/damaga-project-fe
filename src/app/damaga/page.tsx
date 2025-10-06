@@ -21,7 +21,6 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 
-// Icon mapping
 const iconMap = {
   House,
   UserPlus,
@@ -31,7 +30,6 @@ const iconMap = {
   ChartNoAxesCombined,
 };
 
-// Data navigasi yang sama dengan sidebar
 const navigationOptions = [
   {
     id: "home",
@@ -105,8 +103,10 @@ export default function HomePage() {
   const [open, setOpen] = useState(false);
   const [selectedSlot, setSelectedSlot] = useState<number | null>(null);
   const [tiles, setTiles] = useState<TileSlot[]>(Array(6).fill(null));
+  const [loading, setLoading] = useState(true);
   const router = useRouter();
 
+  // Load user profile and tiles from server
   useEffect(() => {
     const token = localStorage.getItem("token");
     if (!token) {
@@ -114,49 +114,56 @@ export default function HomePage() {
       return;
     }
 
+    // Load profile
     fetch("http://localhost:5000/api/profile", {
-      headers: {
-        Authorization: `Bearer ${token}`,
-      },
+      headers: { Authorization: `Bearer ${token}` },
+    })
+      .then((res) => res.json())
+      .then((data) => setUser(data.user))
+      .catch(() => router.push("/login"));
+
+    // Load tiles dari SERVER (bukan localStorage)
+    fetch("http://localhost:5000/api/tiles", {
+      headers: { Authorization: `Bearer ${token}` },
     })
       .then((res) => res.json())
       .then((data) => {
-        setUser(data.user);
-      })
-      .catch(() => {
-        router.push("/login");
-      });
+        const serverTiles = data.tiles || [];
+        const tilesArray = Array(6).fill(null);
 
-    // Load saved tiles from localStorage with validation
-    const savedTiles = localStorage.getItem("dashboardTiles");
-    if (savedTiles) {
-      try {
-        const parsed = JSON.parse(savedTiles);
-
-        // Validate and clean data
-        const validTiles = parsed.map((tile: TileSlot) => {
-          // Jika null atau tidak ada iconName, return null
-          if (
-            !tile ||
-            !tile.iconName ||
-            !iconMap[tile.iconName as keyof typeof iconMap]
-          ) {
-            return null;
+        serverTiles.forEach((tile: TileSlot, index: number) => {
+          if (index < 6 && tile && iconMap[tile.iconName]) {
+            tilesArray[index] = tile;
           }
-          return tile;
         });
 
-        setTiles(validTiles);
-        // Save cleaned data back
-        localStorage.setItem("dashboardTiles", JSON.stringify(validTiles));
-      } catch (error) {
-        console.error("Error loading tiles:", error);
-        // Reset jika data corrupt
-        localStorage.removeItem("dashboardTiles");
+        setTiles(tilesArray);
+        setLoading(false);
+      })
+      .catch(() => {
         setTiles(Array(6).fill(null));
-      }
-    }
+        setLoading(false);
+      });
   }, [router]);
+
+  // Save tiles to server
+  const saveTilesToServer = async (newTiles: TileSlot[]) => {
+    const token = localStorage.getItem("token");
+    if (!token) return;
+
+    try {
+      await fetch("http://localhost:5000/api/tiles", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({ tiles: newTiles }),
+      });
+    } catch (error) {
+      console.error("Error saving tiles:", error);
+    }
+  };
 
   const handleAddTile = (slotIndex: number) => {
     setSelectedSlot(slotIndex);
@@ -169,7 +176,7 @@ export default function HomePage() {
     const newTiles = [...tiles];
     newTiles[selectedSlot] = option;
     setTiles(newTiles);
-    localStorage.setItem("dashboardTiles", JSON.stringify(newTiles));
+    saveTilesToServer(newTiles);
     setOpen(false);
     setSelectedSlot(null);
   };
@@ -178,7 +185,7 @@ export default function HomePage() {
     const newTiles = [...tiles];
     newTiles[slotIndex] = null;
     setTiles(newTiles);
-    localStorage.setItem("dashboardTiles", JSON.stringify(newTiles));
+    saveTilesToServer(newTiles);
   };
 
   const handleNavigateToTile = (url: string) => {
@@ -250,6 +257,17 @@ export default function HomePage() {
     return colors[color] || colors.blue;
   };
 
+  if (loading) {
+    return (
+      <div className="w-full max-w-7xl mx-auto flex items-center justify-center min-h-screen">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
+          <p className="text-gray-600">Loading dashboard...</p>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="w-full max-w-7xl mx-auto">
       {/* Header Section */}
@@ -284,7 +302,6 @@ export default function HomePage() {
             const IconComponent = iconMap[tile.iconName];
             const colors = getColorClasses(tile.color);
 
-            // Safety check
             if (!IconComponent) {
               return null;
             }
@@ -295,7 +312,6 @@ export default function HomePage() {
                 className={`relative group ${colors.bg} p-6 rounded-lg shadow-sm border-2 border-transparent ${colors.border} transition-all duration-200 cursor-pointer`}
                 onClick={() => handleNavigateToTile(tile.url)}
               >
-                {/* Remove Button */}
                 <button
                   onClick={(e) => {
                     e.stopPropagation();
@@ -336,7 +352,6 @@ export default function HomePage() {
             );
           }
 
-          // Empty slot - Add Tile button
           return (
             <button
               key={index}
@@ -444,7 +459,7 @@ export default function HomePage() {
           </li>
           <li className="flex items-start gap-2">
             <span className="text-blue-600 font-bold">•</span>
-            <span>Your tile configuration is saved automatically</span>
+            <span>Your tile configuration is saved to your account</span>
           </li>
           <li className="flex items-start gap-2">
             <span className="text-blue-600 font-bold">•</span>
