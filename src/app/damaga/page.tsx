@@ -20,6 +20,17 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 
 const iconMap = {
   House,
@@ -270,20 +281,44 @@ export default function HomePage() {
 
   return (
     <div className="w-full max-w-7xl mx-auto">
-      {/* Header Section */}
+      {/* Header */}
       <div className="mb-8">
         <h1 className="text-3xl font-bold text-stone-900 mb-2">
           {user ? `Hello, ${user.username}!` : "Dashboard Utama"}
         </h1>
-        <p
-          onClick={() => {
-            localStorage.removeItem("token");
-            router.push("/login");
-          }}
-          className="text-sky-600 cursor-pointer hover:underline"
-        >
-          Not You? <a href="/login">Sign In</a> as different user
-        </p>
+
+        <AlertDialog>
+          <AlertDialogTrigger asChild>
+            <span className="cursor-pointer text-sky-600 hover:underline">
+              Not You? Sign In as different user
+            </span>
+          </AlertDialogTrigger>
+
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>
+                Apakah kamu yakin ingin logout?
+              </AlertDialogTitle>
+              <AlertDialogDescription>
+                Kamu akan keluar dari akun ini, lalu silahkan login kembali
+                menggunakan akunmu yang lain.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+
+            <AlertDialogFooter>
+              <AlertDialogCancel>Cancel</AlertDialogCancel>
+              <AlertDialogAction
+                className="bg-red-600 hover:bg-red-700"
+                onClick={() => {
+                  localStorage.removeItem("token");
+                  router.push("/login");
+                }}
+              >
+                Continue
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
       </div>
 
       {/* Info Text */}
