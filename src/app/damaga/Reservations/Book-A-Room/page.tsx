@@ -103,7 +103,7 @@ export default function BookARoomForm() {
     NumberOfPerson: 1,
     ArrTime: "12:00",
     DeptTime: "12:00",
-    Payment: "Cash",
+    Payment: "",
     ReservationMadeBy: "Direct",
     Request: "None",
     Clerk: "Admin",
@@ -536,13 +536,22 @@ export default function BookARoomForm() {
               <Label className="text-sm font-medium mb-2 block text-sky-500">
                 Payment Method *
               </Label>
-              <Input
-                name="Payment"
+              <Select
+                name="RoomType"
                 value={formData.Payment}
-                onChange={handleChange}
-                placeholder="e.g., Credit Card"
-                className="w-full h-10"
-              />
+                onValueChange={(val) =>
+                  setFormData({ ...formData, Payment: val })
+                }
+              >
+                <SelectTrigger className="w-full h-10">
+                  <SelectValue placeholder="Select Payment Method" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="Single">Cash</SelectItem>
+                  <SelectItem value="Double">Debit</SelectItem>
+                  <SelectItem value="Suite">Lorem</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
 
             {/* Reservation Made By */}
