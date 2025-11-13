@@ -50,6 +50,7 @@ const data = {
       url: "#",
       icon: Users,
       items: [
+        { title: "Registration", url: "/damaga/FrontDesk/Registration" },
         { title: "Expected Arrivals", url: "#" },
         { title: "In House", url: "#" },
         { title: "Expected Departures", url: "#" },
