@@ -43,6 +43,7 @@ export default function GuestHistoryRecord() {
     ArrDate: "",
   });
 
+  const [searchAll, setSearchAll] = useState(""); // 🔍 global search
   const [guestData, setGuestData] = useState<GuestBooking[]>([]);
   const [allData, setAllData] = useState<GuestBooking[]>([]);
   const [loading, setLoading] = useState(true);
@@ -51,7 +52,6 @@ export default function GuestHistoryRecord() {
   useEffect(() => {
     fetchAllData();
 
-    // Auto refresh setiap 10 detik
     const interval = setInterval(() => {
       fetchAllData();
       setLastUpdate(new Date());
@@ -71,9 +71,7 @@ export default function GuestHistoryRecord() {
         }
       );
 
-      if (!res.ok) {
-        throw new Error(`HTTP error! status: ${res.status}`);
-      }
+      if (!res.ok) throw new Error(`HTTP error! status: ${res.status}`);
 
       const data = await res.json();
       const bookings = Array.isArray(data) ? data : data.bookings || [];
@@ -83,9 +81,7 @@ export default function GuestHistoryRecord() {
       setLastUpdate(new Date());
     } catch (err: unknown) {
       console.error("Submit error:", err);
-      const errorMessage =
-        err instanceof Error ? err.message : "Unknown error occurred";
-      alert(`Gagal submit booking: ${errorMessage}`);
+      alert("Gagal submit booking");
     } finally {
       setLoading(false);
     }
@@ -95,26 +91,24 @@ export default function GuestHistoryRecord() {
     setSearchParams({ ...searchParams, [e.target.name]: e.target.value });
   };
 
-  // Case-insensitive search dengan partial matching
   const handleSearch = () => {
     setLoading(true);
-
     try {
       const filtered = allData.filter((guest) => {
-        // Helper function untuk case-insensitive comparison
         const matchesField = (
           guestValue: string | number,
           searchValue: string
-        ) => {
-          if (!searchValue) return true; // Jika field kosong, skip filter
+        ) =>
+          !searchValue ||
+          String(guestValue).toLowerCase().includes(searchValue.toLowerCase());
 
-          const guestStr = String(guestValue).toLowerCase();
-          const searchStr = searchValue.toLowerCase();
+        const matchesAll =
+          !searchAll ||
+          Object.values(guest)
+            .join(" ")
+            .toLowerCase()
+            .includes(searchAll.toLowerCase());
 
-          return guestStr.includes(searchStr);
-        };
-
-        // Check semua field
         const matchesFirstName = matchesField(
           guest.FirstName || "",
           searchParams.FirstName
@@ -137,14 +131,12 @@ export default function GuestHistoryRecord() {
           searchParams.RoomType
         );
 
-        // Date matching - exact match untuk tanggal
         let matchesArrDate = true;
         if (searchParams.ArrDate) {
           const guestDate = new Date(guest.ArrDate).toISOString().split("T")[0];
           matchesArrDate = guestDate === searchParams.ArrDate;
         }
 
-        // Semua kondisi harus true (AND logic)
         return (
           matchesFirstName &&
           matchesLastName &&
@@ -152,7 +144,8 @@ export default function GuestHistoryRecord() {
           matchesCity &&
           matchesCountry &&
           matchesRoomType &&
-          matchesArrDate
+          matchesArrDate &&
+          matchesAll
         );
       });
 
@@ -175,6 +168,7 @@ export default function GuestHistoryRecord() {
       RoomType: "",
       ArrDate: "",
     });
+    setSearchAll("");
     setGuestData(allData);
   };
 
@@ -186,7 +180,7 @@ export default function GuestHistoryRecord() {
             Guest History Record
           </h2>
 
-          {/* Auto Refresh Indicator */}
+          {/* 🔁 Auto Refresh */}
           <div className="mb-6 flex flex-col sm:flex-row items-start sm:items-center justify-between bg-sky-50 px-4 py-3 rounded-lg border border-sky-200 gap-3">
             <div className="flex items-center gap-2">
               <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
@@ -209,9 +203,23 @@ export default function GuestHistoryRecord() {
               </Button>
             </div>
           </div>
-          {/* Search Form */}
+
+          {/* 🔍 Global Search */}
+          <div className="mb-6">
+            <Label className="text-sm font-medium mb-2 block text-sky-500">
+              Search by Any Data (Name, City, Room, etc.)
+            </Label>
+            <Input
+              placeholder="Type any keyword..."
+              value={searchAll}
+              onChange={(e) => setSearchAll(e.target.value)}
+              className="w-full h-10"
+            />
+          </div>
+
+          {/* 🔎 Search Fields */}
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5 sm:gap-6 mb-6">
-            <div className="w-full">
+            <div>
               <Label className="text-sm font-medium mb-2 block text-sky-500">
                 First Name
               </Label>
@@ -220,11 +228,10 @@ export default function GuestHistoryRecord() {
                 value={searchParams.FirstName}
                 onChange={handleChange}
                 placeholder="Enter first name"
-                className="w-full h-10"
+                className="h-10"
               />
             </div>
-
-            <div className="w-full">
+            <div>
               <Label className="text-sm font-medium mb-2 block text-sky-500">
                 Last Name
               </Label>
@@ -233,97 +240,39 @@ export default function GuestHistoryRecord() {
                 value={searchParams.LastName}
                 onChange={handleChange}
                 placeholder="Enter last name"
-                className="w-full h-10"
+                className="h-10"
               />
             </div>
-
-            <div className="w-full">
+            <div>
               <Label className="text-sm font-medium mb-2 block text-sky-500">
                 Phone Number
               </Label>
               <Input
                 name="Phone"
-                type="tel"
                 value={searchParams.Phone}
                 onChange={handleChange}
                 placeholder="Enter phone number"
-                className="w-full h-10"
-              />
-            </div>
-
-            <div className="w-full">
-              <Label className="text-sm font-medium mb-2 block text-sky-500">
-                City
-              </Label>
-              <Input
-                name="City"
-                value={searchParams.City}
-                onChange={handleChange}
-                placeholder="Enter city"
-                className="w-full h-10"
-              />
-            </div>
-
-            <div className="w-full">
-              <Label className="text-sm font-medium mb-2 block text-sky-500">
-                Country
-              </Label>
-              <Input
-                name="Country"
-                value={searchParams.Country}
-                onChange={handleChange}
-                placeholder="Enter country"
-                className="w-full h-10"
-              />
-            </div>
-
-            <div className="w-full">
-              <Label className="text-sm font-medium mb-2 block text-sky-500">
-                Room Type
-              </Label>
-              <Input
-                name="RoomType"
-                value={searchParams.RoomType}
-                onChange={handleChange}
-                placeholder="Enter room type"
-                className="w-full h-10"
-              />
-            </div>
-
-            <div className="w-full sm:col-span-2 lg:col-span-3">
-              <Label className="text-sm font-medium mb-2 block text-sky-500">
-                Arrival Date
-              </Label>
-              <Input
-                name="ArrDate"
-                type="date"
-                value={searchParams.ArrDate}
-                onChange={handleChange}
-                className="w-full h-10"
+                className="h-10"
               />
             </div>
           </div>
 
-          {/* Search Buttons */}
+          {/* 🔘 Search Buttons */}
           <div className="flex gap-3 justify-end mb-8 pb-6 border-b">
-            <Button
-              onClick={handleClear}
-              variant="outline"
-              className="px-6 h-10 text-base font-medium"
-            >
+            <Button onClick={handleClear} variant="outline">
               Clear
             </Button>
             <Button
               onClick={handleSearch}
               disabled={loading}
-              className="px-8 h-10 text-base font-medium bg-sky-600 hover:bg-sky-700 text-white"
+              className="bg-sky-600 hover:bg-sky-700 text-white"
             >
               <Search className="w-4 h-4 mr-2" />
               {loading ? "Searching..." : "Search"}
             </Button>
           </div>
 
-          {/* Results Section - Table */}
+          {/* 🧾 Results Table */}
           <div className="space-y-4">
             <h3 className="text-lg font-semibold text-gray-800">
               Guest Records ({guestData.length})
@@ -337,102 +286,82 @@ export default function GuestHistoryRecord() {
             ) : guestData.length === 0 ? (
               <div className="text-center py-12 bg-gray-50 rounded-lg border-2 border-dashed">
                 <User className="w-12 h-12 mx-auto text-gray-400 mb-3" />
-                <p className="text-gray-500">
-                  No guest records found. Try adjusting your search criteria.
-                </p>
+                <p className="text-gray-500">No guest records found.</p>
               </div>
             ) : (
               <div className="overflow-x-auto border rounded-lg">
                 <table className="w-full min-w-max">
                   <thead className="bg-sky-50 border-b">
                     <tr>
-                      <th className="px-4 py-3 text-left text-xs font-semibold text-sky-700 uppercase tracking-wider">
-                        No
-                      </th>
-                      <th className="px-4 py-3 text-left text-xs font-semibold text-sky-700 uppercase tracking-wider">
-                        First Name
-                      </th>
-                      <th className="px-4 py-3 text-left text-xs font-semibold text-sky-700 uppercase tracking-wider">
-                        Last Name
-                      </th>
-                      <th className="px-4 py-3 text-left text-xs font-semibold text-sky-700 uppercase tracking-wider">
-                        Phone
-                      </th>
-                      <th className="px-4 py-3 text-left text-xs font-semibold text-sky-700 uppercase tracking-wider">
-                        City
-                      </th>
-                      <th className="px-4 py-3 text-left text-xs font-semibold text-sky-700 uppercase tracking-wider">
-                        Country
-                      </th>
-                      <th className="px-4 py-3 text-left text-xs font-semibold text-sky-700 uppercase tracking-wider">
-                        Room Type
-                      </th>
-                      <th className="px-4 py-3 text-left text-xs font-semibold text-sky-700 uppercase tracking-wider">
-                        Check-in
-                      </th>
-                      <th className="px-4 py-3 text-left text-xs font-semibold text-sky-700 uppercase tracking-wider">
-                        Check-out
-                      </th>
-                      <th className="px-4 py-3 text-left text-xs font-semibold text-sky-700 uppercase tracking-wider">
-                        Guests
-                      </th>
-                      <th className="px-4 py-3 text-left text-xs font-semibold text-sky-700 uppercase tracking-wider">
-                        Rate
-                      </th>
-                      <th className="px-4 py-3 text-left text-xs font-semibold text-sky-700 uppercase tracking-wider">
-                        Payment
-                      </th>
-                      <th className="px-4 py-3 text-left text-xs font-semibold text-sky-700 uppercase tracking-wider">
-                        Clerk
-                      </th>
+                      {[
+                        "No",
+                        "First Name",
+                        "Last Name",
+                        "Phone",
+                        "City",
+                        "Country",
+                        "Room Type",
+                        "Check-in",
+                        "Check-out",
+                        "Guests",
+                        "Rate",
+                        "Payment",
+                        "Clerk",
+                        "Request", // ✅ Tambahan
+                      ].map((head) => (
+                        <th
+                          key={head}
+                          className="px-4 py-3 text-left text-xs font-semibold text-sky-700 uppercase tracking-wider"
+                        >
+                          {head}
+                        </th>
+                      ))}
                     </tr>
                   </thead>
                   <tbody className="bg-white divide-y divide-gray-200">
                     {guestData.map((guest, index) => (
-                      <tr
-                        key={guest._id}
-                        className="hover:bg-gray-50 transition-colors"
-                      >
-                        <td className="px-4 py-3 text-sm text-gray-900">
-                          {index + 1}
-                        </td>
+                      <tr key={guest._id} className="hover:bg-gray-50">
+                        <td className="px-4 py-3 ">{index + 1}</td>
                         <td className="px-4 py-3 text-sm font-medium text-gray-900">
                           {guest.FirstName}
                         </td>
-                        <td className="px-4 py-3 text-sm font-medium text-gray-900">
+                        <td className="px-4 py-3  text-sm font-medium text-gray-900">
                           {guest.LastName}
                         </td>
-                        <td className="px-4 py-3 text-sm text-gray-600">
+                        <td className="px-4 py-3  text-sm font-medium text-gray-900">
                           {guest.Phone || "-"}
                         </td>
-                        <td className="px-4 py-3 text-sm text-gray-600">
+                        <td className="px-4 py-3  text-sm font-medium text-gray-900">
                           {guest.City || "-"}
                         </td>
-                        <td className="px-4 py-3 text-sm text-gray-600">
+                        <td className="px-4 py-3  text-sm font-medium text-gray-900">
                           {guest.Country || "-"}
                         </td>
-                        <td className="px-4 py-3 text-sm text-gray-600">
+                        <td className="px-4 py-3">
                           <span className="inline-flex px-2 py-1 text-xs font-medium rounded-full bg-sky-100 text-sky-800">
                             {guest.RoomType}
                           </span>
                         </td>
-                        <td className="px-4 py-3 text-sm text-gray-600">
+                        <td className="px-4 py-3  text-sm font-medium text-gray-900">
                           {new Date(guest.ArrDate).toLocaleDateString("id-ID")}
                         </td>
-                        <td className="px-4 py-3 text-sm text-gray-600">
+                        <td className="px-4 py-3 text-sm font-medium text-gray-900">
                           {new Date(guest.DeptDate).toLocaleDateString("id-ID")}
                         </td>
-                        <td className="px-4 py-3 text-sm text-gray-600">
+                        <td className="px-4 py-3 text-sm font-medium text-gray-900">
                           {guest.NoOfPerson}
                         </td>
-                        <td className="px-4 py-3 text-sm font-semibold text-gray-900">
-                          ${guest.RoomRate.toLocaleString()}
+                        <td className="px-4 py-3 text-sm font-medium text-gray-900">
+                          ${guest.RoomRate}
                         </td>
-                        <td className="px-4 py-3 text-sm text-gray-600">
+                        <td className="px-4 py-3  text-sm font-medium text-gray-900">
                           {guest.Payment || "-"}
                         </td>
-                        <td className="px-4 py-3 text-sm text-gray-600">
+                        <td className="px-4 py-3 text-sm font-medium text-gray-900">
                           {guest.Clerk || "-"}
+                        </td>
+                        <td className="px-4 py-3  text-sm font-medium text-gray-900">
+                          {guest.Request || "-"}
                         </td>
                       </tr>
                     ))}

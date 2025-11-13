@@ -3,7 +3,7 @@ import type { Metadata } from "next";
 
 export const metadata: Metadata = {
   title: "Damaga",
-  description: "Damaga Uprak reservation",
+  description: "Damaga reservation",
 };
 
 export default function RootLayout({

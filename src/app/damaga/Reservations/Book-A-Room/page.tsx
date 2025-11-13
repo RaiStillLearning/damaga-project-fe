@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
@@ -130,7 +130,6 @@ export default function BookARoomForm() {
         "NoOfRoom",
         "TypeOfGuest",
         "City",
-        "ZipCode",
         "RoomRate",
         "NumberOfPerson",
         "ArrTime",
@@ -149,13 +148,14 @@ export default function BookARoomForm() {
         }
       }
 
-      // Konversi ke tipe yang sesuai
+      // ✅ FIX: Fax tetap string (tidak diubah ke number)
       const submitData = {
         ...formData,
         Phone: Number(formData.Phone),
         ZipCode: Number(formData.ZipCode) || 0,
         RoomRate: Number(formData.RoomRate) || 0,
         NumberOfPerson: Number(formData.NumberOfPerson) || 1,
+        Fax: formData.Fax?.toString() || "", // pastikan Fax string
       };
 
       console.log("Submitting data:", submitData);
@@ -200,7 +200,7 @@ export default function BookARoomForm() {
         Payment: "Cash",
         ReservationMadeBy: "Direct",
         Request: "None",
-        Clerk: "Admin",
+        Clerk: "",
       });
     } catch (err: unknown) {
       console.error("Submit error:", err);
@@ -211,6 +211,20 @@ export default function BookARoomForm() {
       setIsSubmitting(false);
     }
   };
+  useEffect(() => {
+    const storedUser = localStorage.getItem("user");
+    if (storedUser) {
+      try {
+        const parsed = JSON.parse(storedUser);
+        setFormData((prev) => ({
+          ...prev,
+          Clerk: parsed.username || parsed.name || "Unknown Clerk",
+        }));
+      } catch {
+        console.error("Failed to parse user from localStorage");
+      }
+    }
+  }, []);
 
   return (
     <div className="p-4 sm:p-6 lg:p-8">
@@ -349,7 +363,7 @@ export default function BookARoomForm() {
             {/* ZipCode */}
             <div className="w-full">
               <Label className="text-sm font-medium mb-2 block text-sky-500">
-                Zip Code *
+                Zip Code
               </Label>
               <Input
                 name="ZipCode"
@@ -576,9 +590,8 @@ export default function BookARoomForm() {
             <Input
               name="Clerk"
               value={formData.Clerk}
-              onChange={handleChange}
-              placeholder="Enter Clerk"
-              className="w-full h-10"
+              readOnly
+              className="w-full h-10 bg-gray-100 cursor-not-allowed text-gray-700"
             />
           </div>
 

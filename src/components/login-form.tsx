@@ -63,6 +63,7 @@ export function LoginForm({
         },
         data.token
       );
+      localStorage.setItem("user", JSON.stringify(data.user));
 
       console.log("✅ User & token saved"); // ✅ debug
       console.log("Token in localStorage:", localStorage.getItem("token")); // ✅ debug

@@ -67,6 +67,7 @@ export default function AccountPage() {
   };
 
   // ✅ Save profile (PUT ke backend)
+  // ✅ Save profile (PUT ke backend)
   const handleSave = async () => {
     setIsLoading(true);
     try {
@@ -89,15 +90,17 @@ export default function AccountPage() {
 
       const updated = await res.json();
 
-      // ✅ langsung ambil data dari backend, jangan pake prev
-      setUser({
-        username: updated.username,
-        email: updated.email,
-        avatar: updated.avatar || "/placeholder-avatar.jpg",
-      });
-      localStorage.setItem("user", JSON.stringify(updated.user));
+      // 🔧 Pastikan bentuknya top-level (tidak nested di updated.user)
+      const payloadUser = updated.user ? updated.user : updated;
 
-      localStorage.setItem("user", JSON.stringify(updated));
+      // ✅ Simpan ke state dan localStorage
+      setUser({
+        username: payloadUser.username,
+        email: payloadUser.email,
+        avatar: payloadUser.avatar || "/placeholder-avatar.jpg",
+      });
+
+      localStorage.setItem("user", JSON.stringify(payloadUser));
 
       alert("Profile updated successfully!");
     } catch (err) {
