@@ -17,13 +17,13 @@ interface ReservationBooking {
   RoomNumber?: string;
   ArrDate: string;
   DeptDate: string;
+  ArrTime: string;
+  DeptTime: string;
   TypeOfGuest: string;
   City: string;
   ZipCode: number;
   RoomRate: number;
   NoOfPerson: number;
-  ArrTime: string;
-  DeptTime: string;
   Payment: string;
   ReservationMadeBy: string;
   Clerk: string;
@@ -43,6 +43,8 @@ export default function ReservationHistory() {
     LastName: "",
     ArrDate: "",
     DeptDate: "",
+    ArrTime: "", // ✅ tambahkan ini
+    DeptTime: "", // ✅ tambahkan ini
     RoomNumber: "",
     RoomType: "",
     Country: "",
@@ -59,7 +61,6 @@ export default function ReservationHistory() {
   useEffect(() => {
     fetchAllData();
 
-    // Auto refresh setiap 50 detik
     const interval = setInterval(() => {
       fetchAllData();
       setLastUpdate(new Date());
@@ -79,9 +80,7 @@ export default function ReservationHistory() {
         }
       );
 
-      if (!res.ok) {
-        throw new Error(`HTTP error! status: ${res.status}`);
-      }
+      if (!res.ok) throw new Error(`HTTP error! status: ${res.status}`);
 
       const data = await res.json();
       const bookings = Array.isArray(data) ? data : data.bookings || [];
@@ -105,7 +104,6 @@ export default function ReservationHistory() {
 
   const handleSearch = () => {
     setLoading(true);
-
     try {
       const filtered = allData.filter((reservation) => {
         const matchesField = (
@@ -113,11 +111,9 @@ export default function ReservationHistory() {
           searchValue: string
         ) => {
           if (!searchValue) return true;
-
-          const reservationStr = String(reservationValue).toLowerCase();
-          const searchStr = searchValue.toLowerCase();
-
-          return reservationStr.includes(searchStr);
+          return String(reservationValue)
+            .toLowerCase()
+            .includes(searchValue.toLowerCase());
         };
 
         const matchesFirstName = matchesField(
@@ -147,18 +143,16 @@ export default function ReservationHistory() {
 
         let matchesArrDate = true;
         if (searchParams.ArrDate) {
-          const reservationDate = new Date(reservation.ArrDate)
-            .toISOString()
-            .split("T")[0];
-          matchesArrDate = reservationDate === searchParams.ArrDate;
+          matchesArrDate =
+            new Date(reservation.ArrDate).toISOString().split("T")[0] ===
+            searchParams.ArrDate;
         }
 
         let matchesDeptDate = true;
         if (searchParams.DeptDate) {
-          const reservationDate = new Date(reservation.DeptDate)
-            .toISOString()
-            .split("T")[0];
-          matchesDeptDate = reservationDate === searchParams.DeptDate;
+          matchesDeptDate =
+            new Date(reservation.DeptDate).toISOString().split("T")[0] ===
+            searchParams.DeptDate;
         }
 
         return (
@@ -188,6 +182,8 @@ export default function ReservationHistory() {
       LastName: "",
       ArrDate: "",
       DeptDate: "",
+      ArrTime: "", // reset juga
+      DeptTime: "", // reset juga
       RoomNumber: "",
       RoomType: "",
       Country: "",
@@ -195,6 +191,11 @@ export default function ReservationHistory() {
     });
     setReservationData(allData);
   };
+  const [isClient, setIsClient] = useState(false);
+
+  useEffect(() => {
+    setIsClient(true);
+  }, []);
 
   return (
     <div className="p-4 sm:p-6 lg:p-8">
@@ -204,7 +205,7 @@ export default function ReservationHistory() {
             Reservation History
           </h2>
 
-          {/* Auto Refresh Indicator */}
+          {/* Auto Refresh Info */}
           <div className="mb-6 flex flex-col sm:flex-row items-start sm:items-center justify-between bg-sky-50 px-4 py-3 rounded-lg border border-sky-200 gap-3">
             <div className="flex items-center gap-2">
               <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
@@ -213,129 +214,63 @@ export default function ReservationHistory() {
               </span>
             </div>
             <div className="flex items-center gap-3">
-              <span className="text-xs text-gray-500">
-                Last update: {lastUpdate.toLocaleTimeString("id-ID")}
-              </span>
+              {isClient && (
+                <span className="text-xs text-gray-500">
+                  Last update: {lastUpdate.toLocaleTimeString("id-ID")}
+                </span>
+              )}
+
               <Button
                 onClick={fetchAllData}
                 variant="outline"
                 size="sm"
                 className="h-8 px-3"
               >
-                <RefreshCw className="w-3 h-3 mr-1" />
-                Refresh Now
+                <RefreshCw className="w-3 h-3 mr-1" /> Refresh Now
               </Button>
             </div>
           </div>
 
-          {/* Search Form */}
+          {/* Search Section */}
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5 sm:gap-6 mb-6">
-            <div className="w-full">
-              <Label className="text-sm font-medium mb-2 block text-sky-500">
-                First Name
-              </Label>
-              <Input
-                name="FirstName"
-                value={searchParams.FirstName}
-                onChange={handleChange}
-                placeholder="Enter first name"
-                className="w-full h-10"
-              />
-            </div>
-
-            <div className="w-full">
-              <Label className="text-sm font-medium mb-2 block text-sky-500">
-                Last Name
-              </Label>
-              <Input
-                name="LastName"
-                value={searchParams.LastName}
-                onChange={handleChange}
-                placeholder="Enter last name"
-                className="w-full h-10"
-              />
-            </div>
-
-            <div className="w-full">
-              <Label className="text-sm font-medium mb-2 block text-sky-500">
-                Arr. Date
-              </Label>
-              <Input
-                name="ArrDate"
-                type="date"
-                value={searchParams.ArrDate}
-                onChange={handleChange}
-                className="w-full h-10"
-              />
-            </div>
-
-            <div className="w-full">
-              <Label className="text-sm font-medium mb-2 block text-sky-500">
-                Dept. Date
-              </Label>
-              <Input
-                name="DeptDate"
-                type="date"
-                value={searchParams.DeptDate}
-                onChange={handleChange}
-                className="w-full h-10"
-              />
-            </div>
-
-            <div className="w-full">
-              <Label className="text-sm font-medium mb-2 block text-sky-500">
-                Room Number
-              </Label>
-              <Input
-                name="RoomNumber"
-                value={searchParams.RoomNumber}
-                onChange={handleChange}
-                placeholder="Enter room number"
-                className="w-full h-10"
-              />
-            </div>
-
-            <div className="w-full">
-              <Label className="text-sm font-medium mb-2 block text-sky-500">
-                Room Type
-              </Label>
-              <Input
-                name="RoomType"
-                value={searchParams.RoomType}
-                onChange={handleChange}
-                placeholder="Enter room type"
-                className="w-full h-10"
-              />
-            </div>
-
-            <div className="w-full">
-              <Label className="text-sm font-medium mb-2 block text-sky-500">
-                Nationality (Country)
-              </Label>
-              <Input
-                name="Country"
-                value={searchParams.Country}
-                onChange={handleChange}
-                placeholder="Enter nationality"
-                className="w-full h-10"
-              />
-            </div>
-
-            <div className="w-full">
-              <Label className="text-sm font-medium mb-2 block text-sky-500">
-                ID Number
-              </Label>
-              <Input
-                name="IDNumber"
-                value={searchParams.IDNumber}
-                onChange={handleChange}
-                placeholder="Enter ID number"
-                className="w-full h-10"
-              />
-            </div>
+            {Object.entries({
+              FirstName: "First Name",
+              LastName: "Last Name",
+              ArrDate: "Arr. Date",
+              DeptDate: "Dept. Date",
+              RoomNumber: "Room Number",
+              RoomType: "Room Type",
+              Country: "Nationality (Country)",
+              IDNumber: "ID Number",
+              ArrTime: "Arr. Time",
+              DeptTime: "Dept. Time",
+            }).map(([key, label]) => (
+              <div key={key} className="w-full">
+                <Label className="text-sm font-medium mb-2 block text-sky-500">
+                  {label}
+                </Label>
+                <Input
+                  name={key}
+                  type={
+                    key.includes("Date")
+                      ? "date"
+                      : key.includes("Time")
+                      ? "time"
+                      : "text"
+                  } // ✅ sekarang ArrTime & DeptTime jadi input time otomatis
+                  value={
+                    searchParams[key as keyof typeof searchParams] !== undefined
+                      ? searchParams[key as keyof typeof searchParams]
+                      : ""
+                  } // ✅ aman dari undefined
+                  onChange={handleChange}
+                  placeholder={`Enter ${label.toLowerCase()}`}
+                  className="w-full h-10"
+                />
+              </div>
+            ))}
           </div>
 
-          {/* Search Buttons */}
           <div className="flex gap-3 justify-end mb-8 pb-6 border-b">
             <Button
               onClick={handleClear}
@@ -349,12 +284,12 @@ export default function ReservationHistory() {
               disabled={loading}
               className="px-8 h-10 text-base font-medium bg-sky-600 hover:bg-sky-700 text-white"
             >
-              <Search className="w-4 h-4 mr-2" />
+              <Search className="w-4 h-4 mr-2" />{" "}
               {loading ? "Searching..." : "Search"}
             </Button>
           </div>
 
-          {/* Results Section - Table */}
+          {/* Table Result */}
           <div className="space-y-4">
             <h3 className="text-lg font-semibold text-gray-800">
               Reservation Records ({reservationData.length})
@@ -368,105 +303,83 @@ export default function ReservationHistory() {
             ) : reservationData.length === 0 ? (
               <div className="text-center py-12 bg-gray-50 rounded-lg border-2 border-dashed">
                 <User className="w-12 h-12 mx-auto text-gray-400 mb-3" />
-                <p className="text-gray-500">
-                  No reservation records found. Try adjusting your search
-                  criteria.
-                </p>
+                <p className="text-gray-500">No reservation records found.</p>
               </div>
             ) : (
               <div className="overflow-x-auto border rounded-lg">
                 <table className="w-full min-w-max">
                   <thead className="bg-sky-50 border-b">
                     <tr>
-                      <th className="px-4 py-3 text-left text-xs font-semibold text-sky-700 uppercase tracking-wider">
-                        No
-                      </th>
-                      <th className="px-4 py-3 text-left text-xs font-semibold text-sky-700 uppercase tracking-wider">
-                        First Name
-                      </th>
-                      <th className="px-4 py-3 text-left text-xs font-semibold text-sky-700 uppercase tracking-wider">
-                        Last Name
-                      </th>
-                      <th className="px-4 py-3 text-left text-xs font-semibold text-sky-700 uppercase tracking-wider">
-                        Arr. Date
-                      </th>
-                      <th className="px-4 py-3 text-left text-xs font-semibold text-sky-700 uppercase tracking-wider">
-                        Dept. Date
-                      </th>
-                      <th className="px-4 py-3 text-left text-xs font-semibold text-sky-700 uppercase tracking-wider">
-                        Room Number
-                      </th>
-                      <th className="px-4 py-3 text-left text-xs font-semibold text-sky-700 uppercase tracking-wider">
-                        Room Type
-                      </th>
-                      <th className="px-4 py-3 text-left text-xs font-semibold text-sky-700 uppercase tracking-wider">
-                        Nationality
-                      </th>
-                      <th className="px-4 py-3 text-left text-xs font-semibold text-sky-700 uppercase tracking-wider">
-                        ID Number
-                      </th>
-                      <th className="px-4 py-3 text-left text-xs font-semibold text-sky-700 uppercase tracking-wider">
-                        Date of Issue
-                      </th>
-                      <th className="px-4 py-3 text-left text-xs font-semibold text-sky-700 uppercase tracking-wider">
-                        Source
-                      </th>
-                      <th className="px-4 py-3 text-left text-xs font-semibold text-sky-700 uppercase tracking-wider">
-                        Note
-                      </th>
+                      {[
+                        "No",
+                        "First Name",
+                        "Last Name",
+                        "Arr. Date",
+                        "Arr. Time",
+                        "Dept. Date",
+                        "Dept. Time",
+                        "Room Number",
+                        "Phone",
+                        "Person",
+                        "Room Type",
+                        "Nationality",
+                        "ID Number",
+                        "Date of Issue",
+                        "Source",
+                        "Note",
+                      ].map((head) => (
+                        <th
+                          key={head}
+                          className="px-4 py-3 text-left text-xs font-semibold text-sky-700 uppercase tracking-wider"
+                        >
+                          {head}
+                        </th>
+                      ))}
                     </tr>
                   </thead>
                   <tbody className="bg-white divide-y divide-gray-200">
-                    {reservationData.map((reservation, index) => (
+                    {reservationData.map((r, i) => (
                       <tr
-                        key={reservation._id}
+                        key={r._id}
                         className="hover:bg-gray-50 transition-colors"
                       >
-                        <td className="px-4 py-3 text-sm text-gray-900">
-                          {index + 1}
+                        <td className="px-4 py-3 text-sm">{i + 1}</td>
+                        <td className="px-4 py-3 text-sm">{r.FirstName}</td>
+                        <td className="px-4 py-3 text-sm">{r.LastName}</td>
+                        <td className="px-4 py-3 text-sm">
+                          {new Date(r.ArrDate).toLocaleDateString("id-ID")}
                         </td>
-                        <td className="px-4 py-3 text-sm font-medium text-gray-900">
-                          {reservation.FirstName}
+                        <td className="px-4 py-3 text-sm">
+                          {r.ArrTime || "-"}
                         </td>
-                        <td className="px-4 py-3 text-sm font-medium text-gray-900">
-                          {reservation.LastName}
+                        <td className="px-4 py-3 text-sm">
+                          {new Date(r.DeptDate).toLocaleDateString("id-ID")}
                         </td>
-                        <td className="px-4 py-3 text-sm text-gray-600">
-                          {new Date(reservation.ArrDate).toLocaleDateString(
-                            "id-ID"
-                          )}
+                        <td className="px-4 py-3 text-sm">
+                          {r.DeptTime || "-"}
                         </td>
-                        <td className="px-4 py-3 text-sm text-gray-600">
-                          {new Date(reservation.DeptDate).toLocaleDateString(
-                            "id-ID"
-                          )}
+                        <td className="px-4 py-3 text-sm">
+                          {r.RoomNumber || "-"}
                         </td>
-                        <td className="px-4 py-3 text-sm text-gray-600">
-                          {reservation.RoomNumber || "-"}
+                        <td className="px-4 py-3 text-sm">{r.Phone || "-"}</td>
+                        <td className="px-4 py-3 text-sm">
+                          {r.NoOfPerson || "-"}
                         </td>
-                        <td className="px-4 py-3 text-sm text-gray-600">
-                          <span className="inline-flex px-2 py-1 text-xs font-medium rounded-full bg-sky-100 text-sky-800">
-                            {reservation.RoomType}
-                          </span>
+                        <td className="px-4 py-3 text-sm">{r.RoomType}</td>
+                        <td className="px-4 py-3 text-sm">{r.Country}</td>
+                        <td className="px-4 py-3 text-sm">
+                          {r.IDNumber || "-"}
                         </td>
-                        <td className="px-4 py-3 text-sm text-gray-600">
-                          {reservation.Country || "-"}
-                        </td>
-                        <td className="px-4 py-3 text-sm text-gray-600">
-                          {reservation.IDNumber || "-"}
-                        </td>
-                        <td className="px-4 py-3 text-sm text-gray-600">
-                          {reservation.DateOfIssue
-                            ? new Date(
-                                reservation.DateOfIssue
-                              ).toLocaleDateString("id-ID")
+                        <td className="px-4 py-3 text-sm">
+                          {r.DateOfIssue
+                            ? new Date(r.DateOfIssue).toLocaleDateString(
+                                "id-ID"
+                              )
                             : "-"}
                         </td>
-                        <td className="px-4 py-3 text-sm text-gray-600">
-                          {reservation.Source || "-"}
-                        </td>
-                        <td className="px-4 py-3 text-sm text-gray-600 max-w-xs truncate">
-                          {reservation.Note || "-"}
+                        <td className="px-4 py-3 text-sm">{r.Source || "-"}</td>
+                        <td className="px-4 py-3 text-sm max-w-xs truncate">
+                          {r.Note || "-"}
                         </td>
                       </tr>
                     ))}

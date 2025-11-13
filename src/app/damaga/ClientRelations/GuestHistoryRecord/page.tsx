@@ -10,24 +10,12 @@ interface GuestBooking {
   _id: string;
   FirstName: string;
   LastName: string;
+  IDNo?: string;
+  Phone: number;
+  DateOfBirth?: string;
   Address: string;
   Country: string;
-  Phone: number;
-  RoomType: string;
-  ArrDate: string;
-  DeptDate: string;
-  TypeOfGuest: string;
-  City: string;
-  ZipCode: number;
-  RoomRate: number;
-  NoOfPerson: number;
-  ArrTime: string;
-  DeptTime: string;
-  Payment: string;
-  ReservationMadeBy: string;
-  Clerk: string;
   Request?: string;
-  Fax?: string;
   createdAt: string;
   updatedAt: string;
 }
@@ -37,27 +25,26 @@ export default function GuestHistoryRecord() {
     LastName: "",
     FirstName: "",
     Phone: "",
-    City: "",
-    Country: "",
-    RoomType: "",
-    ArrDate: "",
   });
 
-  const [searchAll, setSearchAll] = useState(""); // 🔍 global search
+  const [searchAll, setSearchAll] = useState("");
   const [guestData, setGuestData] = useState<GuestBooking[]>([]);
   const [allData, setAllData] = useState<GuestBooking[]>([]);
   const [loading, setLoading] = useState(true);
   const [lastUpdate, setLastUpdate] = useState<Date>(new Date());
+  const [hydrated, setHydrated] = useState(false);
 
   useEffect(() => {
     fetchAllData();
-
     const interval = setInterval(() => {
       fetchAllData();
       setLastUpdate(new Date());
     }, 50000);
-
     return () => clearInterval(interval);
+  }, []);
+
+  useEffect(() => {
+    setHydrated(true);
   }, []);
 
   const fetchAllData = async () => {
@@ -70,12 +57,10 @@ export default function GuestHistoryRecord() {
           headers: { "Content-Type": "application/json" },
         }
       );
-
       if (!res.ok) throw new Error(`HTTP error! status: ${res.status}`);
 
       const data = await res.json();
       const bookings = Array.isArray(data) ? data : data.bookings || [];
-
       setAllData(bookings);
       setGuestData(bookings);
       setLastUpdate(new Date());
@@ -109,46 +94,13 @@ export default function GuestHistoryRecord() {
             .toLowerCase()
             .includes(searchAll.toLowerCase());
 
-        const matchesFirstName = matchesField(
-          guest.FirstName || "",
-          searchParams.FirstName
-        );
-        const matchesLastName = matchesField(
-          guest.LastName || "",
-          searchParams.LastName
-        );
-        const matchesPhone = matchesField(
-          guest.Phone || "",
-          searchParams.Phone
-        );
-        const matchesCity = matchesField(guest.City || "", searchParams.City);
-        const matchesCountry = matchesField(
-          guest.Country || "",
-          searchParams.Country
-        );
-        const matchesRoomType = matchesField(
-          guest.RoomType || "",
-          searchParams.RoomType
-        );
-
-        let matchesArrDate = true;
-        if (searchParams.ArrDate) {
-          const guestDate = new Date(guest.ArrDate).toISOString().split("T")[0];
-          matchesArrDate = guestDate === searchParams.ArrDate;
-        }
-
         return (
-          matchesFirstName &&
-          matchesLastName &&
-          matchesPhone &&
-          matchesCity &&
-          matchesCountry &&
-          matchesRoomType &&
-          matchesArrDate &&
+          matchesField(guest.FirstName || "", searchParams.FirstName) &&
+          matchesField(guest.LastName || "", searchParams.LastName) &&
+          matchesField(guest.Phone || "", searchParams.Phone) &&
           matchesAll
         );
       });
-
       setGuestData(filtered);
     } catch (err) {
       console.error(err);
@@ -163,10 +115,6 @@ export default function GuestHistoryRecord() {
       LastName: "",
       FirstName: "",
       Phone: "",
-      City: "",
-      Country: "",
-      RoomType: "",
-      ArrDate: "",
     });
     setSearchAll("");
     setGuestData(allData);
@@ -185,13 +133,15 @@ export default function GuestHistoryRecord() {
             <div className="flex items-center gap-2">
               <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
               <span className="text-sm text-gray-600">
-                Auto-refresh aktif (setiap 50 detik)
+                Auto-refresh aktif (50 detik)
               </span>
             </div>
             <div className="flex items-center gap-3">
-              <span className="text-xs text-gray-500">
-                Last update: {lastUpdate.toLocaleTimeString("id-ID")}
-              </span>
+              {hydrated && (
+                <span className="text-xs text-gray-500">
+                  Last update: {lastUpdate.toLocaleTimeString("id-ID")}
+                </span>
+              )}
               <Button
                 onClick={fetchAllData}
                 variant="outline"
@@ -207,7 +157,7 @@ export default function GuestHistoryRecord() {
           {/* 🔍 Global Search */}
           <div className="mb-6">
             <Label className="text-sm font-medium mb-2 block text-sky-500">
-              Search by Any Data (Name, City, Room, etc.)
+              Search by Any Data
             </Label>
             <Input
               placeholder="Type any keyword..."
@@ -257,7 +207,7 @@ export default function GuestHistoryRecord() {
             </div>
           </div>
 
-          {/* 🔘 Search Buttons */}
+          {/* 🔘 Buttons */}
           <div className="flex gap-3 justify-end mb-8 pb-6 border-b">
             <Button onClick={handleClear} variant="outline">
               Clear
@@ -272,7 +222,7 @@ export default function GuestHistoryRecord() {
             </Button>
           </div>
 
-          {/* 🧾 Results Table */}
+          {/* 🧾 Table */}
           <div className="space-y-4">
             <h3 className="text-lg font-semibold text-gray-800">
               Guest Records ({guestData.length})
@@ -297,17 +247,12 @@ export default function GuestHistoryRecord() {
                         "No",
                         "First Name",
                         "Last Name",
-                        "Phone",
-                        "City",
-                        "Country",
-                        "Room Type",
-                        "Check-in",
-                        "Check-out",
-                        "Guests",
-                        "Rate",
-                        "Payment",
-                        "Clerk",
-                        "Request", // ✅ Tambahan
+                        "ID No",
+                        "Phone number",
+                        "Date Of Birth",
+                        "Address",
+                        "Nationality",
+                        "Note",
                       ].map((head) => (
                         <th
                           key={head}
@@ -321,46 +266,33 @@ export default function GuestHistoryRecord() {
                   <tbody className="bg-white divide-y divide-gray-200">
                     {guestData.map((guest, index) => (
                       <tr key={guest._id} className="hover:bg-gray-50">
-                        <td className="px-4 py-3 ">{index + 1}</td>
+                        <td className="px-4 py-3">{index + 1}</td>
                         <td className="px-4 py-3 text-sm font-medium text-gray-900">
                           {guest.FirstName}
                         </td>
-                        <td className="px-4 py-3  text-sm font-medium text-gray-900">
+                        <td className="px-4 py-3 text-sm font-medium text-gray-900">
                           {guest.LastName}
                         </td>
-                        <td className="px-4 py-3  text-sm font-medium text-gray-900">
+                        <td className="px-4 py-3 text-sm text-gray-700">
+                          {guest.IDNo || "-"}
+                        </td>
+                        <td className="px-4 py-3 text-sm text-gray-700">
                           {guest.Phone || "-"}
                         </td>
-                        <td className="px-4 py-3  text-sm font-medium text-gray-900">
-                          {guest.City || "-"}
+                        <td className="px-4 py-3 text-sm text-gray-700">
+                          {guest.DateOfBirth
+                            ? new Date(guest.DateOfBirth).toLocaleDateString(
+                                "id-ID"
+                              )
+                            : "-"}
                         </td>
-                        <td className="px-4 py-3  text-sm font-medium text-gray-900">
+                        <td className="px-4 py-3 text-sm text-gray-700">
+                          {guest.Address || "-"}
+                        </td>
+                        <td className="px-4 py-3 text-sm text-gray-700">
                           {guest.Country || "-"}
                         </td>
-                        <td className="px-4 py-3">
-                          <span className="inline-flex px-2 py-1 text-xs font-medium rounded-full bg-sky-100 text-sky-800">
-                            {guest.RoomType}
-                          </span>
-                        </td>
-                        <td className="px-4 py-3  text-sm font-medium text-gray-900">
-                          {new Date(guest.ArrDate).toLocaleDateString("id-ID")}
-                        </td>
-                        <td className="px-4 py-3 text-sm font-medium text-gray-900">
-                          {new Date(guest.DeptDate).toLocaleDateString("id-ID")}
-                        </td>
-                        <td className="px-4 py-3 text-sm font-medium text-gray-900">
-                          {guest.NoOfPerson}
-                        </td>
-                        <td className="px-4 py-3 text-sm font-medium text-gray-900">
-                          ${guest.RoomRate}
-                        </td>
-                        <td className="px-4 py-3  text-sm font-medium text-gray-900">
-                          {guest.Payment || "-"}
-                        </td>
-                        <td className="px-4 py-3 text-sm font-medium text-gray-900">
-                          {guest.Clerk || "-"}
-                        </td>
-                        <td className="px-4 py-3  text-sm font-medium text-gray-900">
+                        <td className="px-4 py-3 text-sm text-gray-700">
                           {guest.Request || "-"}
                         </td>
                       </tr>
