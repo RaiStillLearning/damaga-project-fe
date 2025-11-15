@@ -1,5 +1,6 @@
 "use client";
 
+import { Suspense } from "react";
 import { useState, useEffect } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Input } from "@/components/ui/input";
@@ -22,7 +23,17 @@ interface GuestBooking {
   updatedAt: string;
 }
 
-export default function GuestHistoryRecord() {
+/* -------------------------- WRAPPER FIX -------------------------- */
+export default function GuestHistoryRecordPage() {
+  return (
+    <Suspense fallback={<div className="p-5 text-center">Loading...</div>}>
+      <GuestHistoryRecord />
+    </Suspense>
+  );
+}
+/* ---------------------------------------------------------------- */
+
+function GuestHistoryRecord() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const [searchState, setSearchState] = useState({
@@ -41,7 +52,6 @@ export default function GuestHistoryRecord() {
   useEffect(() => {
     fetchAllData();
 
-    // Auto-refresh setiap 10 detik
     const interval = setInterval(() => {
       fetchAllData();
       setLastUpdate(new Date());
@@ -54,14 +64,10 @@ export default function GuestHistoryRecord() {
     setHydrated(true);
   }, []);
 
-  // Detect refresh parameter dari URL
   useEffect(() => {
     const shouldRefresh = searchParams.get("refresh");
     if (shouldRefresh === "true") {
-      console.log("🔄 Triggered refresh from check-in");
       fetchAllData();
-
-      // Clean URL
       window.history.replaceState({}, "", window.location.pathname);
     }
   }, [searchParams]);
@@ -84,7 +90,7 @@ export default function GuestHistoryRecord() {
       setAllData(bookings);
       setGuestData(bookings);
       setLastUpdate(new Date());
-    } catch (err: unknown) {
+    } catch (err) {
       console.error("Fetch error:", err);
       alert("Gagal memuat data");
     } finally {

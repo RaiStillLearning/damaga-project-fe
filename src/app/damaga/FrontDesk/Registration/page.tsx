@@ -1,11 +1,20 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { Suspense } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent } from "@/components/ui/card";
 import { FileText } from "lucide-react";
 import { useSearchParams, useRouter } from "next/navigation";
+
+export default function HotelRegistrationFormPage() {
+  return (
+    <Suspense fallback={<div className="p-4 text-center">Loading...</div>}>
+      <HotelRegistrationForm />
+    </Suspense>
+  );
+}
 
 interface RegistrationFormData {
   arrivalDate: string;
@@ -37,7 +46,7 @@ interface RegistrationFormData {
   person: string;
 }
 
-export default function HotelRegistrationForm() {
+ function HotelRegistrationForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const bookingId = searchParams.get("bookingId");
@@ -87,6 +96,7 @@ export default function HotelRegistrationForm() {
         }));
       } catch (error) {
         console.error("Failed to parse user from localStorage");
+        console.error(error);
       }
     }
   }, []);
