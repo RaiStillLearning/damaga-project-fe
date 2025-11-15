@@ -1044,7 +1044,7 @@ function HotelRegistrationForm() {
               <tr>
                 <td className="border-2 border-black p-2">
                   <div className="text-xs">
-                    <span className="font-semibold">Remark:</span>
+                    <span className="font-semibold">Remark Client:</span>
                     <span className="ml-2">{formData.remark || "-"}</span>
                   </div>
                 </td>
@@ -1056,3 +1056,5 @@ function HotelRegistrationForm() {
     </div>
   );
 }
+
+// comments
