@@ -75,20 +75,52 @@ const navigationOptions = [
     color: "indigo",
   },
   {
-    id: "front-desk",
-    title: "Front Desk",
-    url: "#",
+    id: "registration",
+    title: "Registration",
+    url: "/damaga/FrontDesk/Registration",
     iconName: "Users" as keyof typeof iconMap,
-    description: "Manage front desk operations",
+    description: "Manage guest registration",
     color: "orange",
   },
   {
-    id: "inventory",
-    title: "Inventory",
+    id: "expected-arrivals",
+    title: "Expected Arrivals",
+    url: "#",
+    iconName: "Users" as keyof typeof iconMap,
+    description: "View upcoming guest arrivals",
+    color: "cyan",
+  },
+  {
+    id: "in-house",
+    title: "In House",
+    url: "#",
+    iconName: "Users" as keyof typeof iconMap,
+    description: "View currently checked-in guests",
+    color: "teal",
+  },
+  {
+    id: "expected-departures",
+    title: "Expected Departures",
+    url: "#",
+    iconName: "Users" as keyof typeof iconMap,
+    description: "View upcoming guest departures",
+    color: "amber",
+  },
+  {
+    id: "availability",
+    title: "Availability",
     url: "#",
     iconName: "Box" as keyof typeof iconMap,
-    description: "Check room availability and status",
+    description: "Check room availability",
     color: "pink",
+  },
+  {
+    id: "room-status",
+    title: "Room Status",
+    url: "#",
+    iconName: "Box" as keyof typeof iconMap,
+    description: "View room status and housekeeping",
+    color: "rose",
   },
   {
     id: "financial",
@@ -117,7 +149,6 @@ export default function HomePage() {
   const [loading, setLoading] = useState(true);
   const router = useRouter();
 
-  // Load user profile and tiles from server
   useEffect(() => {
     const token = localStorage.getItem("token");
     if (!token) {
@@ -125,7 +156,6 @@ export default function HomePage() {
       return;
     }
 
-    // Load profile
     fetch("http://localhost:5000/api/profile", {
       headers: { Authorization: `Bearer ${token}` },
     })
@@ -133,7 +163,6 @@ export default function HomePage() {
       .then((data) => setUser(data.user))
       .catch(() => router.push("/login"));
 
-    // Load tiles dari SERVER (bukan localStorage)
     fetch("http://localhost:5000/api/tiles", {
       headers: { Authorization: `Bearer ${token}` },
     })
@@ -157,7 +186,6 @@ export default function HomePage() {
       });
   }, [router]);
 
-  // Save tiles to server
   const saveTilesToServer = async (newTiles: TileSlot[]) => {
     const token = localStorage.getItem("token");
     if (!token) return;
@@ -264,6 +292,34 @@ export default function HomePage() {
         iconBg: "bg-emerald-100",
         border: "hover:border-emerald-300",
       },
+      cyan: {
+        bg: "bg-cyan-50",
+        text: "text-cyan-600",
+        hover: "hover:bg-cyan-100",
+        iconBg: "bg-cyan-100",
+        border: "hover:border-cyan-300",
+      },
+      teal: {
+        bg: "bg-teal-50",
+        text: "text-teal-600",
+        hover: "hover:bg-teal-100",
+        iconBg: "bg-teal-100",
+        border: "hover:border-teal-300",
+      },
+      amber: {
+        bg: "bg-amber-50",
+        text: "text-amber-600",
+        hover: "hover:bg-amber-100",
+        iconBg: "bg-amber-100",
+        border: "hover:border-amber-300",
+      },
+      rose: {
+        bg: "bg-rose-50",
+        text: "text-rose-600",
+        hover: "hover:bg-rose-100",
+        iconBg: "bg-rose-100",
+        border: "hover:border-rose-300",
+      },
     };
     return colors[color] || colors.blue;
   };
@@ -281,7 +337,6 @@ export default function HomePage() {
 
   return (
     <div className="w-full max-w-7xl mx-auto">
-      {/* Header */}
       <div className="mb-8">
         <h1 className="text-3xl font-bold text-stone-900 mb-2">
           {user ? `Hello, ${user.username}!` : "Dashboard Utama"}
@@ -321,7 +376,6 @@ export default function HomePage() {
         </AlertDialog>
       </div>
 
-      {/* Info Text */}
       <div className="mb-6">
         <p className="text-sm text-gray-600">
           Click on{" "}
@@ -330,7 +384,6 @@ export default function HomePage() {
         </p>
       </div>
 
-      {/* Tiles Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
         {tiles.map((tile, index) => {
           if (tile) {
@@ -347,7 +400,6 @@ export default function HomePage() {
                 className={`relative group ${colors.bg} p-6 rounded-lg shadow-sm border-2 border-transparent ${colors.border} transition-all duration-200 cursor-pointer`}
                 onClick={() => handleNavigateToTile(tile.url)}
               >
-                {/* Close button - visible on mobile, hover on desktop */}
                 <button
                   onClick={(e) => {
                     e.stopPropagation();
@@ -407,7 +459,6 @@ export default function HomePage() {
         })}
       </div>
 
-      {/* Navigation Selection Dialog */}
       <Dialog open={open} onOpenChange={setOpen}>
         <DialogContent className="sm:max-w-2xl">
           <DialogHeader>
@@ -480,7 +531,6 @@ export default function HomePage() {
         </DialogContent>
       </Dialog>
 
-      {/* Additional Content */}
       <div className="bg-white p-6 rounded-lg shadow-sm border">
         <h2 className="text-xl font-semibold mb-4">Quick Tips</h2>
         <ul className="space-y-2 text-gray-600">
