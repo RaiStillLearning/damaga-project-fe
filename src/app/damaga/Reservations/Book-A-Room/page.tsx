@@ -92,7 +92,7 @@ export default function BookARoomForm() {
     Country: "",
     Phone: "",
     RoomType: "",
-    NoOfRoom: 0,
+    NoOfRoom: "",
     ArrDate: new Date().toISOString().split("T")[0],
     DeptDate: new Date().toISOString().split("T")[0],
     TypeOfGuest: "",
@@ -119,7 +119,6 @@ export default function BookARoomForm() {
   const handleSubmit = async () => {
     setIsSubmitting(true);
     try {
-      // Validasi semua required field sesuai schema backend
       const requiredFields = [
         "FirstName",
         "LastName",
@@ -148,14 +147,14 @@ export default function BookARoomForm() {
         }
       }
 
-      // ✅ FIX: Fax tetap string (tidak diubah ke number)
       const submitData = {
         ...formData,
         Phone: Number(formData.Phone),
+        NoOfRoom: Number(formData.NoOfRoom),
         ZipCode: Number(formData.ZipCode) || 0,
         RoomRate: Number(formData.RoomRate) || 0,
         NumberOfPerson: Number(formData.NumberOfPerson) || 1,
-        Fax: formData.Fax?.toString() || "", // pastikan Fax string
+        Fax: formData.Fax?.toString() || "",
       };
 
       console.log("Submitting data:", submitData);
@@ -178,7 +177,6 @@ export default function BookARoomForm() {
       alert("Booking berhasil!");
       console.log("Response:", data);
 
-      // Reset form ke default valid values
       setFormData({
         FirstName: "",
         LastName: "",
@@ -186,7 +184,7 @@ export default function BookARoomForm() {
         Country: "",
         Phone: "",
         RoomType: "",
-        NoOfRoom: 0,
+        NoOfRoom: "",
         ArrDate: new Date().toISOString().split("T")[0],
         DeptDate: new Date().toISOString().split("T")[0],
         TypeOfGuest: "",
@@ -197,7 +195,7 @@ export default function BookARoomForm() {
         NumberOfPerson: 1,
         ArrTime: "12:00",
         DeptTime: "12:00",
-        Payment: "Cash",
+        Payment: "",
         ReservationMadeBy: "Direct",
         Request: "None",
         Clerk: "",
@@ -211,6 +209,7 @@ export default function BookARoomForm() {
       setIsSubmitting(false);
     }
   };
+
   useEffect(() => {
     const storedUser = localStorage.getItem("user");
     if (storedUser) {
@@ -429,7 +428,7 @@ export default function BookARoomForm() {
               </Label>
               <Select
                 name="NoOfRoom"
-                value={String(formData.NoOfRoom)}
+                value={formData.NoOfRoom}
                 onValueChange={(val) =>
                   setFormData({ ...formData, NoOfRoom: val })
                 }
@@ -579,7 +578,7 @@ export default function BookARoomForm() {
                 Payment Method *
               </Label>
               <Select
-                name="RoomType"
+                name="Payment"
                 value={formData.Payment}
                 onValueChange={(val) =>
                   setFormData({ ...formData, Payment: val })
@@ -589,9 +588,9 @@ export default function BookARoomForm() {
                   <SelectValue placeholder="Select Payment Method" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="Single">Cash</SelectItem>
-                  <SelectItem value="Double">Debit</SelectItem>
-                  <SelectItem value="Suite">Lorem</SelectItem>
+                  <SelectItem value="Cash">Cash</SelectItem>
+                  <SelectItem value="Debit">Debit</SelectItem>
+                  <SelectItem value="Credit">Credit</SelectItem>
                 </SelectContent>
               </Select>
             </div>

@@ -1,11 +1,20 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Search, User, RefreshCw } from "lucide-react";
+
+export default function ReservationHistoryPage() {
+  return (
+    <Suspense fallback={<div>Loading...</div>}>
+      <ReservationHistory />
+    </Suspense>
+  );
+}
 
 interface ReservationBooking {
   _id: string;
@@ -40,7 +49,7 @@ interface ReservationBooking {
   updatedAt: string;
 }
 
-export default function ReservationHistory() {
+function ReservationHistory() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const [searchState, setSearchState] = useState({
@@ -48,12 +57,19 @@ export default function ReservationHistory() {
     LastName: "",
     ArrDate: "",
     DeptDate: "",
-    ArrTime: "",
-    DeptTime: "",
     RoomNumber: "",
     RoomType: "",
-    Country: "",
+    Phone: "",
+    NoOfPerson: "",
+    RoomRate: "",
     IDNumber: "",
+    Address: "",
+    Country: "",
+    DateOfIssue: "",
+    ArrTime: "",
+    DeptTime: "",
+    Source: "",
+    Note: "",
   });
 
   const [reservationData, setReservationData] = useState<ReservationBooking[]>(
@@ -211,12 +227,19 @@ export default function ReservationHistory() {
       LastName: "",
       ArrDate: "",
       DeptDate: "",
-      ArrTime: "",
-      DeptTime: "",
       RoomNumber: "",
       RoomType: "",
-      Country: "",
+      Phone: "",
+      NoOfPerson: "",
+      RoomRate: "",
       IDNumber: "",
+      Address: "",
+      Country: "",
+      DateOfIssue: "",
+      ArrTime: "",
+      DeptTime: "",
+      Source: "",
+      Note: "",
     });
     setStatusFilter("all");
     setReservationData(allData);
@@ -346,14 +369,21 @@ export default function ReservationHistory() {
             {Object.entries({
               FirstName: "First Name",
               LastName: "Last Name",
-              ArrDate: "Arr. Date",
-              DeptDate: "Dept. Date",
+              ArrDate: "Arrival Date",
+              DeptDate: "Departure Date",
               RoomNumber: "Room Number",
               RoomType: "Room Type",
-              Country: "Nationality (Country)",
+              Phone: "Phone",
+              NoOfPerson: "Number of Person",
+              RoomRate: "Room Rate",
               IDNumber: "ID Number",
-              ArrTime: "Arr. Time",
-              DeptTime: "Dept. Time",
+              Address: "Address",
+              Country: "Nationality",
+              DateOfIssue: "Date of Issue",
+              ArrTime: "Arrival Time",
+              DeptTime: "Departure Time",
+              Source: "Source",
+              Note: "Request",
             }).map(([key, label]) => (
               <div key={key} className="w-full">
                 <Label className="text-sm font-medium mb-2 block text-sky-500">
@@ -424,19 +454,19 @@ export default function ReservationHistory() {
                         "No",
                         "First Name",
                         "Last Name",
-                        "Address",
                         "Arr. Date",
-                        "Arr. Time",
                         "Dept. Date",
-                        "Dept. Time",
                         "Room Number",
-                        "Room Rate",
+                        "Room Type",
                         "Phone",
                         "Person",
-                        "Room Type",
-                        "Nationality",
+                        "Room Rate",
                         "ID Number",
+                        "Address",
+                        "Nationality",
                         "Date of Issue",
+                        "Arr. Time",
+                        "Dept. Time",
                         "Status",
                         "Source",
                         "Note",
@@ -466,32 +496,36 @@ export default function ReservationHistory() {
                           {new Date(r.ArrDate).toLocaleDateString("id-ID")}
                         </td>
                         <td className="px-4 py-3 text-sm">
-                          {r.ArrTime || "-"}
-                        </td>
-                        <td className="px-4 py-3 text-sm">
                           {new Date(r.DeptDate).toLocaleDateString("id-ID")}
-                        </td>
-                        <td className="px-4 py-3 text-sm">
-                          {r.DeptTime || "-"}
                         </td>
                         <td className="px-4 py-3 text-sm">
                           {r.RoomNumber || "-"}
                         </td>
+                        <td className="px-4 py-3 text-sm">{r.RoomType}</td>
                         <td className="px-4 py-3 text-sm">{r.Phone || "-"}</td>
                         <td className="px-4 py-3 text-sm">
                           {r.NoOfPerson || "-"}
                         </td>
-                        <td className="px-4 py-3 text-sm">{r.RoomType}</td>
-                        <td className="px-4 py-3 text-sm">{r.Country}</td>
+                        <td className="px-4 py-3 text-sm">
+                          {r.RoomRate || "-"}
+                        </td>
                         <td className="px-4 py-3 text-sm">
                           {r.IDNumber || "-"}
                         </td>
+                        <td className="px-4 py-3 text-sm">{r.Address}</td>
+                        <td className="px-4 py-3 text-sm">{r.Country}</td>
                         <td className="px-4 py-3 text-sm">
                           {r.DateOfIssue
                             ? new Date(r.DateOfIssue).toLocaleDateString(
                                 "id-ID"
                               )
                             : "-"}
+                        </td>
+                        <td className="px-4 py-3 text-sm">
+                          {r.ArrTime || "-"}
+                        </td>
+                        <td className="px-4 py-3 text-sm">
+                          {r.DeptTime || "-"}
                         </td>
                         <td className="px-4 py-3 text-sm">
                           {getStatusBadge(r.status)}
