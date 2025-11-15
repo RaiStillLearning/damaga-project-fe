@@ -7,6 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Card, CardContent } from "@/components/ui/card";
 import { FileText } from "lucide-react";
 import { useSearchParams, useRouter } from "next/navigation";
+import Image from "next/image";
 
 export default function HotelRegistrationFormPage() {
   return (
@@ -618,6 +619,17 @@ interface RegistrationFormData {
                   </div>
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Credit Card Number
+                    </label>
+                    <Input
+                      name="creditCardNumber"
+                      value={formData.creditCardNumber}
+                      onChange={handleChange}
+                      placeholder="Card number"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
                       Approval Code
                     </label>
                     <Input
@@ -773,9 +785,13 @@ interface RegistrationFormData {
 
         <div className="bg-white border-4 border-blue-600 p-6 print:border-4">
           <div className="flex justify-between items-center mb-4">
-            <div className="w-24 h-24 bg-gray-800 flex items-center justify-center">
-              <span className="text-white text-lg font-bold">DAMAGA</span>
-            </div>
+      <Image
+        src="/logo/DAMAGA SUITES MRR.png"
+        alt="DAMAGA Logo"
+        width={120}
+        height={120}
+        className="object-contain"
+      />
             <h1 className="text-4xl font-bold tracking-wider">REGISTRATION</h1>
           </div>
 
@@ -937,6 +953,11 @@ interface RegistrationFormData {
                     <div className="flex items-center gap-2">
                       <span className="font-semibold">CREDIT CARD</span>
                       <span>{formData.paymentCredit ? "☑" : "☐"}</span>
+                    </div>
+                    <div className="flex items-center gap-1">
+                      <span className="font-semibold">Number</span>
+                      <span>:</span>
+                      <span>{formData.creditCardNumber || "-"}</span>
                     </div>
                     <div className="flex items-center gap-1">
                       <span className="font-semibold">Number</span>
