@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
@@ -10,7 +11,7 @@ interface GuestBooking {
   _id: string;
   FirstName: string;
   LastName: string;
-  IDNo?: string;
+  IDNumber?: string;
   Phone: number;
   DateOfBirth?: string;
   Address: string;
@@ -21,6 +22,7 @@ interface GuestBooking {
 }
 
 export default function GuestHistoryRecord() {
+  const router = useRouter();
   const [searchParams, setSearchParams] = useState({
     LastName: "",
     FirstName: "",
@@ -65,8 +67,8 @@ export default function GuestHistoryRecord() {
       setGuestData(bookings);
       setLastUpdate(new Date());
     } catch (err: unknown) {
-      console.error("Submit error:", err);
-      alert("Gagal submit booking");
+      console.error("Fetch error:", err);
+      alert("Gagal memuat data");
     } finally {
       setLoading(false);
     }
@@ -120,6 +122,11 @@ export default function GuestHistoryRecord() {
     setGuestData(allData);
   };
 
+  // ✅ Handle Check In - Redirect ke Registration Form dengan bookingId
+  const handleCheckIn = (bookingId: string) => {
+    router.push(`../FrontDesk/Registration?bookingId=${bookingId}`);
+  };
+
   return (
     <div className="p-4 sm:p-6 lg:p-8">
       <div className="w-full max-w-7xl mx-auto">
@@ -128,7 +135,7 @@ export default function GuestHistoryRecord() {
             Guest History Record
           </h2>
 
-          {/* 🔁 Auto Refresh */}
+          {/* Auto Refresh */}
           <div className="mb-6 flex flex-col sm:flex-row items-start sm:items-center justify-between bg-sky-50 px-4 py-3 rounded-lg border border-sky-200 gap-3">
             <div className="flex items-center gap-2">
               <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
@@ -154,7 +161,7 @@ export default function GuestHistoryRecord() {
             </div>
           </div>
 
-          {/* 🔍 Global Search */}
+          {/* Global Search */}
           <div className="mb-6">
             <Label className="text-sm font-medium mb-2 block text-sky-500">
               Search by Any Data
@@ -167,7 +174,7 @@ export default function GuestHistoryRecord() {
             />
           </div>
 
-          {/* 🔎 Search Fields */}
+          {/* Search Fields */}
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5 sm:gap-6 mb-6">
             <div>
               <Label className="text-sm font-medium mb-2 block text-sky-500">
@@ -207,7 +214,7 @@ export default function GuestHistoryRecord() {
             </div>
           </div>
 
-          {/* 🔘 Buttons */}
+          {/* Buttons */}
           <div className="flex gap-3 justify-end mb-8 pb-6 border-b">
             <Button onClick={handleClear} variant="outline">
               Clear
@@ -222,7 +229,7 @@ export default function GuestHistoryRecord() {
             </Button>
           </div>
 
-          {/* 🧾 Table */}
+          {/* Table */}
           <div className="space-y-4">
             <h3 className="text-lg font-semibold text-gray-800">
               Guest Records ({guestData.length})
@@ -261,6 +268,9 @@ export default function GuestHistoryRecord() {
                           {head}
                         </th>
                       ))}
+                      <th className="px-4 py-3 text-left text-xs font-semibold text-sky-700 uppercase tracking-wider">
+                        Actions
+                      </th>
                     </tr>
                   </thead>
                   <tbody className="bg-white divide-y divide-gray-200">
@@ -274,7 +284,7 @@ export default function GuestHistoryRecord() {
                           {guest.LastName}
                         </td>
                         <td className="px-4 py-3 text-sm text-gray-700">
-                          {guest.IDNo || "-"}
+                          {guest.IDNumber || "-"}
                         </td>
                         <td className="px-4 py-3 text-sm text-gray-700">
                           {guest.Phone || "-"}
@@ -294,6 +304,15 @@ export default function GuestHistoryRecord() {
                         </td>
                         <td className="px-4 py-3 text-sm text-gray-700">
                           {guest.Request || "-"}
+                        </td>
+                        <td className="px-4 py-3 text-sm">
+                          <Button
+                            onClick={() => handleCheckIn(guest._id)}
+                            size="sm"
+                            className="bg-blue-600 hover:bg-blue-700 text-white text-xs px-3 py-1 whitespace-nowrap"
+                          >
+                            Check In
+                          </Button>
                         </td>
                       </tr>
                     ))}

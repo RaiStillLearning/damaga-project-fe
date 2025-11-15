@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
@@ -38,13 +39,14 @@ interface ReservationBooking {
 }
 
 export default function ReservationHistory() {
+  const router = useRouter();
   const [searchParams, setSearchParams] = useState({
     FirstName: "",
     LastName: "",
     ArrDate: "",
     DeptDate: "",
-    ArrTime: "", // ✅ tambahkan ini
-    DeptTime: "", // ✅ tambahkan ini
+    ArrTime: "",
+    DeptTime: "",
     RoomNumber: "",
     RoomType: "",
     Country: "",
@@ -57,6 +59,7 @@ export default function ReservationHistory() {
   const [allData, setAllData] = useState<ReservationBooking[]>([]);
   const [loading, setLoading] = useState(true);
   const [lastUpdate, setLastUpdate] = useState<Date>(new Date());
+  const [isClient, setIsClient] = useState(false);
 
   useEffect(() => {
     fetchAllData();
@@ -67,6 +70,10 @@ export default function ReservationHistory() {
     }, 50000);
 
     return () => clearInterval(interval);
+  }, []);
+
+  useEffect(() => {
+    setIsClient(true);
   }, []);
 
   const fetchAllData = async () => {
@@ -89,10 +96,10 @@ export default function ReservationHistory() {
       setReservationData(bookings);
       setLastUpdate(new Date());
     } catch (err: unknown) {
-      console.error("Submit error:", err);
+      console.error("Fetch error:", err);
       const errorMessage =
         err instanceof Error ? err.message : "Unknown error occurred";
-      alert(`Gagal submit booking: ${errorMessage}`);
+      alert(`Gagal memuat data: ${errorMessage}`);
     } finally {
       setLoading(false);
     }
@@ -182,8 +189,8 @@ export default function ReservationHistory() {
       LastName: "",
       ArrDate: "",
       DeptDate: "",
-      ArrTime: "", // reset juga
-      DeptTime: "", // reset juga
+      ArrTime: "",
+      DeptTime: "",
       RoomNumber: "",
       RoomType: "",
       Country: "",
@@ -191,11 +198,11 @@ export default function ReservationHistory() {
     });
     setReservationData(allData);
   };
-  const [isClient, setIsClient] = useState(false);
 
-  useEffect(() => {
-    setIsClient(true);
-  }, []);
+  // ✅ Handle Check In - Redirect ke Registration Form dengan bookingId
+  const handleCheckIn = (bookingId: string) => {
+    router.push(`../FrontDesk/Registration?bookingId=${bookingId}`);
+  };
 
   return (
     <div className="p-4 sm:p-6 lg:p-8">
@@ -257,12 +264,12 @@ export default function ReservationHistory() {
                       : key.includes("Time")
                       ? "time"
                       : "text"
-                  } // ✅ sekarang ArrTime & DeptTime jadi input time otomatis
+                  }
                   value={
                     searchParams[key as keyof typeof searchParams] !== undefined
                       ? searchParams[key as keyof typeof searchParams]
                       : ""
-                  } // ✅ aman dari undefined
+                  }
                   onChange={handleChange}
                   placeholder={`Enter ${label.toLowerCase()}`}
                   className="w-full h-10"
@@ -335,6 +342,9 @@ export default function ReservationHistory() {
                           {head}
                         </th>
                       ))}
+                      <th className="px-4 py-3 text-left text-xs font-semibold text-sky-700 uppercase tracking-wider">
+                        Actions
+                      </th>
                     </tr>
                   </thead>
                   <tbody className="bg-white divide-y divide-gray-200">
@@ -380,6 +390,15 @@ export default function ReservationHistory() {
                         <td className="px-4 py-3 text-sm">{r.Source || "-"}</td>
                         <td className="px-4 py-3 text-sm max-w-xs truncate">
                           {r.Note || "-"}
+                        </td>
+                        <td className="px-4 py-3 text-sm">
+                          <Button
+                            onClick={() => handleCheckIn(r._id)}
+                            size="sm"
+                            className="bg-blue-600 hover:bg-blue-700 text-white text-xs px-3 py-1 whitespace-nowrap"
+                          >
+                            Check In
+                          </Button>
                         </td>
                       </tr>
                     ))}

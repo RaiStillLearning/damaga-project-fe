@@ -1,15 +1,50 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent } from "@/components/ui/card";
-import { Calendar, User, FileText } from "lucide-react";
-import image from "next/image";
+import { FileText } from "lucide-react";
+import { useSearchParams, useRouter } from "next/navigation";
+
+interface RegistrationFormData {
+  arrivalDate: string;
+  departureDate: string;
+  numberOfRooms: string;
+  roomType: string;
+  dailyRate: string;
+  currency: string;
+  lastName: string;
+  firstName: string;
+  address: string;
+  advanceDeposit: string;
+  companyName: string;
+  companyPhone: string;
+  companyAddress: string;
+  dateOfBirth: string;
+  passportId: string;
+  nationality: string;
+  dateOfIssue: string;
+  paymentCash: boolean;
+  paymentCredit: boolean;
+  voucherNumber: string;
+  creditCardNumber: string;
+  approvalCode: string;
+  remark: string;
+  clerk: string;
+  roomNo: string;
+  discount: string;
+  person: string;
+}
 
 export default function HotelRegistrationForm() {
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const bookingId = searchParams.get("bookingId");
+
   const [isCheckedIn, setIsCheckedIn] = useState(false);
-  const [formData, setFormData] = useState({
+  const [isSaving, setIsSaving] = useState(false);
+  const [formData, setFormData] = useState<RegistrationFormData>({
     arrivalDate: "",
     departureDate: "",
     numberOfRooms: "",
@@ -32,18 +67,92 @@ export default function HotelRegistrationForm() {
     voucherNumber: "",
     creditCardNumber: "",
     approvalCode: "",
+    remark: "",
+    clerk: "",
     roomNo: "",
     discount: "",
     person: "",
-    time: "",
-    clerk: "",
-    remark: "",
   });
 
+  // Auto-fill clerk name and first name from logged in user
+  useEffect(() => {
+    const storedUser = localStorage.getItem("user");
+    if (storedUser) {
+      try {
+        const parsed = JSON.parse(storedUser);
+        const clerkName = parsed.username || parsed.name || "Admin";
+        setFormData((prev) => ({
+          ...prev,
+          clerk: clerkName,
+          firstName: clerkName,
+        }));
+      } catch (error) {
+        console.error("Failed to parse user from localStorage");
+      }
+    }
+  }, []);
+
+  // Fetch booking data jika ada bookingId
+  useEffect(() => {
+    if (bookingId) {
+      fetchBookingData(bookingId);
+    }
+  }, [bookingId]);
+
+  const fetchBookingData = async (id: string) => {
+    try {
+      const res = await fetch(
+        `${process.env.NEXT_PUBLIC_API_URL}/api/book-a-room/${id}`
+      );
+      if (!res.ok) throw new Error("Failed to fetch booking data");
+
+      const booking = await res.json();
+
+      setFormData((prev) => ({
+        ...prev,
+        arrivalDate: booking.ArrDate
+          ? new Date(booking.ArrDate).toISOString().split("T")[0]
+          : "",
+        departureDate: booking.DeptDate
+          ? new Date(booking.DeptDate).toISOString().split("T")[0]
+          : "",
+        numberOfRooms: booking.NoOfRoom?.toString() || "",
+        roomType: booking.RoomType || "",
+        dailyRate: booking.RoomRate?.toString() || "",
+        currency: "USD",
+        lastName: booking.LastName || "",
+        firstName: booking.FirstName || prev.firstName,
+        address: booking.Address || "",
+        advanceDeposit: "",
+        companyName: "",
+        companyPhone: booking.Phone?.toString() || "",
+        companyAddress: "",
+        dateOfBirth: booking.DateOfBirth
+          ? new Date(booking.DateOfBirth).toISOString().split("T")[0]
+          : "",
+        passportId: booking.IDNumber || "",
+        nationality: booking.Country || "",
+        dateOfIssue: booking.DateOfIssue
+          ? new Date(booking.DateOfIssue).toISOString().split("T")[0]
+          : "",
+        paymentCash: booking.Payment === "Cash",
+        paymentCredit: booking.Payment === "Credit Card",
+        voucherNumber: "",
+        creditCardNumber: "",
+        approvalCode: "",
+        remark: booking.Request || "",
+        roomNo: booking.RoomNumber || "",
+        discount: booking.Discount?.toString() || "",
+        person: booking.NoOfPerson?.toString() || "",
+      }));
+    } catch (error) {
+      console.error("Error fetching booking:", error);
+      alert("Gagal memuat data booking");
+    }
+  };
+
   const handleChange = (
-    e: React.ChangeEvent<
-      HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement
-    >
+    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
   ) => {
     const { name, value, type } = e.target;
     if (type === "checkbox") {
@@ -54,8 +163,97 @@ export default function HotelRegistrationForm() {
     }
   };
 
-  const handleCheckIn = () => {
-    setIsCheckedIn(true);
+  // ✅ Helper function untuk build payload
+  const buildPayload = () => {
+    return {
+      FirstName: formData.firstName,
+      LastName: formData.lastName,
+      Address: formData.address || "-",
+      Country: formData.nationality || "Unknown",
+      Phone: parseInt(formData.companyPhone) || 0,
+      RoomType: formData.roomType || "Standard",
+      NoOfRoom: parseInt(formData.numberOfRooms) || 1,
+      RoomNumber: formData.roomNo || "",
+      ArrDate: formData.arrivalDate,
+      DeptDate: formData.departureDate,
+      ArrTime: "12:00",
+      DeptTime: "12:00",
+      TypeOfGuest: "Walk-in",
+      City: "-",
+      ZipCode: 0,
+      RoomRate: parseFloat(formData.dailyRate) || 0,
+      NoOfPerson: parseInt(formData.person) || 1,
+      Payment: formData.paymentCash
+        ? "Cash"
+        : formData.paymentCredit
+        ? "Credit Card"
+        : "Cash",
+      ReservationMadeBy: "Direct",
+      Clerk: formData.clerk,
+      Request: formData.remark || "None",
+      IDNumber: formData.passportId || "",
+      DateOfIssue: formData.dateOfIssue || null,
+      DateOfBirth: formData.dateOfBirth || null,
+      Discount: parseInt(formData.discount) || 0,
+      Source: "Registration Form",
+      Note: formData.remark || "",
+      status: "checked-in",
+      checkInDate: new Date().toISOString(),
+    };
+  };
+
+  const handleCheckIn = async () => {
+    try {
+      // Validasi data minimal
+      if (!formData.firstName || !formData.lastName) {
+        alert("Please fill in guest name");
+        return;
+      }
+
+      const payload = buildPayload();
+
+      if (bookingId) {
+        // Update existing booking
+        const updateRes = await fetch(
+          `${process.env.NEXT_PUBLIC_API_URL}/api/book-a-room/${bookingId}`,
+          {
+            method: "PUT",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(payload),
+          }
+        );
+
+        if (!updateRes.ok) {
+          const errorData = await updateRes.json();
+          throw new Error(errorData.message || "Failed to update booking");
+        }
+      } else {
+        // Create new booking
+        const createRes = await fetch(
+          `${process.env.NEXT_PUBLIC_API_URL}/api/book-a-room`,
+          {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(payload),
+          }
+        );
+
+        if (!createRes.ok) {
+          const errorData = await createRes.json();
+          throw new Error(errorData.message || "Failed to create booking");
+        }
+      }
+
+      alert("Check-in successful!");
+      setIsCheckedIn(true);
+    } catch (error) {
+      console.error("Check-in error:", error);
+      alert(
+        `Check-in failed: ${
+          error instanceof Error ? error.message : "Unknown error"
+        }`
+      );
+    }
   };
 
   const handlePrint = () => {
@@ -64,6 +262,64 @@ export default function HotelRegistrationForm() {
 
   const handleBack = () => {
     setIsCheckedIn(false);
+  };
+
+  // ✅ Function untuk save check-in data ke backend
+  const handleSaveCheckIn = async () => {
+    setIsSaving(true);
+    try {
+      // Validasi
+      if (!formData.firstName || !formData.lastName) {
+        alert("Please fill in guest name");
+        setIsSaving(false);
+        return;
+      }
+
+      const payload = buildPayload();
+
+      if (bookingId) {
+        // Update existing booking
+        const updateRes = await fetch(
+          `${process.env.NEXT_PUBLIC_API_URL}/api/book-a-room/${bookingId}`,
+          {
+            method: "PUT",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(payload),
+          }
+        );
+
+        if (!updateRes.ok) {
+          const errorData = await updateRes.json();
+          throw new Error(errorData.message || "Failed to update booking");
+        }
+        alert("Check-in data saved successfully!");
+      } else {
+        // Create new booking
+        const createRes = await fetch(
+          `${process.env.NEXT_PUBLIC_API_URL}/api/book-a-room`,
+          {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(payload),
+          }
+        );
+
+        if (!createRes.ok) {
+          const errorData = await createRes.json();
+          throw new Error(errorData.message || "Failed to create booking");
+        }
+        alert("Check-in data saved successfully!");
+      }
+    } catch (error) {
+      console.error("Save error:", error);
+      alert(
+        `Failed to save check-in data: ${
+          error instanceof Error ? error.message : "Unknown error"
+        }`
+      );
+    } finally {
+      setIsSaving(false);
+    }
   };
 
   if (!isCheckedIn) {
@@ -79,10 +335,10 @@ export default function HotelRegistrationForm() {
             </div>
 
             <div className="space-y-6">
+              {/* Room Information */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
-                    <Calendar className="inline w-4 h-4 mr-2" />
                     Arrival Date
                   </label>
                   <Input
@@ -95,7 +351,6 @@ export default function HotelRegistrationForm() {
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
-                    <Calendar className="inline w-4 h-4 mr-2" />
                     Departure Date
                   </label>
                   <Input
@@ -140,7 +395,9 @@ export default function HotelRegistrationForm() {
                     <select
                       name="currency"
                       value={formData.currency}
-                      onChange={handleChange}
+                      onChange={(e) =>
+                        setFormData({ ...formData, currency: e.target.value })
+                      }
                       className="w-24 h-10 px-3 rounded-md border border-gray-300 bg-white"
                     >
                       <option value="USD">USD</option>
@@ -158,15 +415,15 @@ export default function HotelRegistrationForm() {
                 </div>
               </div>
 
+              {/* Guest Information */}
               <div className="border-t pt-6">
                 <h3 className="text-lg font-semibold text-gray-800 mb-4">
-                  <User className="inline w-5 h-5 mr-2" />
                   Guest Information
                 </h3>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Family Name/Last Name
+                      Family Name/Last Name *
                     </label>
                     <Input
                       name="lastName"
@@ -174,11 +431,12 @@ export default function HotelRegistrationForm() {
                       onChange={handleChange}
                       placeholder="SMITH"
                       className="uppercase"
+                      required
                     />
                   </div>
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-2">
-                      First Name
+                      First Name *
                     </label>
                     <Input
                       name="firstName"
@@ -186,6 +444,7 @@ export default function HotelRegistrationForm() {
                       onChange={handleChange}
                       placeholder="JOHN"
                       className="uppercase"
+                      required
                     />
                   </div>
                   <div className="md:col-span-2">
@@ -213,6 +472,7 @@ export default function HotelRegistrationForm() {
                 </div>
               </div>
 
+              {/* Company & Document Information */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -298,6 +558,7 @@ export default function HotelRegistrationForm() {
                 />
               </div>
 
+              {/* Payment Information */}
               <div className="border-t pt-6">
                 <h3 className="text-lg font-semibold text-gray-800 mb-4">
                   Form of Settlement
@@ -376,51 +637,84 @@ export default function HotelRegistrationForm() {
                 />
               </div>
 
+              {/* Clerk Name (Read-only) */}
+              <div className="border-t pt-4">
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Clerk (Staff Name)
+                </label>
+                <Input
+                  name="clerk"
+                  value={formData.clerk}
+                  readOnly
+                  className="bg-gray-100 cursor-not-allowed text-gray-700"
+                  placeholder="Loading..."
+                />
+                <p className="text-xs text-gray-500 mt-1">
+                  This field is automatically filled from your account
+                </p>
+              </div>
+
+              {/* Additional Check-in Information */}
+              <div className="border-t pt-4">
+                <h3 className="text-lg font-semibold text-gray-800 mb-4">
+                  Check-in Details
+                </h3>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Room Number
+                    </label>
+                    <Input
+                      name="roomNo"
+                      value={formData.roomNo}
+                      onChange={handleChange}
+                      placeholder="e.g., 101, 205"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Discount (%)
+                    </label>
+                    <Input
+                      name="discount"
+                      type="number"
+                      min="0"
+                      max="100"
+                      value={formData.discount}
+                      onChange={handleChange}
+                      placeholder="e.g., 10"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Number of Persons
+                    </label>
+                    <Input
+                      name="person"
+                      type="number"
+                      min="1"
+                      value={formData.person}
+                      onChange={handleChange}
+                      placeholder="e.g., 2"
+                    />
+                  </div>
+                </div>
+              </div>
+
               <div className="flex justify-end gap-4 pt-6">
                 <Button
                   type="button"
                   variant="outline"
-                  onClick={() =>
-                    setFormData({
-                      arrivalDate: "",
-                      departureDate: "",
-                      numberOfRooms: "",
-                      roomType: "",
-                      dailyRate: "",
-                      currency: "USD",
-                      lastName: "",
-                      firstName: "",
-                      address: "",
-                      advanceDeposit: "",
-                      companyName: "",
-                      companyPhone: "",
-                      companyAddress: "",
-                      dateOfBirth: "",
-                      passportId: "",
-                      nationality: "",
-                      dateOfIssue: "",
-                      paymentCash: false,
-                      paymentCredit: false,
-                      voucherNumber: "",
-                      creditCardNumber: "",
-                      approvalCode: "",
-                      roomNo: "",
-                      discount: "",
-                      person: "",
-                      time: "",
-                      clerk: "",
-                      remark: "",
-                    })
-                  }
+                  onClick={() => router.back()}
                 >
-                  Clear Form
+                  Cancel
                 </Button>
                 <Button
                   type="button"
                   onClick={handleCheckIn}
                   className="bg-blue-600 hover:bg-blue-700"
                 >
-                  Check In →
+                  Check In & Continue →
                 </Button>
               </div>
             </div>
@@ -430,6 +724,7 @@ export default function HotelRegistrationForm() {
     );
   }
 
+  // Print View
   return (
     <div className="min-h-screen p-8 print:p-0">
       <div className="max-w-5xl mx-auto">
@@ -447,13 +742,22 @@ export default function HotelRegistrationForm() {
           <Button variant="outline" onClick={handleBack}>
             ← Back to Form
           </Button>
-          <Button
-            onClick={handlePrint}
-            className="bg-green-600 hover:bg-green-700"
-          >
-            <FileText className="w-4 h-4 mr-2" />
-            Print / Save PDF
-          </Button>
+          <div className="flex gap-3">
+            <Button
+              onClick={handleSaveCheckIn}
+              disabled={isSaving}
+              className="bg-blue-600 hover:bg-blue-700 text-white"
+            >
+              {isSaving ? "Saving..." : "Save Check-In Data"}
+            </Button>
+            <Button
+              onClick={handlePrint}
+              className="bg-green-600 hover:bg-green-700"
+            >
+              <FileText className="w-4 h-4 mr-2" />
+              Print / Save PDF
+            </Button>
+          </div>
         </div>
 
         <div className="bg-white border-4 border-blue-600 p-6 print:border-4">
@@ -544,7 +848,7 @@ export default function HotelRegistrationForm() {
                     Advance Deposit
                   </div>
                   <div className="h-12 flex items-center justify-center text-base font-bold">
-                    {formData.advanceDeposit || ":"}
+                    {formData.advanceDeposit || "-"}
                   </div>
                 </td>
               </tr>
@@ -560,35 +864,31 @@ export default function HotelRegistrationForm() {
                   </div>
                   <div className="space-y-1 text-xs">
                     <div className="flex gap-1">
-                      <span className="font-semibold">Name</span>
-                      <span>:</span>
-                      <span>{formData.companyName || ":"}</span>
-                    </div>
-                    <div className="flex gap-1">
                       <span className="font-semibold">Phone</span>
                       <span>:</span>
-                      <span>{formData.companyPhone || ":"}</span>
+                      <span>{formData.companyPhone || "-"}</span>
                     </div>
                     <div className="flex gap-1">
                       <span className="font-semibold">Address</span>
                       <span>:</span>
+                      <span>{formData.companyAddress || "-"}</span>
                     </div>
-                    <div className="flex gap-1">
+                    <div className="flex gap-1 mt-2">
                       <span className="font-semibold">
                         Passport/ID Card Number
                       </span>
                       <span>:</span>
+                      <span>{formData.passportId || "-"}</span>
                     </div>
-                    <span>{formData.passportId}</span>
                     <div className="flex items-center gap-1">
                       <span className="font-semibold">Nationality</span>
                       <span>:</span>
-                      <span>{formData.nationality}</span>
+                      <span>{formData.nationality || "-"}</span>
                     </div>
                     <div className="flex items-center gap-1">
                       <span className="font-semibold">Date of Issue</span>
                       <span>:</span>
-                      <span>{formData.dateOfIssue}</span>
+                      <span>{formData.dateOfIssue || "-"}</span>
                     </div>
                   </div>
                 </td>
@@ -596,9 +896,11 @@ export default function HotelRegistrationForm() {
                   <div className="blue-bg bg-blue-300 font-bold text-xs mb-2 p-1 text-center">
                     Date of Birth
                   </div>
-                  <span className="">Date of Birth</span>
-                  <span>: </span>
-                  <span>{formData.dateOfBirth}</span>
+                  <div className="text-xs p-2">
+                    <span className="font-semibold">Date of Birth</span>
+                    <span>: </span>
+                    <span>{formData.dateOfBirth || "-"}</span>
+                  </div>
                 </td>
               </tr>
             </tbody>
@@ -614,37 +916,27 @@ export default function HotelRegistrationForm() {
                   <div className="grid grid-cols-4 gap-2 text-xs">
                     <div className="flex items-center gap-2">
                       <span className="font-semibold">CASH</span>
-                    </div>
-                    <div className="flex items-center gap-1">
                       <span>{formData.paymentCash ? "☑" : "☐"}</span>
                     </div>
                     <div className="flex items-center gap-1">
                       <span className="font-semibold">VOUCHER</span>
-                    </div>
-                    <div className="flex items-center gap-1">
                       <span>:</span>
-                      <span>{formData.voucherNumber || ":"}</span>
+                      <span>{formData.voucherNumber || "-"}</span>
                     </div>
                     <div className="flex items-center gap-2">
                       <span className="font-semibold">CREDIT CARD</span>
-                    </div>
-                    <div className="flex items-center gap-1">
                       <span>{formData.paymentCredit ? "☑" : "☐"}</span>
                     </div>
                     <div className="flex items-center gap-1">
                       <span className="font-semibold">Number</span>
-                    </div>
-                    <div className="flex items-center gap-1">
                       <span>:</span>
-                      <span>{formData.creditCardNumber || ":"}</span>
+                      <span>{formData.creditCardNumber || "-"}</span>
                     </div>
                     <div className="col-span-2"></div>
                     <div className="flex items-center gap-1">
                       <span className="font-semibold">Approval Code</span>
-                    </div>
-                    <div className="flex items-center gap-1">
                       <span>:</span>
-                      <span>{formData.approvalCode || ":"}</span>
+                      <span>{formData.approvalCode || "-"}</span>
                     </div>
                   </div>
                 </td>
@@ -658,10 +950,10 @@ export default function HotelRegistrationForm() {
                 <td className="border-2 border-black p-2" colSpan={5}>
                   <div className="text-xs leading-relaxed">
                     Money, jewels and other valuables must be placed in the
-                    hotel safety box, otherwish the management will{" "}
-                    <strong>not be responsible</strong> for any loss siganture
-                    authorizes after departure billing indicated in methode of
-                    payment
+                    hotel safety box, otherwise the management will{" "}
+                    <strong>not be responsible</strong> for any loss. Signature
+                    authorizes after departure billing indicated in method of
+                    payment.
                   </div>
                 </td>
                 <td
@@ -693,19 +985,22 @@ export default function HotelRegistrationForm() {
               </tr>
               <tr>
                 <td className="border-2 border-black p-3 text-center text-xs">
-                  :
+                  {formData.roomNo || "-"}
                 </td>
                 <td className="border-2 border-black p-3 text-center text-xs">
-                  :
+                  {formData.discount ? `${formData.discount}%` : "-"}
                 </td>
                 <td className="border-2 border-black p-3 text-center text-xs">
-                  :
+                  {formData.person || "-"}
                 </td>
                 <td className="border-2 border-black p-3 text-center text-xs">
-                  :
+                  {new Date().toLocaleTimeString("en-US", {
+                    hour: "2-digit",
+                    minute: "2-digit",
+                  })}
                 </td>
                 <td className="border-2 border-black p-3 text-center text-xs">
-                  :
+                  {formData.clerk || "-"}
                 </td>
                 <td className="border-2 border-black p-2"></td>
               </tr>
@@ -717,8 +1012,8 @@ export default function HotelRegistrationForm() {
               <tr>
                 <td className="border-2 border-black p-2">
                   <div className="text-xs">
-                    <span className="font-semibold">Remark :</span>
-                    <span className="ml-2">{formData.remark || ":"}</span>
+                    <span className="font-semibold">Remark:</span>
+                    <span className="ml-2">{formData.remark || "-"}</span>
                   </div>
                 </td>
               </tr>
