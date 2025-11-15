@@ -25,7 +25,6 @@ import {
 } from "@/components/ui/popover";
 import { Check, ChevronsUpDown } from "lucide-react";
 
-// List of countries
 const countries = [
   { value: "afghanistan", label: "Afghanistan" },
   { value: "albania", label: "Albania" },
@@ -83,8 +82,18 @@ const countries = [
   { value: "vietnam", label: "Vietnam" },
 ];
 
+// Room type prices mapping
+const roomTypePrices = {
+  DSD: { USD: 75, IDR: 1200000 },
+  DST: { USD: 80, IDR: 1280000 },
+  DDD: { USD: 120, IDR: 1920000 },
+  DDT: { USD: 125, IDR: 2000000 },
+  DSDT: { USD: 200, IDR: 3200000 },
+};
+
 export default function BookARoomForm() {
   const [open, setOpen] = useState(false);
+  const [currency, setCurrency] = useState<"USD" | "IDR">("USD");
   const [formData, setFormData] = useState({
     FirstName: "",
     LastName: "",
@@ -110,6 +119,47 @@ export default function BookARoomForm() {
   });
 
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  const getCurrencySymbol = () => {
+    return currency === "USD" ? "$" : "Rp";
+  };
+
+  // Format number with thousand separators
+  const formatNumber = (num: number) => {
+    return num.toLocaleString("en-US", {
+      minimumFractionDigits: currency === "USD" ? 2 : 0,
+      maximumFractionDigits: currency === "USD" ? 2 : 0,
+    });
+  };
+
+  // Handle room type change and auto-fill room rate
+  const handleRoomTypeChange = (roomType: string) => {
+    setFormData((prev) => {
+      const newRoomRate =
+        roomTypePrices[roomType as keyof typeof roomTypePrices]?.[currency] ||
+        0;
+      return {
+        ...prev,
+        RoomType: roomType,
+        RoomRate: newRoomRate,
+      };
+    });
+  };
+
+  // Handle currency change and update room rate
+  const handleCurrencyChange = (newCurrency: "USD" | "IDR") => {
+    setCurrency(newCurrency);
+    if (formData.RoomType) {
+      const newRoomRate =
+        roomTypePrices[formData.RoomType as keyof typeof roomTypePrices]?.[
+          newCurrency
+        ] || 0;
+      setFormData((prev) => ({
+        ...prev,
+        RoomRate: newRoomRate,
+      }));
+    }
+  };
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
@@ -153,6 +203,7 @@ export default function BookARoomForm() {
         NoOfRoom: Number(formData.NoOfRoom),
         ZipCode: Number(formData.ZipCode) || 0,
         RoomRate: Number(formData.RoomRate) || 0,
+        RoomRateCurrency: currency,
         NumberOfPerson: Number(formData.NumberOfPerson) || 1,
         Fax: formData.Fax?.toString() || "",
       };
@@ -200,6 +251,7 @@ export default function BookARoomForm() {
         Request: "None",
         Clerk: "",
       });
+      setCurrency("USD");
     } catch (err: unknown) {
       console.error("Submit error:", err);
       const errorMessage =
@@ -396,9 +448,7 @@ export default function BookARoomForm() {
               <Select
                 name="RoomType"
                 value={formData.RoomType}
-                onValueChange={(val) =>
-                  setFormData({ ...formData, RoomType: val })
-                }
+                onValueChange={handleRoomTypeChange}
               >
                 <SelectTrigger className="w-full h-10">
                   <SelectValue placeholder="Select room type" />
@@ -415,7 +465,7 @@ export default function BookARoomForm() {
                   </SelectItem>
                   <SelectItem value="DDT">DDT (Damaga Deluxe Twin)</SelectItem>
                   <SelectItem value="DSDT">
-                    DDD (Damaga Suite Double)
+                    DSDT (Damaga Suite Double)
                   </SelectItem>
                 </SelectContent>
               </Select>
@@ -555,21 +605,55 @@ export default function BookARoomForm() {
               />
             </div>
 
-            {/* Room Rate */}
+            {/* Currency Selector */}
             <div className="w-full">
               <Label className="text-sm font-medium mb-2 block text-sky-500">
-                Room Rate ($) *
+                Currency *
               </Label>
-              <Input
-                name="RoomRate"
-                type="number"
-                min="0"
-                step="0.01"
-                value={formData.RoomRate}
-                onChange={handleChange}
-                placeholder="Enter rate"
-                className="w-full h-10"
-              />
+              <Select value={currency} onValueChange={handleCurrencyChange}>
+                <SelectTrigger className="w-full h-10">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="USD">USD ($)</SelectItem>
+                  <SelectItem value="IDR">IDR (Rp)</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            {/* Room Rate with Dynamic Currency */}
+            <div className="w-full">
+              <Label className="text-sm font-medium mb-2 block text-sky-500">
+                Room Rate ({getCurrencySymbol()}) *
+              </Label>
+              <div className="relative">
+                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500 font-medium">
+                  {getCurrencySymbol()}
+                </span>
+                <Input
+                  name="RoomRate"
+                  type="text"
+                  value={
+                    formData.RoomRate > 0 ? formatNumber(formData.RoomRate) : ""
+                  }
+                  onChange={(e) => {
+                    const value = e.target.value.replace(/,/g, "");
+                    if (!isNaN(Number(value)) || value === "") {
+                      setFormData({
+                        ...formData,
+                        RoomRate: Number(value) || 0,
+                      });
+                    }
+                  }}
+                  placeholder="Select room type first"
+                  className="w-full h-10 pl-12"
+                />
+              </div>
+              {formData.RoomType && (
+                <p className="text-xs text-gray-500 mt-1">
+                  Auto-filled based on room type
+                </p>
+              )}
             </div>
 
             {/* Payment */}

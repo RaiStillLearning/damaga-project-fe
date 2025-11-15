@@ -5,10 +5,25 @@ import { Suspense } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent } from "@/components/ui/card";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { FileText } from "lucide-react";
 import { useSearchParams, useRouter } from "next/navigation";
 import Image from "next/image";
-import Image from "next/image";
+
+// Room type prices mapping
+const roomTypePrices = {
+  DSD: { USD: 75, IDR: 1200000 },
+  DST: { USD: 80, IDR: 1280000 },
+  DDD: { USD: 120, IDR: 1920000 },
+  DDT: { USD: 125, IDR: 2000000 },
+  DSDT: { USD: 200, IDR: 3200000 },
+};
 
 export default function HotelRegistrationFormPage() {
   return (
@@ -23,8 +38,8 @@ interface RegistrationFormData {
   departureDate: string;
   numberOfRooms: string;
   roomType: string;
-  dailyRate: string;
-  currency: string;
+  dailyRate: number;
+  currency: "USD" | "IDR";
   lastName: string;
   firstName: string;
   address: string;
@@ -55,12 +70,15 @@ function HotelRegistrationForm() {
   const [saveSuccess, setSaveSuccess] = useState(false);
   const [isCheckedIn, setIsCheckedIn] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
+  const [isViewMode, setIsViewMode] = useState(false);
+  const [isLoadingData, setIsLoadingData] = useState(false);
+
   const [formData, setFormData] = useState<RegistrationFormData>({
     arrivalDate: "",
     departureDate: "",
     numberOfRooms: "",
     roomType: "",
-    dailyRate: "",
+    dailyRate: 0,
     currency: "USD",
     lastName: "",
     firstName: "",
@@ -84,6 +102,50 @@ function HotelRegistrationForm() {
     discount: "",
     person: "",
   });
+
+  // Format number with thousand separators
+  const formatNumber = (num: number) => {
+    if (num === 0) return "";
+    return num.toLocaleString("en-US", {
+      minimumFractionDigits: formData.currency === "USD" ? 2 : 0,
+      maximumFractionDigits: formData.currency === "USD" ? 2 : 0,
+    });
+  };
+
+  const getCurrencySymbol = () => {
+    return formData.currency === "USD" ? "$" : "Rp";
+  };
+
+  // Handle room type change and auto-fill room rate
+  const handleRoomTypeChange = (roomType: string) => {
+    const newRoomRate =
+      roomTypePrices[roomType as keyof typeof roomTypePrices]?.[
+        formData.currency
+      ] || 0;
+    setFormData((prev) => ({
+      ...prev,
+      roomType: roomType,
+      dailyRate: newRoomRate,
+    }));
+  };
+
+  // Handle currency change and update room rate
+  const handleCurrencyChange = (newCurrency: "USD" | "IDR") => {
+    setFormData((prev) => {
+      let newRoomRate = prev.dailyRate;
+      if (prev.roomType) {
+        newRoomRate =
+          roomTypePrices[prev.roomType as keyof typeof roomTypePrices]?.[
+            newCurrency
+          ] || 0;
+      }
+      return {
+        ...prev,
+        currency: newCurrency,
+        dailyRate: newRoomRate,
+      };
+    });
+  };
 
   // Auto-fill clerk name from logged in user
   useEffect(() => {
@@ -111,54 +173,119 @@ function HotelRegistrationForm() {
   }, [bookingId]);
 
   const fetchBookingData = async (id: string) => {
+    setIsLoadingData(true);
     try {
       const res = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL}/api/book-a-room/${id}`
+        `${
+          process.env.NEXT_PUBLIC_API_URL
+        }/api/book-a-room/${id}?t=${Date.now()}`,
+        {
+          method: "GET",
+          headers: { "Content-Type": "application/json" },
+          cache: "no-store",
+        }
       );
+
       if (!res.ok) throw new Error("Failed to fetch booking data");
 
       const booking = await res.json();
 
+      console.log("📥 Loaded booking data (full):", booking);
+
+      // Check if already checked-in (view mode)
+      if (booking.status === "checked-in" || booking.status === "checked-out") {
+        setIsViewMode(true);
+      }
+
+      // Helper function to safely format date
+      const formatDate = (
+        dateValue: string | number | Date | null | undefined
+      ): string => {
+        if (!dateValue) return "";
+        try {
+          const date = new Date(dateValue);
+          if (isNaN(date.getTime())) return "";
+          return date.toISOString().split("T")[0];
+        } catch {
+          return "";
+        }
+      };
+
+      // Helper function to safely convert to string
+      const toString = (
+        value: string | number | null | undefined,
+        defaultValue: string = ""
+      ): string => {
+        if (value === null || value === undefined) return defaultValue;
+        return String(value);
+      };
+
+      // Fill ALL form data from database - prioritize all possible field names
       setFormData((prev) => ({
         ...prev,
-        arrivalDate: booking.ArrDate
-          ? new Date(booking.ArrDate).toISOString().split("T")[0]
-          : "",
-        departureDate: booking.DeptDate
-          ? new Date(booking.DeptDate).toISOString().split("T")[0]
-          : "",
-        numberOfRooms: booking.NoOfRoom?.toString() || "",
-        roomType: booking.RoomType || "",
-        dailyRate: booking.RoomRate?.toString() || "",
-        currency: "USD",
-        lastName: booking.LastName || "",
-        firstName: booking.FirstName || "",
-        address: booking.Address || "",
-        advanceDeposit: "",
-        companyName: "",
-        companyPhone: booking.Phone?.toString() || "",
-        companyAddress: "",
-        dateOfBirth: booking.DateOfBirth
-          ? new Date(booking.DateOfBirth).toISOString().split("T")[0]
-          : "",
-        passportId: booking.IDNumber || "",
-        nationality: booking.Country || "",
-        dateOfIssue: booking.DateOfIssue
-          ? new Date(booking.DateOfIssue).toISOString().split("T")[0]
-          : "",
-        paymentCash: booking.Payment === "Cash",
-        paymentCredit: booking.Payment === "Credit Card",
-        voucherNumber: "",
-        creditCardNumber: "",
-        approvalCode: "",
-        remark: booking.Request || "",
-        roomNo: booking.RoomNumber || "",
-        discount: booking.Discount?.toString() || "",
-        person: booking.NoOfPerson?.toString() || "",
+        // Room Information
+        arrivalDate: formatDate(booking.ArrDate),
+        departureDate: formatDate(booking.DeptDate),
+        numberOfRooms: toString(booking.NoOfRoom || booking.numberOfRooms),
+        roomType: booking.RoomType || booking.roomType || "",
+        dailyRate: Number(booking.RoomRate || booking.dailyRate) || 0,
+        currency: (booking.RoomRateCurrency || booking.currency || "USD") as
+          | "USD"
+          | "IDR",
+
+        // Guest Information
+        lastName: booking.LastName || booking.lastName || "",
+        firstName: booking.FirstName || booking.firstName || "",
+        address: booking.Address || booking.address || "",
+        advanceDeposit: toString(
+          booking.AdvanceDeposit || booking.advanceDeposit
+        ),
+
+        // Company Information
+        companyName: booking.CompanyName || booking.companyName || "",
+        companyPhone: toString(booking.Phone || booking.companyPhone),
+        companyAddress: booking.CompanyAddress || booking.companyAddress || "",
+
+        // Document Information
+        dateOfBirth: formatDate(booking.DateOfBirth || booking.dateOfBirth),
+        passportId:
+          booking.IDNumber || booking.passportId || booking.PassportId || "",
+        nationality:
+          booking.Country || booking.nationality || booking.Nationality || "",
+        dateOfIssue: formatDate(booking.DateOfIssue || booking.dateOfIssue),
+
+        // Payment Information
+        paymentCash: booking.Payment === "Cash" || booking.paymentCash === true,
+        paymentCredit:
+          booking.Payment === "Credit" ||
+          booking.Payment === "Credit Card" ||
+          booking.paymentCredit === true,
+        voucherNumber: booking.VoucherNumber || booking.voucherNumber || "",
+        creditCardNumber:
+          booking.CreditCardNumber || booking.creditCardNumber || "",
+        approvalCode: booking.ApprovalCode || booking.approvalCode || "",
+
+        // Additional Information
+        remark:
+          booking.Request ||
+          booking.Note ||
+          booking.remark ||
+          booking.note ||
+          "",
+        clerk: booking.Clerk || booking.clerk || prev.clerk,
+        roomNo: booking.RoomNumber || booking.roomNo || booking.NoOfRoom || "",
+        discount: toString(booking.Discount || booking.discount),
+        person: toString(
+          booking.NoOfPerson || booking.NumberOfPerson || booking.person
+        ),
       }));
+
+      console.log("✅ Form data populated successfully");
     } catch (error) {
-      console.error("Error fetching booking:", error);
-      alert("Gagal memuat data booking");
+      console.error("❌ Error fetching booking:", error);
+      alert("Gagal memuat data booking. Silakan coba lagi.");
+    } finally {
+      setIsLoadingData(false);
     }
   };
 
@@ -191,7 +318,8 @@ function HotelRegistrationForm() {
       TypeOfGuest: "Walk-in",
       City: "-",
       ZipCode: 0,
-      RoomRate: parseFloat(formData.dailyRate) || 0,
+      RoomRate: formData.dailyRate || 0,
+      RoomRateCurrency: formData.currency,
       NoOfPerson: parseInt(formData.person) || 1,
       Payment: formData.paymentCash
         ? "Cash"
@@ -205,6 +333,12 @@ function HotelRegistrationForm() {
       DateOfIssue: formData.dateOfIssue || null,
       DateOfBirth: formData.dateOfBirth || null,
       Discount: parseInt(formData.discount) || 0,
+      AdvanceDeposit: parseFloat(formData.advanceDeposit) || 0,
+      CompanyName: formData.companyName || "",
+      CompanyAddress: formData.companyAddress || "",
+      VoucherNumber: formData.voucherNumber || "",
+      CreditCardNumber: formData.creditCardNumber || "",
+      ApprovalCode: formData.approvalCode || "",
       Source: "Registration Form",
       Note: formData.remark || "",
       status: "checked-in",
@@ -253,6 +387,7 @@ function HotelRegistrationForm() {
       alert("Check-in successful!");
       setIsCheckedIn(true);
       setSaveSuccess(true);
+      setIsViewMode(true);
     } catch (error) {
       console.error("Check-in error:", error);
       alert(
@@ -306,7 +441,6 @@ function HotelRegistrationForm() {
       alert("Check-in data saved successfully! Redirecting to history...");
       setSaveSuccess(true);
 
-      // Redirect with refresh trigger
       setTimeout(() => {
         router.push("/damaga/Reservation/ReservationHistory?refresh=true");
       }, 1500);
@@ -330,6 +464,25 @@ function HotelRegistrationForm() {
     setIsCheckedIn(false);
   };
 
+  // Show loading state when fetching data
+  if (isLoadingData) {
+    return (
+      <div className="min-h-screen flex items-center justify-center p-4">
+        <Card className="w-full max-w-md shadow-2xl">
+          <CardContent className="p-8 text-center">
+            <div className="w-16 h-16 mx-auto mb-4 border-4 border-sky-500 border-t-transparent rounded-full animate-spin"></div>
+            <h2 className="text-xl font-semibold text-gray-800 mb-2">
+              Loading Booking Data...
+            </h2>
+            <p className="text-gray-600">
+              Please wait while we fetch the reservation details
+            </p>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
   if (!isCheckedIn) {
     return (
       <div className="min-h-screen flex items-center justify-center p-4">
@@ -340,6 +493,12 @@ function HotelRegistrationForm() {
                 Damaga Suites
               </h1>
               <p className="text-gray-600">Guest Registration Form</p>
+              {isViewMode && (
+                <div className="mt-3 inline-flex items-center gap-2 px-4 py-2 bg-green-100 text-green-800 rounded-full text-sm font-medium">
+                  <span className="w-2 h-2 bg-green-500 rounded-full"></span>
+                  Viewing Checked-In Guest
+                </div>
+              )}
             </div>
 
             <div className="space-y-6">
@@ -355,6 +514,7 @@ function HotelRegistrationForm() {
                     value={formData.arrivalDate}
                     onChange={handleChange}
                     className="w-full"
+                    disabled={isViewMode}
                   />
                 </div>
                 <div>
@@ -367,6 +527,7 @@ function HotelRegistrationForm() {
                     value={formData.departureDate}
                     onChange={handleChange}
                     className="w-full"
+                    disabled={isViewMode}
                   />
                 </div>
               </div>
@@ -382,44 +543,90 @@ function HotelRegistrationForm() {
                     value={formData.numberOfRooms}
                     onChange={handleChange}
                     placeholder="1"
+                    disabled={isViewMode}
                   />
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Room Type
+                    Room Type *
                   </label>
-                  <Input
-                    name="roomType"
+                  <Select
                     value={formData.roomType}
-                    onChange={handleChange}
-                    placeholder="Standard/Deluxe/Suite"
-                  />
+                    onValueChange={handleRoomTypeChange}
+                    disabled={isViewMode}
+                  >
+                    <SelectTrigger className="w-full h-10">
+                      <SelectValue placeholder="Select room type" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="DSD">
+                        DSD (Damaga Standard Double)
+                      </SelectItem>
+                      <SelectItem value="DST">
+                        DST (Damaga Standard Twin)
+                      </SelectItem>
+                      <SelectItem value="DDD">
+                        DDD (Damaga Deluxe Double)
+                      </SelectItem>
+                      <SelectItem value="DDT">
+                        DDT (Damaga Deluxe Twin)
+                      </SelectItem>
+                      <SelectItem value="DSDT">
+                        DSDT (Damaga Suite Double)
+                      </SelectItem>
+                    </SelectContent>
+                  </Select>
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Daily Rate
+                    Daily Rate *
                   </label>
                   <div className="flex gap-2">
-                    <select
-                      name="currency"
+                    <Select
                       value={formData.currency}
-                      onChange={(e) =>
-                        setFormData({ ...formData, currency: e.target.value })
-                      }
-                      className="w-24 h-10 px-3 rounded-md border border-gray-300 bg-white"
+                      onValueChange={handleCurrencyChange}
+                      disabled={isViewMode}
                     >
-                      <option value="USD">USD</option>
-                      <option value="Rp">Rp</option>
-                    </select>
-                    <Input
-                      name="dailyRate"
-                      type="text"
-                      value={formData.dailyRate}
-                      onChange={handleChange}
-                      placeholder="500,000"
-                      className="flex-1"
-                    />
+                      <SelectTrigger className="w-24 h-10">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="USD">USD</SelectItem>
+                        <SelectItem value="IDR">IDR</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    <div className="relative flex-1">
+                      <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500 font-medium">
+                        {getCurrencySymbol()}
+                      </span>
+                      <Input
+                        name="dailyRate"
+                        type="text"
+                        value={
+                          formData.dailyRate > 0
+                            ? formatNumber(formData.dailyRate)
+                            : ""
+                        }
+                        onChange={(e) => {
+                          const value = e.target.value.replace(/,/g, "");
+                          if (!isNaN(Number(value)) || value === "") {
+                            setFormData({
+                              ...formData,
+                              dailyRate: Number(value) || 0,
+                            });
+                          }
+                        }}
+                        placeholder="Select room type first"
+                        className="pl-12"
+                        disabled={isViewMode}
+                      />
+                    </div>
                   </div>
+                  {formData.roomType && !isViewMode && (
+                    <p className="text-xs text-gray-500 mt-1">
+                      Auto-filled based on room type
+                    </p>
+                  )}
                 </div>
               </div>
 
@@ -440,6 +647,7 @@ function HotelRegistrationForm() {
                       placeholder="SMITH"
                       className="uppercase"
                       required
+                      disabled={isViewMode}
                     />
                   </div>
                   <div>
@@ -453,6 +661,7 @@ function HotelRegistrationForm() {
                       placeholder="JOHN"
                       className="uppercase"
                       required
+                      disabled={isViewMode}
                     />
                   </div>
                   <div className="md:col-span-2">
@@ -464,6 +673,7 @@ function HotelRegistrationForm() {
                       value={formData.address}
                       onChange={handleChange}
                       placeholder="Street address"
+                      disabled={isViewMode}
                     />
                   </div>
                   <div>
@@ -475,6 +685,7 @@ function HotelRegistrationForm() {
                       value={formData.advanceDeposit}
                       onChange={handleChange}
                       placeholder="Amount"
+                      disabled={isViewMode}
                     />
                   </div>
                 </div>
@@ -491,6 +702,7 @@ function HotelRegistrationForm() {
                     value={formData.companyName}
                     onChange={handleChange}
                     placeholder="Company name"
+                    disabled={isViewMode}
                   />
                 </div>
                 <div>
@@ -502,6 +714,7 @@ function HotelRegistrationForm() {
                     value={formData.companyPhone}
                     onChange={handleChange}
                     placeholder="Phone number"
+                    disabled={isViewMode}
                   />
                 </div>
                 <div className="md:col-span-2">
@@ -513,6 +726,7 @@ function HotelRegistrationForm() {
                     value={formData.companyAddress}
                     onChange={handleChange}
                     placeholder="Company address"
+                    disabled={isViewMode}
                   />
                 </div>
               </div>
@@ -527,6 +741,7 @@ function HotelRegistrationForm() {
                     value={formData.passportId}
                     onChange={handleChange}
                     placeholder="A1234567"
+                    disabled={isViewMode}
                   />
                 </div>
                 <div>
@@ -538,6 +753,7 @@ function HotelRegistrationForm() {
                     value={formData.nationality}
                     onChange={handleChange}
                     placeholder="Indonesian"
+                    disabled={isViewMode}
                   />
                 </div>
                 <div>
@@ -549,6 +765,7 @@ function HotelRegistrationForm() {
                     type="date"
                     value={formData.dateOfIssue}
                     onChange={handleChange}
+                    disabled={isViewMode}
                   />
                 </div>
               </div>
@@ -563,6 +780,7 @@ function HotelRegistrationForm() {
                   value={formData.dateOfBirth}
                   onChange={handleChange}
                   className="max-w-xs"
+                  disabled={isViewMode}
                 />
               </div>
 
@@ -580,6 +798,7 @@ function HotelRegistrationForm() {
                         checked={formData.paymentCash}
                         onChange={handleChange}
                         className="w-4 h-4"
+                        disabled={isViewMode}
                       />
                       <span className="text-sm font-medium">CASH</span>
                     </label>
@@ -593,6 +812,7 @@ function HotelRegistrationForm() {
                       value={formData.voucherNumber}
                       onChange={handleChange}
                       placeholder="Voucher number"
+                      disabled={isViewMode}
                     />
                   </div>
                   <div>
@@ -603,6 +823,7 @@ function HotelRegistrationForm() {
                         checked={formData.paymentCredit}
                         onChange={handleChange}
                         className="w-4 h-4"
+                        disabled={isViewMode}
                       />
                       <span className="text-sm font-medium">CREDIT CARD</span>
                     </label>
@@ -616,28 +837,7 @@ function HotelRegistrationForm() {
                       value={formData.creditCardNumber}
                       onChange={handleChange}
                       placeholder="Card number"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Credit Card Number
-                    </label>
-                    <Input
-                      name="creditCardNumber"
-                      value={formData.creditCardNumber}
-                      onChange={handleChange}
-                      placeholder="Card number"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Credit Card Number
-                    </label>
-                    <Input
-                      name="creditCardNumber"
-                      value={formData.creditCardNumber}
-                      onChange={handleChange}
-                      placeholder="Card number"
+                      disabled={isViewMode}
                     />
                   </div>
                   <div>
@@ -649,6 +849,7 @@ function HotelRegistrationForm() {
                       value={formData.approvalCode}
                       onChange={handleChange}
                       placeholder="Approval code"
+                      disabled={isViewMode}
                     />
                   </div>
                 </div>
@@ -664,6 +865,7 @@ function HotelRegistrationForm() {
                   onChange={handleChange}
                   placeholder="Additional notes..."
                   className="w-full h-20 px-3 py-2 rounded-md border border-gray-300"
+                  disabled={isViewMode}
                 />
               </div>
 
@@ -699,6 +901,7 @@ function HotelRegistrationForm() {
                       value={formData.roomNo}
                       onChange={handleChange}
                       placeholder="e.g., 101, 205"
+                      disabled={isViewMode}
                     />
                   </div>
                   <div>
@@ -713,6 +916,7 @@ function HotelRegistrationForm() {
                       value={formData.discount}
                       onChange={handleChange}
                       placeholder="e.g., 10"
+                      disabled={isViewMode}
                     />
                   </div>
                   <div>
@@ -726,6 +930,7 @@ function HotelRegistrationForm() {
                       value={formData.person}
                       onChange={handleChange}
                       placeholder="e.g., 2"
+                      disabled={isViewMode}
                     />
                   </div>
                 </div>
@@ -737,15 +942,26 @@ function HotelRegistrationForm() {
                   variant="outline"
                   onClick={() => router.back()}
                 >
-                  Cancel
+                  {isViewMode ? "Back to History" : "Cancel"}
                 </Button>
-                <Button
-                  type="button"
-                  onClick={handleCheckIn}
-                  className="bg-blue-600 hover:bg-blue-700"
-                >
-                  Check In & Continue →
-                </Button>
+                {!isViewMode && (
+                  <Button
+                    type="button"
+                    onClick={handleCheckIn}
+                    className="bg-blue-600 hover:bg-blue-700"
+                  >
+                    Check In & Continue →
+                  </Button>
+                )}
+                {isViewMode && (
+                  <Button
+                    type="button"
+                    onClick={() => setIsCheckedIn(true)}
+                    className="bg-green-600 hover:bg-green-700"
+                  >
+                    View Print Preview
+                  </Button>
+                )}
               </div>
             </div>
           </CardContent>
@@ -778,13 +994,15 @@ function HotelRegistrationForm() {
                 ✓ Saved successfully
               </span>
             )}
-            <Button
-              onClick={handleSaveCheckIn}
-              disabled={isSaving}
-              className="bg-blue-600 hover:bg-blue-700 text-white"
-            >
-              {isSaving ? "Saving..." : "Save Check-In Data"}
-            </Button>
+            {!isViewMode && (
+              <Button
+                onClick={handleSaveCheckIn}
+                disabled={isSaving}
+                className="bg-blue-600 hover:bg-blue-700 text-white"
+              >
+                {isSaving ? "Saving..." : "Save Check-In Data"}
+              </Button>
+            )}
             <Button
               onClick={handlePrint}
               className="bg-green-600 hover:bg-green-700"
@@ -842,7 +1060,7 @@ function HotelRegistrationForm() {
                   {formData.roomType}
                 </td>
                 <td className="border-2 border-black p-3 text-center text-sm">
-                  {formData.currency}/{formData.dailyRate}
+                  {getCurrencySymbol()} {formatNumber(formData.dailyRate)}
                 </td>
               </tr>
             </tbody>
@@ -971,18 +1189,8 @@ function HotelRegistrationForm() {
                       <span>:</span>
                       <span>{formData.creditCardNumber || "-"}</span>
                     </div>
-                    <div className="flex items-center gap-1">
-                      <span className="font-semibold">Number</span>
-                      <span>:</span>
-                      <span>{formData.creditCardNumber || "-"}</span>
-                    </div>
-                    <div className="flex items-center gap-1">
-                      <span className="font-semibold">Number</span>
-                      <span>:</span>
-                      <span>{formData.creditCardNumber || "-"}</span>
-                    </div>
                     <div className="col-span-2"></div>
-                    <div className="flex items-center gap-1">
+                    <div className="col-span-2 flex items-center gap-1">
                       <span className="font-semibold">Approval Code</span>
                       <span>:</span>
                       <span>{formData.approvalCode || "-"}</span>
@@ -1062,7 +1270,6 @@ function HotelRegistrationForm() {
                 <td className="border-2 border-black p-2">
                   <div className="text-xs">
                     <span className="font-semibold">Remark Client:</span>
-                    <span className="font-semibold">Remark Client:</span>
                     <span className="ml-2">{formData.remark || "-"}</span>
                   </div>
                 </td>
@@ -1074,5 +1281,3 @@ function HotelRegistrationForm() {
     </div>
   );
 }
-
-// comments
