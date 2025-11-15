@@ -405,9 +405,19 @@ export default function BookARoomForm() {
                   <SelectValue placeholder="Select room type" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="Single">Single</SelectItem>
-                  <SelectItem value="Double">Double</SelectItem>
-                  <SelectItem value="Suite">Suite</SelectItem>
+                  <SelectItem value="DSD">
+                    DSD (Damaga Standart Double)
+                  </SelectItem>
+                  <SelectItem value="DST">
+                    DST (Damaga Standart Twin)
+                  </SelectItem>
+                  <SelectItem value="DDD">
+                    DDD (Damaga Deluxe Double)
+                  </SelectItem>
+                  <SelectItem value="DDT">DDT (Damaga Deluxe Twin)</SelectItem>
+                  <SelectItem value="DSDT">
+                    DDD (Damaga Suite Double)
+                  </SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -417,14 +427,46 @@ export default function BookARoomForm() {
               <Label className="text-sm font-medium mb-2 block text-sky-500">
                 No Of Room *
               </Label>
-              <Input
+              <Select
                 name="NoOfRoom"
-                type="number"
-                value={formData.NoOfRoom}
-                onChange={handleChange}
-                placeholder="EnterNo Of Room"
-                className="w-full h-10"
-              />
+                value={String(formData.NoOfRoom)}
+                onValueChange={(val) =>
+                  setFormData({ ...formData, NoOfRoom: val })
+                }
+              >
+                <SelectTrigger className="w-full h-10">
+                  <SelectValue placeholder="Select room number" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="201">201</SelectItem>
+                  <SelectItem value="202">202</SelectItem>
+                  <SelectItem value="204">204</SelectItem>
+                  <SelectItem value="205">205</SelectItem>
+                  <SelectItem value="206">206</SelectItem>
+                  <SelectItem value="207">207</SelectItem>
+                  <SelectItem value="208">208</SelectItem>
+                  <SelectItem value="209">209</SelectItem>
+                  <SelectItem value="210">210</SelectItem>
+                  <SelectItem value="301">301</SelectItem>
+                  <SelectItem value="302">302</SelectItem>
+                  <SelectItem value="304">304</SelectItem>
+                  <SelectItem value="305">305</SelectItem>
+                  <SelectItem value="306">306</SelectItem>
+                  <SelectItem value="307">307</SelectItem>
+                  <SelectItem value="308">308</SelectItem>
+                  <SelectItem value="309">309</SelectItem>
+                  <SelectItem value="310">310</SelectItem>
+                  <SelectItem value="401">401</SelectItem>
+                  <SelectItem value="402">402</SelectItem>
+                  <SelectItem value="404">404</SelectItem>
+                  <SelectItem value="405">405</SelectItem>
+                  <SelectItem value="406">406</SelectItem>
+                  <SelectItem value="407">407</SelectItem>
+                  <SelectItem value="408">408</SelectItem>
+                  <SelectItem value="409">409</SelectItem>
+                  <SelectItem value="410">410</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
 
             {/* Type of Guest */}

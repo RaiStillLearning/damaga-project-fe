@@ -1,20 +1,11 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Search, User, RefreshCw } from "lucide-react";
-
-export default function ReservationHistoryPage() {
-  return (
-    <Suspense fallback={<div>Loading...</div>}>
-      <ReservationHistory />
-    </Suspense>
-  );
-}
 
 interface ReservationBooking {
   _id: string;
@@ -49,7 +40,7 @@ interface ReservationBooking {
   updatedAt: string;
 }
 
-function ReservationHistory() {
+export default function ReservationHistory() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const [searchState, setSearchState] = useState({
@@ -240,10 +231,8 @@ function ReservationHistory() {
 
     const statusConfig: Record<string, { bg: string; text: string }> = {
       "checked-in": { bg: "bg-green-100", text: "text-green-800" },
-      confirmed: { bg: "bg-blue-100", text: "text-blue-800" },
       pending: { bg: "bg-yellow-100", text: "text-yellow-800" },
       "checked-out": { bg: "bg-purple-100", text: "text-purple-800" },
-      cancelled: { bg: "bg-red-100", text: "text-red-800" },
     };
 
     const config = statusConfig[statusLower] || {
@@ -312,11 +301,6 @@ function ReservationHistory() {
                   color: "bg-yellow-100 hover:bg-yellow-200 text-yellow-800",
                 },
                 {
-                  value: "confirmed",
-                  label: "Confirmed",
-                  color: "bg-blue-100 hover:bg-blue-200 text-blue-800",
-                },
-                {
                   value: "checked-in",
                   label: "Checked In",
                   color: "bg-green-100 hover:bg-green-200 text-green-800",
@@ -325,11 +309,6 @@ function ReservationHistory() {
                   value: "checked-out",
                   label: "Checked Out",
                   color: "bg-purple-100 hover:bg-purple-200 text-purple-800",
-                },
-                {
-                  value: "cancelled",
-                  label: "Cancelled",
-                  color: "bg-red-100 hover:bg-red-200 text-red-800",
                 },
               ].map((status) => (
                 <button
@@ -445,22 +424,22 @@ function ReservationHistory() {
                         "No",
                         "First Name",
                         "Last Name",
+                        "Address",
                         "Arr. Date",
+                        "Arr. Time",
                         "Dept. Date",
+                        "Dept. Time",
                         "Room Number",
-                        "Room Type",
+                        "Room Rate",
                         "Phone",
                         "Person",
-                        "Room Rate",
-                        "Id Number",
-                        "Adress",
+                        "Room Type",
                         "Nationality",
-                        "Date OF Issue",
-                        "Arr. Time",
-                        "Dept. Time",
+                        "ID Number",
+                        "Date of Issue",
                         "Status",
-                        "Note",
                         "Source",
+                        "Note",
                       ].map((head) => (
                         <th
                           key={head}
@@ -487,23 +466,26 @@ function ReservationHistory() {
                           {new Date(r.ArrDate).toLocaleDateString("id-ID")}
                         </td>
                         <td className="px-4 py-3 text-sm">
+                          {r.ArrTime || "-"}
+                        </td>
+                        <td className="px-4 py-3 text-sm">
                           {new Date(r.DeptDate).toLocaleDateString("id-ID")}
+                        </td>
+                        <td className="px-4 py-3 text-sm">
+                          {r.DeptTime || "-"}
                         </td>
                         <td className="px-4 py-3 text-sm">
                           {r.RoomNumber || "-"}
                         </td>
-                        <td className="px-4 py-3 text-sm">{r.RoomType}</td>
                         <td className="px-4 py-3 text-sm">{r.Phone || "-"}</td>
                         <td className="px-4 py-3 text-sm">
                           {r.NoOfPerson || "-"}
                         </td>
-                        <td className="px-4 py-3 text-sm">{r.RoomRate}</td>
-
+                        <td className="px-4 py-3 text-sm">{r.RoomType}</td>
+                        <td className="px-4 py-3 text-sm">{r.Country}</td>
                         <td className="px-4 py-3 text-sm">
                           {r.IDNumber || "-"}
                         </td>
-                        <td className="px-4 py-3 text-sm">{r.Address}</td>
-                        <td className="px-4 py-3 text-sm">{r.Country}</td>
                         <td className="px-4 py-3 text-sm">
                           {r.DateOfIssue
                             ? new Date(r.DateOfIssue).toLocaleDateString(
@@ -511,19 +493,13 @@ function ReservationHistory() {
                               )
                             : "-"}
                         </td>
-                         <td className="px-4 py-3 text-sm">
-                          {r.ArrTime || "-"}
-                        </td>
-                        <td className="px-4 py-3 text-sm">
-                          {r.DeptTime || "-"}
-                        </td>
                         <td className="px-4 py-3 text-sm">
                           {getStatusBadge(r.status)}
                         </td>
+                        <td className="px-4 py-3 text-sm">{r.Source || "-"}</td>
                         <td className="px-4 py-3 text-sm max-w-xs truncate">
                           {r.Note || "-"}
                         </td>
-                        <td className="px-4 py-3 text-sm">{r.Source || "-"}</td>
                         <td className="px-4 py-3 text-sm">
                           <Button
                             onClick={() => handleCheckIn(r._id)}

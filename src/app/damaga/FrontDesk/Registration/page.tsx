@@ -46,7 +46,7 @@ interface RegistrationFormData {
   person: string;
 }
 
- function HotelRegistrationForm() {
+function HotelRegistrationForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const bookingId = searchParams.get("bookingId");
@@ -306,7 +306,7 @@ interface RegistrationFormData {
 
       // Redirect with refresh trigger
       setTimeout(() => {
-        router.push("/Reservation/ReservationHistory?refresh=true");
+        router.push("/damaga/Reservation/ReservationHistory?refresh=true");
       }, 1500);
     } catch (error) {
       console.error("Save error:", error);
