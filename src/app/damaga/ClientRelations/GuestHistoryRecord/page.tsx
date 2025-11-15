@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
@@ -17,13 +17,15 @@ interface GuestBooking {
   Address: string;
   Country: string;
   Request?: string;
+  status?: string;
   createdAt: string;
   updatedAt: string;
 }
 
 export default function GuestHistoryRecord() {
   const router = useRouter();
-  const [searchParams, setSearchParams] = useState({
+  const searchParams = useSearchParams();
+  const [searchState, setSearchState] = useState({
     LastName: "",
     FirstName: "",
     Phone: "",
@@ -38,10 +40,13 @@ export default function GuestHistoryRecord() {
 
   useEffect(() => {
     fetchAllData();
+
+    // Auto-refresh setiap 10 detik
     const interval = setInterval(() => {
       fetchAllData();
       setLastUpdate(new Date());
-    }, 50000);
+    }, 10000);
+
     return () => clearInterval(interval);
   }, []);
 
@@ -49,14 +54,27 @@ export default function GuestHistoryRecord() {
     setHydrated(true);
   }, []);
 
+  // Detect refresh parameter dari URL
+  useEffect(() => {
+    const shouldRefresh = searchParams.get("refresh");
+    if (shouldRefresh === "true") {
+      console.log("🔄 Triggered refresh from check-in");
+      fetchAllData();
+
+      // Clean URL
+      window.history.replaceState({}, "", window.location.pathname);
+    }
+  }, [searchParams]);
+
   const fetchAllData = async () => {
     setLoading(true);
     try {
       const res = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL}/api/book-a-room`,
+        `${process.env.NEXT_PUBLIC_API_URL}/api/book-a-room?t=${Date.now()}`,
         {
           method: "GET",
           headers: { "Content-Type": "application/json" },
+          cache: "no-store",
         }
       );
       if (!res.ok) throw new Error(`HTTP error! status: ${res.status}`);
@@ -75,7 +93,7 @@ export default function GuestHistoryRecord() {
   };
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setSearchParams({ ...searchParams, [e.target.name]: e.target.value });
+    setSearchState({ ...searchState, [e.target.name]: e.target.value });
   };
 
   const handleSearch = () => {
@@ -97,9 +115,9 @@ export default function GuestHistoryRecord() {
             .includes(searchAll.toLowerCase());
 
         return (
-          matchesField(guest.FirstName || "", searchParams.FirstName) &&
-          matchesField(guest.LastName || "", searchParams.LastName) &&
-          matchesField(guest.Phone || "", searchParams.Phone) &&
+          matchesField(guest.FirstName || "", searchState.FirstName) &&
+          matchesField(guest.LastName || "", searchState.LastName) &&
+          matchesField(guest.Phone || "", searchState.Phone) &&
           matchesAll
         );
       });
@@ -113,7 +131,7 @@ export default function GuestHistoryRecord() {
   };
 
   const handleClear = () => {
-    setSearchParams({
+    setSearchState({
       LastName: "",
       FirstName: "",
       Phone: "",
@@ -122,9 +140,33 @@ export default function GuestHistoryRecord() {
     setGuestData(allData);
   };
 
-  // ✅ Handle Check In - Redirect ke Registration Form dengan bookingId
   const handleCheckIn = (bookingId: string) => {
     router.push(`../FrontDesk/Registration?bookingId=${bookingId}`);
+  };
+
+  const getStatusBadge = (status?: string) => {
+    const statusLower = (status || "pending").toLowerCase();
+
+    const statusConfig: Record<string, { bg: string; text: string }> = {
+      "checked-in": { bg: "bg-green-100", text: "text-green-800" },
+      confirmed: { bg: "bg-blue-100", text: "text-blue-800" },
+      pending: { bg: "bg-yellow-100", text: "text-yellow-800" },
+      "checked-out": { bg: "bg-purple-100", text: "text-purple-800" },
+      cancelled: { bg: "bg-red-100", text: "text-red-800" },
+    };
+
+    const config = statusConfig[statusLower] || {
+      bg: "bg-gray-100",
+      text: "text-gray-800",
+    };
+
+    return (
+      <span
+        className={`px-2 py-1 rounded-full text-xs font-medium ${config.bg} ${config.text}`}
+      >
+        {status || "pending"}
+      </span>
+    );
   };
 
   return (
@@ -140,7 +182,7 @@ export default function GuestHistoryRecord() {
             <div className="flex items-center gap-2">
               <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
               <span className="text-sm text-gray-600">
-                Auto-refresh aktif (50 detik)
+                Auto-refresh aktif (setiap 10 detik)
               </span>
             </div>
             <div className="flex items-center gap-3">
@@ -182,7 +224,7 @@ export default function GuestHistoryRecord() {
               </Label>
               <Input
                 name="FirstName"
-                value={searchParams.FirstName}
+                value={searchState.FirstName}
                 onChange={handleChange}
                 placeholder="Enter first name"
                 className="h-10"
@@ -194,7 +236,7 @@ export default function GuestHistoryRecord() {
               </Label>
               <Input
                 name="LastName"
-                value={searchParams.LastName}
+                value={searchState.LastName}
                 onChange={handleChange}
                 placeholder="Enter last name"
                 className="h-10"
@@ -206,7 +248,7 @@ export default function GuestHistoryRecord() {
               </Label>
               <Input
                 name="Phone"
-                value={searchParams.Phone}
+                value={searchState.Phone}
                 onChange={handleChange}
                 placeholder="Enter phone number"
                 className="h-10"
@@ -259,6 +301,7 @@ export default function GuestHistoryRecord() {
                         "Date Of Birth",
                         "Address",
                         "Nationality",
+                        "Status",
                         "Note",
                       ].map((head) => (
                         <th
@@ -302,6 +345,9 @@ export default function GuestHistoryRecord() {
                         <td className="px-4 py-3 text-sm text-gray-700">
                           {guest.Country || "-"}
                         </td>
+                        <td className="px-4 py-3 text-sm">
+                          {getStatusBadge(guest.status)}
+                        </td>
                         <td className="px-4 py-3 text-sm text-gray-700">
                           {guest.Request || "-"}
                         </td>
@@ -311,7 +357,9 @@ export default function GuestHistoryRecord() {
                             size="sm"
                             className="bg-blue-600 hover:bg-blue-700 text-white text-xs px-3 py-1 whitespace-nowrap"
                           >
-                            Check In
+                            {guest.status === "checked-in"
+                              ? "View"
+                              : "Check In"}
                           </Button>
                         </td>
                       </tr>

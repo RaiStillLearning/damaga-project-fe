@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
@@ -34,13 +34,16 @@ interface ReservationBooking {
   DateOfIssue?: string;
   Source?: string;
   Note?: string;
+  status?: string;
+  checkInDate?: string;
   createdAt: string;
   updatedAt: string;
 }
 
 export default function ReservationHistory() {
   const router = useRouter();
-  const [searchParams, setSearchParams] = useState({
+  const searchParams = useSearchParams();
+  const [searchState, setSearchState] = useState({
     FirstName: "",
     LastName: "",
     ArrDate: "",
@@ -60,10 +63,12 @@ export default function ReservationHistory() {
   const [loading, setLoading] = useState(true);
   const [lastUpdate, setLastUpdate] = useState<Date>(new Date());
   const [isClient, setIsClient] = useState(false);
+  const [statusFilter, setStatusFilter] = useState<string>("all");
 
   useEffect(() => {
     fetchAllData();
 
+    // Auto-refresh setiap 10 detik (lebih responsif)
     const interval = setInterval(() => {
       fetchAllData();
       setLastUpdate(new Date());
@@ -76,14 +81,27 @@ export default function ReservationHistory() {
     setIsClient(true);
   }, []);
 
+  // Detect refresh parameter dari URL
+  useEffect(() => {
+    const shouldRefresh = searchParams.get("refresh");
+    if (shouldRefresh === "true") {
+      console.log("🔄 Triggered refresh from check-in");
+      fetchAllData();
+
+      // Clean URL
+      window.history.replaceState({}, "", window.location.pathname);
+    }
+  }, [searchParams]);
+
   const fetchAllData = async () => {
     setLoading(true);
     try {
       const res = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL}/api/book-a-room`,
+        `${process.env.NEXT_PUBLIC_API_URL}/api/book-a-room?t=${Date.now()}`,
         {
           method: "GET",
           headers: { "Content-Type": "application/json" },
+          cache: "no-store",
         }
       );
 
@@ -106,7 +124,7 @@ export default function ReservationHistory() {
   };
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setSearchParams({ ...searchParams, [e.target.name]: e.target.value });
+    setSearchState({ ...searchState, [e.target.name]: e.target.value });
   };
 
   const handleSearch = () => {
@@ -125,42 +143,45 @@ export default function ReservationHistory() {
 
         const matchesFirstName = matchesField(
           reservation.FirstName || "",
-          searchParams.FirstName
+          searchState.FirstName
         );
         const matchesLastName = matchesField(
           reservation.LastName || "",
-          searchParams.LastName
+          searchState.LastName
         );
         const matchesRoomNumber = matchesField(
           reservation.RoomNumber || "",
-          searchParams.RoomNumber
+          searchState.RoomNumber
         );
         const matchesRoomType = matchesField(
           reservation.RoomType || "",
-          searchParams.RoomType
+          searchState.RoomType
         );
         const matchesCountry = matchesField(
           reservation.Country || "",
-          searchParams.Country
+          searchState.Country
         );
         const matchesIDNumber = matchesField(
           reservation.IDNumber || "",
-          searchParams.IDNumber
+          searchState.IDNumber
         );
 
         let matchesArrDate = true;
-        if (searchParams.ArrDate) {
+        if (searchState.ArrDate) {
           matchesArrDate =
             new Date(reservation.ArrDate).toISOString().split("T")[0] ===
-            searchParams.ArrDate;
+            searchState.ArrDate;
         }
 
         let matchesDeptDate = true;
-        if (searchParams.DeptDate) {
+        if (searchState.DeptDate) {
           matchesDeptDate =
             new Date(reservation.DeptDate).toISOString().split("T")[0] ===
-            searchParams.DeptDate;
+            searchState.DeptDate;
         }
+
+        const matchesStatus =
+          statusFilter === "all" || reservation.status === statusFilter;
 
         return (
           matchesFirstName &&
@@ -170,7 +191,8 @@ export default function ReservationHistory() {
           matchesRoomNumber &&
           matchesRoomType &&
           matchesCountry &&
-          matchesIDNumber
+          matchesIDNumber &&
+          matchesStatus
         );
       });
 
@@ -184,7 +206,7 @@ export default function ReservationHistory() {
   };
 
   const handleClear = () => {
-    setSearchParams({
+    setSearchState({
       FirstName: "",
       LastName: "",
       ArrDate: "",
@@ -196,12 +218,37 @@ export default function ReservationHistory() {
       Country: "",
       IDNumber: "",
     });
+    setStatusFilter("all");
     setReservationData(allData);
   };
 
-  // ✅ Handle Check In - Redirect ke Registration Form dengan bookingId
   const handleCheckIn = (bookingId: string) => {
     router.push(`../FrontDesk/Registration?bookingId=${bookingId}`);
+  };
+
+  const getStatusBadge = (status?: string) => {
+    const statusLower = (status || "pending").toLowerCase();
+
+    const statusConfig: Record<string, { bg: string; text: string }> = {
+      "checked-in": { bg: "bg-green-100", text: "text-green-800" },
+      confirmed: { bg: "bg-blue-100", text: "text-blue-800" },
+      pending: { bg: "bg-yellow-100", text: "text-yellow-800" },
+      "checked-out": { bg: "bg-purple-100", text: "text-purple-800" },
+      cancelled: { bg: "bg-red-100", text: "text-red-800" },
+    };
+
+    const config = statusConfig[statusLower] || {
+      bg: "bg-gray-100",
+      text: "text-gray-800",
+    };
+
+    return (
+      <span
+        className={`px-2 py-1 rounded-full text-xs font-medium ${config.bg} ${config.text}`}
+      >
+        {status || "pending"}
+      </span>
+    );
   };
 
   return (
@@ -238,6 +285,74 @@ export default function ReservationHistory() {
             </div>
           </div>
 
+          {/* Status Filter */}
+          <div className="mb-6 bg-gradient-to-r from-sky-50 to-blue-50 p-4 rounded-lg border border-sky-200">
+            <Label className="text-sm font-medium mb-3 block text-sky-700">
+              Filter by Status
+            </Label>
+            <div className="flex flex-wrap gap-2">
+              {[
+                {
+                  value: "all",
+                  label: "All Bookings",
+                  color: "bg-gray-100 hover:bg-gray-200",
+                },
+                {
+                  value: "pending",
+                  label: "Pending",
+                  color: "bg-yellow-100 hover:bg-yellow-200 text-yellow-800",
+                },
+                {
+                  value: "confirmed",
+                  label: "Confirmed",
+                  color: "bg-blue-100 hover:bg-blue-200 text-blue-800",
+                },
+                {
+                  value: "checked-in",
+                  label: "Checked In",
+                  color: "bg-green-100 hover:bg-green-200 text-green-800",
+                },
+                {
+                  value: "checked-out",
+                  label: "Checked Out",
+                  color: "bg-purple-100 hover:bg-purple-200 text-purple-800",
+                },
+                {
+                  value: "cancelled",
+                  label: "Cancelled",
+                  color: "bg-red-100 hover:bg-red-200 text-red-800",
+                },
+              ].map((status) => (
+                <button
+                  key={status.value}
+                  onClick={() => {
+                    setStatusFilter(status.value);
+                    setTimeout(handleSearch, 100);
+                  }}
+                  className={`px-4 py-2 rounded-md text-sm font-medium transition-all ${
+                    status.color
+                  } ${
+                    statusFilter === status.value
+                      ? "ring-2 ring-sky-500 shadow-md scale-105"
+                      : "opacity-70"
+                  }`}
+                >
+                  {status.label}
+                  {statusFilter === status.value && " ✓"}
+                </button>
+              ))}
+            </div>
+            <p className="text-xs text-gray-500 mt-2">
+              Currently showing:{" "}
+              <span className="font-semibold text-sky-600">
+                {statusFilter === "all"
+                  ? "All Reservations"
+                  : statusFilter.charAt(0).toUpperCase() +
+                    statusFilter.slice(1)}
+              </span>
+            </p>
+          </div>
+
           {/* Search Section */}
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5 sm:gap-6 mb-6">
             {Object.entries({
@@ -266,8 +381,8 @@ export default function ReservationHistory() {
                       : "text"
                   }
                   value={
-                    searchParams[key as keyof typeof searchParams] !== undefined
-                      ? searchParams[key as keyof typeof searchParams]
+                    searchState[key as keyof typeof searchState] !== undefined
+                      ? searchState[key as keyof typeof searchState]
                       : ""
                   }
                   onChange={handleChange}
@@ -291,7 +406,7 @@ export default function ReservationHistory() {
               disabled={loading}
               className="px-8 h-10 text-base font-medium bg-sky-600 hover:bg-sky-700 text-white"
             >
-              <Search className="w-4 h-4 mr-2" />{" "}
+              <Search className="w-4 h-4 mr-2" />
               {loading ? "Searching..." : "Search"}
             </Button>
           </div>
@@ -321,17 +436,20 @@ export default function ReservationHistory() {
                         "No",
                         "First Name",
                         "Last Name",
+                        "Address",
                         "Arr. Date",
                         "Arr. Time",
                         "Dept. Date",
                         "Dept. Time",
                         "Room Number",
+                        "Room Rate",
                         "Phone",
                         "Person",
                         "Room Type",
                         "Nationality",
                         "ID Number",
                         "Date of Issue",
+                        "Status",
                         "Source",
                         "Note",
                       ].map((head) => (
@@ -387,6 +505,9 @@ export default function ReservationHistory() {
                               )
                             : "-"}
                         </td>
+                        <td className="px-4 py-3 text-sm">
+                          {getStatusBadge(r.status)}
+                        </td>
                         <td className="px-4 py-3 text-sm">{r.Source || "-"}</td>
                         <td className="px-4 py-3 text-sm max-w-xs truncate">
                           {r.Note || "-"}
@@ -397,7 +518,7 @@ export default function ReservationHistory() {
                             size="sm"
                             className="bg-blue-600 hover:bg-blue-700 text-white text-xs px-3 py-1 whitespace-nowrap"
                           >
-                            Check In
+                            {r.status === "checked-in" ? "View" : "Check In"}
                           </Button>
                         </td>
                       </tr>

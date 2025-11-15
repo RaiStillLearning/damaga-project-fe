@@ -41,7 +41,7 @@ export default function HotelRegistrationForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const bookingId = searchParams.get("bookingId");
-
+  const [saveSuccess, setSaveSuccess] = useState(false);
   const [isCheckedIn, setIsCheckedIn] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [formData, setFormData] = useState<RegistrationFormData>({
@@ -74,7 +74,7 @@ export default function HotelRegistrationForm() {
     person: "",
   });
 
-  // Auto-fill clerk name and first name from logged in user
+  // Auto-fill clerk name from logged in user
   useEffect(() => {
     const storedUser = localStorage.getItem("user");
     if (storedUser) {
@@ -84,7 +84,6 @@ export default function HotelRegistrationForm() {
         setFormData((prev) => ({
           ...prev,
           clerk: clerkName,
-          firstName: clerkName,
         }));
       } catch (error) {
         console.error("Failed to parse user from localStorage");
@@ -92,7 +91,7 @@ export default function HotelRegistrationForm() {
     }
   }, []);
 
-  // Fetch booking data jika ada bookingId
+  // Fetch booking data if bookingId exists
   useEffect(() => {
     if (bookingId) {
       fetchBookingData(bookingId);
@@ -121,7 +120,7 @@ export default function HotelRegistrationForm() {
         dailyRate: booking.RoomRate?.toString() || "",
         currency: "USD",
         lastName: booking.LastName || "",
-        firstName: booking.FirstName || prev.firstName,
+        firstName: booking.FirstName || "",
         address: booking.Address || "",
         advanceDeposit: "",
         companyName: "",
@@ -163,7 +162,6 @@ export default function HotelRegistrationForm() {
     }
   };
 
-  // ✅ Helper function untuk build payload
   const buildPayload = () => {
     return {
       FirstName: formData.firstName,
@@ -204,7 +202,6 @@ export default function HotelRegistrationForm() {
 
   const handleCheckIn = async () => {
     try {
-      // Validasi data minimal
       if (!formData.firstName || !formData.lastName) {
         alert("Please fill in guest name");
         return;
@@ -212,9 +209,9 @@ export default function HotelRegistrationForm() {
 
       const payload = buildPayload();
 
+      let response;
       if (bookingId) {
-        // Update existing booking
-        const updateRes = await fetch(
+        response = await fetch(
           `${process.env.NEXT_PUBLIC_API_URL}/api/book-a-room/${bookingId}`,
           {
             method: "PUT",
@@ -222,14 +219,8 @@ export default function HotelRegistrationForm() {
             body: JSON.stringify(payload),
           }
         );
-
-        if (!updateRes.ok) {
-          const errorData = await updateRes.json();
-          throw new Error(errorData.message || "Failed to update booking");
-        }
       } else {
-        // Create new booking
-        const createRes = await fetch(
+        response = await fetch(
           `${process.env.NEXT_PUBLIC_API_URL}/api/book-a-room`,
           {
             method: "POST",
@@ -237,15 +228,19 @@ export default function HotelRegistrationForm() {
             body: JSON.stringify(payload),
           }
         );
-
-        if (!createRes.ok) {
-          const errorData = await createRes.json();
-          throw new Error(errorData.message || "Failed to create booking");
-        }
       }
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || "Failed to check-in");
+      }
+
+      const savedData = await response.json();
+      console.log("✅ Check-in successful:", savedData);
 
       alert("Check-in successful!");
       setIsCheckedIn(true);
+      setSaveSuccess(true);
     } catch (error) {
       console.error("Check-in error:", error);
       alert(
@@ -256,19 +251,9 @@ export default function HotelRegistrationForm() {
     }
   };
 
-  const handlePrint = () => {
-    window.print();
-  };
-
-  const handleBack = () => {
-    setIsCheckedIn(false);
-  };
-
-  // ✅ Function untuk save check-in data ke backend
   const handleSaveCheckIn = async () => {
     setIsSaving(true);
     try {
-      // Validasi
       if (!formData.firstName || !formData.lastName) {
         alert("Please fill in guest name");
         setIsSaving(false);
@@ -277,9 +262,9 @@ export default function HotelRegistrationForm() {
 
       const payload = buildPayload();
 
+      let response;
       if (bookingId) {
-        // Update existing booking
-        const updateRes = await fetch(
+        response = await fetch(
           `${process.env.NEXT_PUBLIC_API_URL}/api/book-a-room/${bookingId}`,
           {
             method: "PUT",
@@ -287,15 +272,8 @@ export default function HotelRegistrationForm() {
             body: JSON.stringify(payload),
           }
         );
-
-        if (!updateRes.ok) {
-          const errorData = await updateRes.json();
-          throw new Error(errorData.message || "Failed to update booking");
-        }
-        alert("Check-in data saved successfully!");
       } else {
-        // Create new booking
-        const createRes = await fetch(
+        response = await fetch(
           `${process.env.NEXT_PUBLIC_API_URL}/api/book-a-room`,
           {
             method: "POST",
@@ -303,13 +281,23 @@ export default function HotelRegistrationForm() {
             body: JSON.stringify(payload),
           }
         );
-
-        if (!createRes.ok) {
-          const errorData = await createRes.json();
-          throw new Error(errorData.message || "Failed to create booking");
-        }
-        alert("Check-in data saved successfully!");
       }
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || "Failed to save check-in data");
+      }
+
+      const savedData = await response.json();
+      console.log("✅ Data saved successfully:", savedData);
+
+      alert("Check-in data saved successfully! Redirecting to history...");
+      setSaveSuccess(true);
+
+      // Redirect with refresh trigger
+      setTimeout(() => {
+        router.push("/Reservation/ReservationHistory?refresh=true");
+      }, 1500);
     } catch (error) {
       console.error("Save error:", error);
       alert(
@@ -320,6 +308,14 @@ export default function HotelRegistrationForm() {
     } finally {
       setIsSaving(false);
     }
+  };
+
+  const handlePrint = () => {
+    window.print();
+  };
+
+  const handleBack = () => {
+    setIsCheckedIn(false);
   };
 
   if (!isCheckedIn) {
@@ -742,7 +738,12 @@ export default function HotelRegistrationForm() {
           <Button variant="outline" onClick={handleBack}>
             ← Back to Form
           </Button>
-          <div className="flex gap-3">
+          <div className="flex gap-3 items-center">
+            {saveSuccess && (
+              <span className="text-sm text-green-600 font-medium">
+                ✓ Saved successfully
+              </span>
+            )}
             <Button
               onClick={handleSaveCheckIn}
               disabled={isSaving}
