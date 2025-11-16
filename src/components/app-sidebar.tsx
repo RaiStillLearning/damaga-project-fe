@@ -60,7 +60,10 @@ const data = {
           title: "In House Guest List",
           url: "/damaga/FrontDesk/InHouseGuestList",
         },
-        { title: "Expected Departures", url: "#" },
+        {
+          title: "Expected Departures",
+          url: "/damaga/FrontDesk/ExpectedDeparture",
+        },
       ],
     },
     {
