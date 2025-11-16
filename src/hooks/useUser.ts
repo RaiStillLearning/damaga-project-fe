@@ -1,29 +1,42 @@
 "use client";
 import { useState, useEffect } from "react";
-
-export type UserType = {
-  username: string;
-  email: string;
-  avatar?: string;
-};
+import type { AppUser } from "@/types/user"; // ⬅️ tambahkan import ini
 
 export function useUser() {
-  const [user, setUser] = useState<UserType | null>(null);
+  const [user, setUser] = useState<AppUser | null>(null);
 
   useEffect(() => {
     const stored = localStorage.getItem("user");
-    if (stored) setUser(JSON.parse(stored));
+    if (stored) {
+      try {
+        const parsed: AppUser = JSON.parse(stored);
+        setUser(parsed);
+      } catch (e) {
+        console.error("Failed to parse user from localStorage", e);
+        setUser(null);
+      }
+    }
 
     const handleStorage = () => {
       const updated = localStorage.getItem("user");
-      setUser(updated ? JSON.parse(updated) : null);
+      if (!updated) {
+        setUser(null);
+        return;
+      }
+      try {
+        const parsed: AppUser = JSON.parse(updated);
+        setUser(parsed);
+      } catch (e) {
+        console.error("Failed to parse updated user from localStorage", e);
+        setUser(null);
+      }
     };
 
     window.addEventListener("storage", handleStorage);
     return () => window.removeEventListener("storage", handleStorage);
   }, []);
 
-  const updateUser = (newUser: UserType) => {
+  const updateUser = (newUser: AppUser) => {
     localStorage.setItem("user", JSON.stringify(newUser));
     setUser(newUser);
   };

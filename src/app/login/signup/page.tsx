@@ -13,13 +13,13 @@ import { Button } from "@/components/ui/button";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
 
-const divisions = [
-  { value: "Lorem1", label: "Lorem 1" },
-  { value: "Lorem2", label: "Lorem 2" },
-  { value: "Lorem3", label: "Lorem 3" },
-  { value: "Lorem4", label: "Lorem 4" },
-  { value: "Lorem5", label: "Lorem 5" },
-];
+// const divisions = [
+//   { value: "Lorem1", label: "Lorem 1" },
+//   { value: "Lorem2", label: "Lorem 2" },
+//   { value: "Lorem3", label: "Lorem 3" },
+//   { value: "Lorem4", label: "Lorem 4" },
+//   { value: "Lorem5", label: "Lorem 5" },
+// ];
 
 export default function SignUpPage() {
   const router = useRouter();
@@ -100,14 +100,14 @@ export default function SignUpPage() {
                 value={divisi}
                 onChange={(e) => setDivisi(e.target.value)}
               >
-                <option value="" disabled>
+                {/* <option value="" disabled>
                   Select your division
                 </option>
                 {divisions.map((d, i) => (
                   <option key={i} value={d.value}>
                     {d.label}
                   </option>
-                ))}
+                ))} */}
               </select>
             </div>
 

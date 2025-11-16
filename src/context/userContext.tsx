@@ -8,18 +8,12 @@ import {
   useEffect,
   useCallback,
 } from "react";
-
-type User = {
-  username: string;
-  email: string;
-  avatar?: string;
-  divisi?: string;
-};
+import type { AppUser } from "@/types/user"; // ⬅️ pakai type yang sama
 
 type UserContextType = {
-  user: User | null;
+  user: AppUser | null;
   loading: boolean;
-  setUser: (user: User, token?: string) => void;
+  setUser: (user: AppUser, token?: string) => void;
   clearUser: () => void;
 };
 
@@ -31,10 +25,10 @@ const UserContext = createContext<UserContextType>({
 });
 
 export function UserProvider({ children }: { children: ReactNode }) {
-  const [user, setUserState] = useState<User | null>(null);
+  const [user, setUserState] = useState<AppUser | null>(null);
   const [loading, setLoading] = useState(true);
 
-  const setUser = useCallback((user: User, token?: string) => {
+  const setUser = useCallback((user: AppUser, token?: string) => {
     setUserState(user);
     localStorage.setItem("user", JSON.stringify(user));
     if (token) localStorage.setItem("token", token);
@@ -69,8 +63,14 @@ export function UserProvider({ children }: { children: ReactNode }) {
         }
 
         const data = await res.json();
-        if (data?.user) setUserState(data.user);
-        else clearUser();
+
+        if (data?.user) {
+          // pastikan backend /api/profile kirim: { user: { username, email, role, divisi, ... } }
+          setUserState(data.user as AppUser);
+          localStorage.setItem("user", JSON.stringify(data.user));
+        } else {
+          clearUser();
+        }
       } catch (err) {
         console.error("Profile fetch error:", err);
         clearUser();

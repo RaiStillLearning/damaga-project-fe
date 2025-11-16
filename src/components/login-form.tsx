@@ -60,6 +60,7 @@ export function LoginForm({
           email: data.user.email,
           avatar: data.user.avatar || "/default-avatar.png",
           divisi: data.user.divisi || "",
+          role: data.user.role,
         },
         data.token
       );
