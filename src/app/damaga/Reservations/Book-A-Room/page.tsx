@@ -268,7 +268,7 @@ export default function BookARoomForm() {
           "Apakah Anda ingin melihat booking di Reservation History?"
         );
         if (confirmRedirect) {
-          router.push("/damaga/Reservation/ReservationHistory?refresh=true");
+          router.push("/damaga/Reservations/ReservationHistory?refresh=true");
         }
       }, 1000);
     } catch (err: unknown) {

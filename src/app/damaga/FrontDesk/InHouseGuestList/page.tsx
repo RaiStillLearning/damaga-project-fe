@@ -8,10 +8,10 @@ import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Search, User, RefreshCw } from "lucide-react";
 
-export default function ReservationHistoryPage() {
+export default function InHouseGuestListPage() {
   return (
-    <Suspense fallback={<div>Loading...</div>}>
-      <ReservationHistory />
+    <Suspense fallback={<div className="p-5 text-center">Loading...</div>}>
+      <InHouseGuestList />
     </Suspense>
   );
 }
@@ -46,11 +46,15 @@ interface ReservationBooking {
   Note?: string;
   status?: string;
   checkInDate?: string;
+  AdvanceDeposit?: number;
+  CompanyName?: string;
+  CompanyPhone?: string;
+  CompanyAddress?: string;
   createdAt: string;
   updatedAt: string;
 }
 
-function ReservationHistory() {
+function InHouseGuestList() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const [searchState, setSearchState] = useState({
@@ -71,6 +75,7 @@ function ReservationHistory() {
     DeptTime: "",
     Source: "",
     Note: "",
+    CompanyName: "",
   });
 
   const [reservationData, setReservationData] = useState<ReservationBooking[]>(
@@ -80,16 +85,13 @@ function ReservationHistory() {
   const [loading, setLoading] = useState(true);
   const [lastUpdate, setLastUpdate] = useState<Date>(new Date());
   const [isClient, setIsClient] = useState(false);
-  const [statusFilter, setStatusFilter] = useState<string>("all");
 
   useEffect(() => {
     fetchAllData();
-
     const interval = setInterval(() => {
       fetchAllData();
       setLastUpdate(new Date());
     }, 50000);
-
     return () => clearInterval(interval);
   }, []);
 
@@ -123,8 +125,14 @@ function ReservationHistory() {
       const data = await res.json();
       const bookings = Array.isArray(data) ? data : data.bookings || [];
 
-      setAllData(bookings);
-      setReservationData(bookings);
+      // Filter hanya yang status checked-in
+      const checkedInBookings = bookings.filter(
+        (booking: ReservationBooking) =>
+          booking.status?.toLowerCase() === "in-house"
+      );
+
+      setAllData(checkedInBookings);
+      setReservationData(checkedInBookings);
       setLastUpdate(new Date());
     } catch (err: unknown) {
       console.error("Fetch error:", err);
@@ -178,6 +186,10 @@ function ReservationHistory() {
           reservation.IDNumber || "",
           searchState.IDNumber
         );
+        const matchesCompanyName = matchesField(
+          reservation.CompanyName || "",
+          searchState.CompanyName
+        );
 
         let matchesArrDate = true;
         if (searchState.ArrDate) {
@@ -193,9 +205,6 @@ function ReservationHistory() {
             searchState.DeptDate;
         }
 
-        const matchesStatus =
-          statusFilter === "all" || reservation.status === statusFilter;
-
         return (
           matchesFirstName &&
           matchesLastName &&
@@ -205,7 +214,7 @@ function ReservationHistory() {
           matchesRoomType &&
           matchesCountry &&
           matchesIDNumber &&
-          matchesStatus
+          matchesCompanyName
         );
       });
 
@@ -237,40 +246,13 @@ function ReservationHistory() {
       DeptTime: "",
       Source: "",
       Note: "",
+      CompanyName: "",
     });
-    setStatusFilter("all");
     setReservationData(allData);
   };
 
   const handleCheckIn = (bookingId: string) => {
     router.push(`../FrontDesk/Registration?bookingId=${bookingId}`);
-  };
-
-  const getStatusBadge = (status?: string) => {
-    const statusLower = (status || "pending").toLowerCase();
-
-    const statusConfig: Record<string, { bg: string; text: string }> = {
-      pending: { bg: "bg-yellow-100", text: "text-yellow-800" },
-      confirmed: { bg: "bg-blue-100", text: "text-blue-800" },
-      "checked-in": { bg: "bg-green-100", text: "text-green-800" },
-      "checked-out": { bg: "bg-purple-100", text: "text-purple-800" },
-      cancelled: { bg: "bg-red-100", text: "text-red-800" },
-      "in-house": { bg: "bg-teal-100", text: "text-teal-800" },
-      "stay-over": { bg: "bg-indigo-100", text: "text-indigo-800" },
-    };
-
-    const config = statusConfig[statusLower] || {
-      bg: "bg-gray-100",
-      text: "text-gray-800",
-    };
-
-    return (
-      <span
-        className={`px-2 py-1 rounded-full text-xs font-medium ${config.bg} ${config.text}`}
-      >
-        {status || "pending"}
-      </span>
-    );
   };
 
   const formatRoomRate = (rate: number, currency?: string) => {
@@ -283,15 +265,48 @@ function ReservationHistory() {
     return `${symbol} ${formattedRate}`;
   };
 
+  const getStatusBadge = (status?: string) => {
+    const statusLower = (status || "checked-in").toLowerCase();
+    const statusConfig: Record<string, { bg: string; text: string }> = {
+      "checked-in": { bg: "bg-green-100", text: "text-green-800" },
+    };
+    const config = statusConfig[statusLower] || {
+      bg: "bg-green-100",
+      text: "text-green-800",
+    };
+    return (
+      <span
+        className={`px-2 py-1 rounded-full text-xs font-medium ${config.bg} ${config.text}`}
+      >
+        {status || "checked-in"}
+      </span>
+    );
+  };
+
   return (
     <div className="p-4 sm:p-6 lg:p-8">
       <div className="w-full max-w-7xl mx-auto">
         <div className="bg-white p-6 sm:p-8 lg:p-10 rounded-lg shadow-sm border">
-          <h2 className="text-2xl sm:text-3xl font-semibold mb-6 sm:mb-8 text-sky-500">
-            Reservation History
-          </h2>
+          <div className="flex items-center justify-between mb-6 sm:mb-8">
+            <h2 className="text-2xl sm:text-3xl font-semibold text-sky-500">
+              IN HOUSE GUEST LIST
+            </h2>
+            <div className="flex items-center gap-2 px-4 py-2 bg-green-50 rounded-lg border border-green-200">
+              <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
+              <span className="text-sm font-medium text-green-800">
+                Status: In-House Only
+              </span>
+            </div>
+          </div>
 
-          {/* Auto Refresh Info */}
+          <div className="mb-6 p-4 bg-green-50 rounded-lg border border-green-200">
+            <p className="text-sm text-green-700">
+              <strong>ℹ️ Info:</strong> Halaman ini hanya menampilkan guest yang
+              sudah <span className="font-semibold">IN-HOUSE</span>. Guest
+              dengan status lain tidak akan ditampilkan di sini.
+            </p>
+          </div>
+
           <div className="mb-6 flex flex-col sm:flex-row items-start sm:items-center justify-between bg-sky-50 px-4 py-3 rounded-lg border border-sky-200 gap-3">
             <div className="flex items-center gap-2">
               <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
@@ -305,7 +320,6 @@ function ReservationHistory() {
                   Last update: {lastUpdate.toLocaleTimeString("id-ID")}
                 </span>
               )}
-
               <Button
                 onClick={fetchAllData}
                 variant="outline"
@@ -317,85 +331,6 @@ function ReservationHistory() {
             </div>
           </div>
 
-          {/* Status Filter */}
-          <div className="mb-6 bg-gradient-to-r from-sky-50 to-blue-50 p-4 rounded-lg border border-sky-200">
-            <Label className="text-sm font-medium mb-3 block text-sky-700">
-              Filter by Status
-            </Label>
-            <div className="flex flex-wrap gap-2">
-              {[
-                {
-                  value: "all",
-                  label: "All Bookings",
-                  color: "bg-gray-100 hover:bg-gray-200",
-                },
-                {
-                  value: "pending",
-                  label: "Pending",
-                  color: "bg-yellow-100 hover:bg-yellow-200 text-yellow-800",
-                },
-                {
-                  value: "confirmed",
-                  label: "Confirmed",
-                  color: "bg-blue-100 hover:bg-blue-200 text-blue-800",
-                },
-                {
-                  value: "checked-in",
-                  label: "Checked In",
-                  color: "bg-green-100 hover:bg-green-200 text-green-800",
-                },
-                {
-                  value: "checked-out",
-                  label: "Checked Out",
-                  color: "bg-purple-100 hover:bg-purple-200 text-purple-800",
-                },
-                {
-                  value: "cancelled",
-                  label: "Cancelled",
-                  color: "bg-red-100 hover:bg-red-200 text-red-800",
-                },
-                {
-                  value: "in-house",
-                  label: "in-house",
-                  color: "bg-teal-100 hover:bg-teal-200 text-teal-800",
-                },
-                {
-                  value: "stay-over",
-                  label: "Stay Over",
-                  color: "bg-indigo-100 hover:bg-indigo-200 text-indigo-800",
-                },
-              ].map((status) => (
-                <button
-                  key={status.value}
-                  onClick={() => {
-                    setStatusFilter(status.value);
-                    setTimeout(handleSearch, 100);
-                  }}
-                  className={`px-4 py-2 rounded-md text-sm font-medium transition-all ${
-                    status.color
-                  } ${
-                    statusFilter === status.value
-                      ? "ring-2 ring-sky-500 shadow-md scale-105"
-                      : "opacity-70"
-                  }`}
-                >
-                  {status.label}
-                  {statusFilter === status.value && " ✓"}
-                </button>
-              ))}
-            </div>
-            <p className="text-xs text-gray-500 mt-2">
-              Currently showing:{" "}
-              <span className="font-semibold text-sky-600">
-                {statusFilter === "all"
-                  ? "All Reservations"
-                  : statusFilter.charAt(0).toUpperCase() +
-                    statusFilter.slice(1)}
-              </span>
-            </p>
-          </div>
-
-          {/* Search Section */}
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5 sm:gap-6 mb-6">
             {Object.entries({
               FirstName: "First Name",
@@ -415,6 +350,7 @@ function ReservationHistory() {
               DeptTime: "Departure Time",
               Source: "Source",
               Note: "Request",
+              CompanyName: "Company Name",
             }).map(([key, label]) => (
               <div key={key} className="w-full">
                 <Label className="text-sm font-medium mb-2 block text-sky-500">
@@ -460,21 +396,25 @@ function ReservationHistory() {
             </Button>
           </div>
 
-          {/* Table Result */}
           <div className="space-y-4">
             <h3 className="text-lg font-semibold text-gray-800">
-              Reservation Records ({reservationData.length})
+              Checked-In Guests ({reservationData.length})
             </h3>
 
             {loading ? (
               <div className="text-center py-12 bg-gray-50 rounded-lg border-2 border-dashed">
                 <div className="w-12 h-12 mx-auto mb-3 border-4 border-sky-500 border-t-transparent rounded-full animate-spin"></div>
-                <p className="text-gray-500">Loading reservation data...</p>
+                <p className="text-gray-500">
+                  Loading checked-in guests data...
+                </p>
               </div>
             ) : reservationData.length === 0 ? (
               <div className="text-center py-12 bg-gray-50 rounded-lg border-2 border-dashed">
                 <User className="w-12 h-12 mx-auto text-gray-400 mb-3" />
-                <p className="text-gray-500">No reservation records found.</p>
+                <p className="text-gray-500">
+                  No checked-in guests found. All guests may have checked out or
+                  are still pending.
+                </p>
               </div>
             ) : (
               <div className="overflow-x-auto border rounded-lg">
@@ -499,6 +439,10 @@ function ReservationHistory() {
                         "Arr. Time",
                         "Dept. Time",
                         "Status",
+                        "Advance Deposit",
+                        "Company Name",
+                        "Company Phone",
+                        "Company Address",
                         "Source",
                         "Note",
                       ].map((head) => (
@@ -521,15 +465,19 @@ function ReservationHistory() {
                         className="hover:bg-gray-50 transition-colors"
                       >
                         <td className="px-4 py-3 text-sm">{i + 1}</td>
-                        <td className="px-4 py-3 text-sm">{r.FirstName}</td>
-                        <td className="px-4 py-3 text-sm">{r.LastName}</td>
+                        <td className="px-4 py-3 text-sm font-medium">
+                          {r.FirstName}
+                        </td>
+                        <td className="px-4 py-3 text-sm font-medium">
+                          {r.LastName}
+                        </td>
                         <td className="px-4 py-3 text-sm">
                           {new Date(r.ArrDate).toLocaleDateString("id-ID")}
                         </td>
                         <td className="px-4 py-3 text-sm">
                           {new Date(r.DeptDate).toLocaleDateString("id-ID")}
                         </td>
-                        <td className="px-4 py-3 text-sm">
+                        <td className="px-4 py-3 text-sm font-semibold">
                           {r.RoomNumber || "-"}
                         </td>
                         <td className="px-4 py-3 text-sm">{r.RoomType}</td>
@@ -561,6 +509,18 @@ function ReservationHistory() {
                         <td className="px-4 py-3 text-sm">
                           {getStatusBadge(r.status)}
                         </td>
+                        <td className="px-4 py-3 text-sm">
+                          {r.AdvanceDeposit || "-"}
+                        </td>
+                        <td className="px-4 py-3 text-sm">
+                          {r.CompanyName || "-"}
+                        </td>
+                        <td className="px-4 py-3 text-sm">
+                          {r.CompanyPhone || "-"}
+                        </td>
+                        <td className="px-4 py-3 text-sm max-w-xs truncate">
+                          {r.CompanyAddress || "-"}
+                        </td>
                         <td className="px-4 py-3 text-sm">{r.Source || "-"}</td>
                         <td className="px-4 py-3 text-sm max-w-xs truncate">
                           {r.Note || "-"}
@@ -569,9 +529,9 @@ function ReservationHistory() {
                           <Button
                             onClick={() => handleCheckIn(r._id)}
                             size="sm"
-                            className="bg-blue-600 hover:bg-blue-700 text-white text-xs px-3 py-1 whitespace-nowrap"
+                            className="bg-green-600 hover:bg-green-700 text-white text-xs px-3 py-1 whitespace-nowrap"
                           >
-                            {r.status === "checked-in" ? "View" : "Check In"}
+                            View Details
                           </Button>
                         </td>
                       </tr>
