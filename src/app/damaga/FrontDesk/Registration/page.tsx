@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { Suspense } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent } from "@/components/ui/card";
@@ -14,6 +15,14 @@ import {
 import { FileText } from "lucide-react";
 import { useSearchParams, useRouter } from "next/navigation";
 import Image from "next/image";
+
+export default function registrationFormPage() {
+  return (
+    <Suspense fallback={<div className="p-5 text-center">Loading...</div>}>
+      <HotelRegistrationForm />
+    </Suspense>
+  );
+}
 
 const roomTypePrices = {
   DSD: { USD: 75, IDR: 1200000 },
@@ -53,7 +62,7 @@ interface RegistrationFormData {
   person: string;
 }
 
-export default function HotelRegistrationForm() {
+function HotelRegistrationForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const bookingId = searchParams.get("bookingId");

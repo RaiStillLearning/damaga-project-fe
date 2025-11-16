@@ -1,11 +1,20 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Search, User, RefreshCw } from "lucide-react";
+
+export default function ExpectedArrivalPage() {
+  return (
+    <Suspense fallback={<div className="p-5 text-center">Loading...</div>}>
+      <ExpectedArrival />
+    </Suspense>
+  );
+}
 
 interface ReservationBooking {
   _id: string;
@@ -44,7 +53,7 @@ interface ReservationBooking {
   updatedAt: string;
 }
 
-export default function ExpectedArrival() {
+function ExpectedArrival() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const [searchState, setSearchState] = useState({

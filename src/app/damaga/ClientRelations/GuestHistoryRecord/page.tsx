@@ -2,7 +2,7 @@
 
 import { Suspense } from "react";
 import { useState, useEffect } from "react";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useSearchParams } from "next/navigation";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
@@ -34,7 +34,7 @@ export default function GuestHistoryRecordPage() {
 /* ---------------------------------------------------------------- */
 
 function GuestHistoryRecord() {
-  const router = useRouter();
+  // const router = useRouter();
   const searchParams = useSearchParams();
   const [searchState, setSearchState] = useState({
     LastName: "",
@@ -55,7 +55,7 @@ function GuestHistoryRecord() {
     const interval = setInterval(() => {
       fetchAllData();
       setLastUpdate(new Date());
-    }, 10000);
+    }, 50000);
 
     return () => clearInterval(interval);
   }, []);
@@ -87,8 +87,14 @@ function GuestHistoryRecord() {
 
       const data = await res.json();
       const bookings = Array.isArray(data) ? data : data.bookings || [];
-      setAllData(bookings);
-      setGuestData(bookings);
+
+      // Filter hanya guest yang sudah checkout
+      const checkedOutGuests = bookings.filter(
+        (guest: GuestBooking) => guest.status?.toLowerCase() === "checked-out"
+      );
+
+      setAllData(checkedOutGuests);
+      setGuestData(checkedOutGuests);
       setLastUpdate(new Date());
     } catch (err) {
       console.error("Fetch error:", err);
@@ -146,31 +152,27 @@ function GuestHistoryRecord() {
     setGuestData(allData);
   };
 
-  const handleCheckIn = (bookingId: string) => {
-    router.push(`../FrontDesk/Registration?bookingId=${bookingId}`);
-  };
+  // const handleCheckIn = (bookingId: string) => {
+  //   router.push(`../FrontDesk/Registration?bookingId=${bookingId}`);
+  // };
 
   const getStatusBadge = (status?: string) => {
-    const statusLower = (status || "pending").toLowerCase();
+    const statusLower = (status || "checked-out").toLowerCase();
 
     const statusConfig: Record<string, { bg: string; text: string }> = {
-      "checked-in": { bg: "bg-green-100", text: "text-green-800" },
-      confirmed: { bg: "bg-blue-100", text: "text-blue-800" },
-      pending: { bg: "bg-yellow-100", text: "text-yellow-800" },
       "checked-out": { bg: "bg-purple-100", text: "text-purple-800" },
-      cancelled: { bg: "bg-red-100", text: "text-red-800" },
     };
 
     const config = statusConfig[statusLower] || {
-      bg: "bg-gray-100",
-      text: "text-gray-800",
+      bg: "bg-purple-100",
+      text: "text-purple-800",
     };
 
     return (
       <span
         className={`px-2 py-1 rounded-full text-xs font-medium ${config.bg} ${config.text}`}
       >
-        {status || "pending"}
+        {status || "checked-out"}
       </span>
     );
   };
@@ -188,7 +190,7 @@ function GuestHistoryRecord() {
             <div className="flex items-center gap-2">
               <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
               <span className="text-sm text-gray-600">
-                Auto-refresh aktif (setiap 10 detik)
+                Auto-refresh aktif (setiap 50 detik)
               </span>
             </div>
             <div className="flex items-center gap-3">
@@ -291,7 +293,9 @@ function GuestHistoryRecord() {
             ) : guestData.length === 0 ? (
               <div className="text-center py-12 bg-gray-50 rounded-lg border-2 border-dashed">
                 <User className="w-12 h-12 mx-auto text-gray-400 mb-3" />
-                <p className="text-gray-500">No guest records found.</p>
+                <p className="text-gray-500">
+                  No checked-out guest records found.
+                </p>
               </div>
             ) : (
               <div className="overflow-x-auto border rounded-lg">
@@ -317,9 +321,6 @@ function GuestHistoryRecord() {
                           {head}
                         </th>
                       ))}
-                      <th className="px-4 py-3 text-left text-xs font-semibold text-sky-700 uppercase tracking-wider">
-                        Actions
-                      </th>
                     </tr>
                   </thead>
                   <tbody className="bg-white divide-y divide-gray-200">
@@ -356,17 +357,6 @@ function GuestHistoryRecord() {
                         </td>
                         <td className="px-4 py-3 text-sm text-gray-700">
                           {guest.Request || "-"}
-                        </td>
-                        <td className="px-4 py-3 text-sm">
-                          <Button
-                            onClick={() => handleCheckIn(guest._id)}
-                            size="sm"
-                            className="bg-blue-600 hover:bg-blue-700 text-white text-xs px-3 py-1 whitespace-nowrap"
-                          >
-                            {guest.status === "checked-in"
-                              ? "View"
-                              : "Check In"}
-                          </Button>
                         </td>
                       </tr>
                     ))}
