@@ -186,7 +186,6 @@ export default function BookARoomForm() {
         "ArrTime",
         "DeptTime",
         "Payment",
-        "Request",
         "Clerk",
       ];
 
@@ -211,8 +210,6 @@ export default function BookARoomForm() {
         status: "confirmed", // Set status to confirmed
         Source: "Book A Room Form",
       };
-
-      console.log("Submitting data:", submitData);
 
       const res = await fetch(
         `${process.env.NEXT_PUBLIC_API_URL}/api/book-a-room`,
@@ -272,7 +269,6 @@ export default function BookARoomForm() {
         }
       }, 1000);
     } catch (err: unknown) {
-      console.error("Submit error:", err);
       const errorMessage =
         err instanceof Error ? err.message : "Unknown error occurred";
       alert(`❌ Gagal submit booking: ${errorMessage}`);
@@ -290,9 +286,7 @@ export default function BookARoomForm() {
           ...prev,
           Clerk: parsed.username || parsed.name || "Unknown Clerk",
         }));
-      } catch {
-        console.error("Failed to parse user from localStorage");
-      }
+      } catch {}
     }
   }, []);
 

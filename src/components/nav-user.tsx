@@ -37,8 +37,6 @@ export function NavUser() {
   const { user, clearUser, loading } = useUserContext();
   const router = useRouter();
 
-  console.log("NavUser render - loading:", loading, "user:", user);
-
   const handleLogout = () => {
     clearUser();
     router.push("/login");
@@ -66,8 +64,6 @@ export function NavUser() {
       </SidebarMenu>
     );
   }
-
-  console.log(!user);
 
   return (
     <SidebarMenu>

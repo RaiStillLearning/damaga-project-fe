@@ -102,7 +102,6 @@ function InHouseGuestList() {
   useEffect(() => {
     const shouldRefresh = searchParams.get("refresh");
     if (shouldRefresh === "true") {
-      console.log("🔄 Triggered refresh from check-in");
       fetchAllData();
       window.history.replaceState({}, "", window.location.pathname);
     }

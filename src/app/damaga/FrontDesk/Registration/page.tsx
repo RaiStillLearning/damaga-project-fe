@@ -55,7 +55,7 @@ interface RegistrationFormData {
   voucherNumber: string;
   creditCardNumber: string;
   approvalCode: string;
-  remark: string;
+  Note: string;
   clerk: string;
   roomNo: string;
   discount: string;
@@ -93,7 +93,7 @@ function HotelRegistrationForm() {
     voucherNumber: "",
     creditCardNumber: "",
     approvalCode: "",
-    remark: "",
+    Note: "",
     clerk: "",
     roomNo: "",
     discount: "",
@@ -241,12 +241,8 @@ function HotelRegistrationForm() {
         creditCardNumber:
           booking.CreditCardNumber || booking.creditCardNumber || "",
         approvalCode: booking.ApprovalCode || booking.approvalCode || "",
-        remark:
-          booking.Request ||
-          booking.Note ||
-          booking.remark ||
-          booking.note ||
-          "",
+        Note:
+          booking.Request || booking.Note || booking.Note || booking.note || "",
         clerk: booking.Clerk || booking.clerk || prev.clerk,
         roomNo: booking.RoomNumber || booking.roomNo || booking.NoOfRoom || "",
         discount: toString(booking.Discount || booking.discount),
@@ -311,7 +307,7 @@ function HotelRegistrationForm() {
         : "Cash",
       ReservationMadeBy: "Direct",
       Clerk: formData.clerk || "Admin",
-      Request: formData.remark || "None",
+      Request: formData.Note || "None",
       IDNumber: formData.passportId || "",
       DateOfIssue: formData.dateOfIssue
         ? formatDateForAPI(formData.dateOfIssue)
@@ -328,12 +324,11 @@ function HotelRegistrationForm() {
       CreditCardNumber: formData.creditCardNumber || "",
       ApprovalCode: formData.approvalCode || "",
       Source: "Registration Form",
-      Note: formData.remark || "",
+      Note: formData.Note || "",
       status: "checked-in",
       checkInDate: new Date().toISOString(),
     };
 
-    console.log("🔍 Built Payload:", payload);
     return payload;
   };
 
@@ -358,14 +353,10 @@ function HotelRegistrationForm() {
 
       const payload = buildPayload();
 
-      console.log("📤 Sending payload to API:", payload);
-      console.log("🌐 API URL:", process.env.NEXT_PUBLIC_API_URL);
-
       let response;
       const apiUrl = `${process.env.NEXT_PUBLIC_API_URL}/api/book-a-room`;
 
       if (bookingId) {
-        console.log("📝 Updating existing booking with ID:", bookingId);
         response = await fetch(`${apiUrl}/${bookingId}`, {
           method: "PUT",
           headers: {
@@ -375,7 +366,6 @@ function HotelRegistrationForm() {
           body: JSON.stringify(payload),
         });
       } else {
-        console.log("✨ Creating new booking");
         response = await fetch(apiUrl, {
           method: "POST",
           headers: {
@@ -385,9 +375,6 @@ function HotelRegistrationForm() {
           body: JSON.stringify(payload),
         });
       }
-
-      console.log("📡 Response status:", response.status);
-      console.log("📡 Response ok:", response.ok);
 
       if (!response.ok) {
         const errorText = await response.text();
@@ -405,25 +392,13 @@ function HotelRegistrationForm() {
         );
       }
 
-      const savedData = await response.json();
-      console.log("✅ Check-in successful! Saved data:", savedData);
-      console.log("🆔 Booking ID:", savedData._id || savedData.id);
-
       alert(
         "✅ Check-in successful! Data has been saved to Expected Arrival.\n\nOpening print preview..."
       );
 
       setIsCheckedIn(true);
       setIsViewMode(true);
-
-      console.log("🔄 Preparing to redirect to Expected Arrival");
     } catch (error) {
-      console.error("❌ Check-in error:", error);
-      console.error(
-        "❌ Error stack:",
-        error instanceof Error ? error.stack : "No stack trace"
-      );
-
       alert(
         `❌ Check-in failed!\n\nError: ${
           error instanceof Error ? error.message : "Unknown error"
@@ -849,11 +824,11 @@ function HotelRegistrationForm() {
 
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Remark
+                  Note
                 </label>
                 <textarea
-                  name="remark"
-                  value={formData.remark}
+                  name="Note"
+                  value={formData.Note}
                   onChange={handleChange}
                   placeholder="Additional notes..."
                   className="w-full h-20 px-3 py-2 rounded-md border border-gray-300"
@@ -1247,8 +1222,8 @@ function HotelRegistrationForm() {
               <tr>
                 <td className="border-2 border-black p-2">
                   <div className="text-xs">
-                    <span className="font-semibold">Remark Client:</span>
-                    <span className="ml-2">{formData.remark || "-"}</span>
+                    <span className="font-semibold">Note Client:</span>
+                    <span className="ml-2">{formData.Note || "-"}</span>
                   </div>
                 </td>
               </tr>

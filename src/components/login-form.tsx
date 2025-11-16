@@ -44,7 +44,6 @@ export function LoginForm({
       }
 
       const data = await res.json();
-      console.log("🔐 Login response:", data); // ✅ debug
 
       if (!data.user || !data.token) {
         return alert("Login gagal: response invalid");
@@ -65,10 +64,6 @@ export function LoginForm({
         data.token
       );
       localStorage.setItem("user", JSON.stringify(data.user));
-
-      console.log("✅ User & token saved"); // ✅ debug
-      console.log("Token in localStorage:", localStorage.getItem("token")); // ✅ debug
-      console.log("User in localStorage:", localStorage.getItem("user")); // ✅ debug
 
       // Redirect ke dashboard
       router.push("/damaga");

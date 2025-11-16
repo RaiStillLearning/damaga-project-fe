@@ -24,7 +24,7 @@ import { useRouter } from "next/navigation";
 export default function SignUpPage() {
   const router = useRouter();
   const [username, setUsername] = useState("");
-  const [divisi, setDivisi] = useState("");
+  // const [divisi, setDivisi] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
@@ -41,7 +41,7 @@ export default function SignUpPage() {
         {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ username, divisi, email, password }),
+          body: JSON.stringify({ username, email, password }),
         }
       );
 
@@ -91,7 +91,7 @@ export default function SignUpPage() {
               />
             </div>
 
-            <div className="grid gap-2">
+            {/* <div className="grid gap-2">
               <Label htmlFor="division">Division</Label>
               <select
                 id="division"
@@ -100,16 +100,16 @@ export default function SignUpPage() {
                 value={divisi}
                 onChange={(e) => setDivisi(e.target.value)}
               >
-                {/* <option value="" disabled>
+                <option value="" disabled>
                   Select your division
                 </option>
                 {divisions.map((d, i) => (
                   <option key={i} value={d.value}>
                     {d.label}
                   </option>
-                ))} */}
+                ))}
               </select>
-            </div>
+            </div> */}
 
             <div className="grid gap-2">
               <Label htmlFor="email">Email</Label>

@@ -47,6 +47,10 @@ interface ReservationBooking {
   status?: string;
   checkInDate?: string;
   checkOutDate?: string;
+  AdvanceDeposit?: number;
+  CompanyName?: string;
+  CompanyPhone?: string;
+  CompanyAddress?: string;
   createdAt: string;
   updatedAt: string;
 }
@@ -81,8 +85,6 @@ function ExpectedDeparture() {
   const [loading, setLoading] = useState(true);
   const [lastUpdate, setLastUpdate] = useState<Date>(new Date());
   const [isClient, setIsClient] = useState(false);
-
-  // default filter status masih "all" biar desain filter tetap sama
   const [statusFilter, setStatusFilter] = useState<string>("all");
 
   useEffect(() => {
@@ -103,7 +105,6 @@ function ExpectedDeparture() {
   useEffect(() => {
     const shouldRefresh = searchParams.get("refresh");
     if (shouldRefresh === "true") {
-      console.log("🔄 Triggered refresh from other page");
       fetchAllData();
       window.history.replaceState({}, "", window.location.pathname);
     }
@@ -128,18 +129,61 @@ function ExpectedDeparture() {
         ? data
         : data.bookings || [];
 
-      // 🔹 Expected Departure logic:
-      // Hanya booking yang DeptDate = hari ini (apa pun statusnya)
-      const todayStr = new Date().toISOString().split("T")[0];
+      console.log("📊 Total bookings fetched:", bookings.length);
 
-      const todaysDepartures = bookings.filter((b) => {
-        if (!b.DeptDate) return false;
-        const deptDateStr = new Date(b.DeptDate).toISOString().split("T")[0];
-        return deptDateStr === todayStr;
+      // 🔹 Expected Departure logic:
+      // Menampilkan semua booking yang belum checkout (checked-in atau in-house)
+      // Sorted by DeptDate (yang paling dekat duluan)
+      const today = new Date();
+      today.setHours(0, 0, 0, 0); // Reset to start of day
+
+      console.log("📅 Today's date:", today.toISOString().split("T")[0]);
+
+      const upcomingDepartures = bookings.filter((b) => {
+        if (!b.DeptDate) {
+          console.log(`⚠️ No DeptDate for: ${b.FirstName} ${b.LastName}`);
+          return false;
+        }
+
+        const deptDate = new Date(b.DeptDate);
+        deptDate.setHours(0, 0, 0, 0);
+        const deptDateStr = deptDate.toISOString().split("T")[0];
+
+        // Check if departure date is today or in the future
+        const isTodayOrFuture = deptDate >= today;
+        const statusLower = (b.status || "").toLowerCase();
+        const isValidStatus =
+          statusLower === "checked-in" || statusLower === "in-house";
+
+        // Debug setiap booking
+        console.log(`🔍 Checking: ${b.FirstName} ${b.LastName}`);
+        console.log(
+          `   - DeptDate: ${deptDateStr} → ${
+            isTodayOrFuture ? "✅ (Today or Future)" : "❌ (Past)"
+          }`
+        );
+        console.log(
+          `   - Status: "${b.status}" → ${isValidStatus ? "✅" : "❌"}`
+        );
+
+        if (isTodayOrFuture && !isValidStatus) {
+          console.log(
+            `   ⚠️ Date valid but status is "${b.status}", needs "checked-in" or "in-house"`
+          );
+        }
+
+        return isTodayOrFuture && isValidStatus;
       });
 
-      setAllData(todaysDepartures);
-      setReservationData(todaysDepartures);
+      // Sort by DeptDate (ascending - paling dekat duluan)
+      upcomingDepartures.sort((a, b) => {
+        const dateA = new Date(a.DeptDate).getTime();
+        const dateB = new Date(b.DeptDate).getTime();
+        return dateA - dateB;
+      });
+
+      setAllData(upcomingDepartures);
+      setReservationData(upcomingDepartures);
       setLastUpdate(new Date());
     } catch (err: unknown) {
       console.error("Fetch error:", err);
@@ -257,12 +301,10 @@ function ExpectedDeparture() {
     setReservationData(allData);
   };
 
-  // View detail booking (misalnya ke halaman Registration / Folio)
   const handleViewDetails = (bookingId: string) => {
-    router.push(`../FrontDesk/Registration?bookingId=${bookingId}`);
+    router.push(`../FrontDesk/InHouseGuest?bookingId=${bookingId}`);
   };
 
-  // 🔹 Fungsi CHECK-OUT (status jadi checked-out)
   const handleCheckOut = async (bookingId: string) => {
     try {
       const confirmCheckOut = confirm(
@@ -272,8 +314,6 @@ function ExpectedDeparture() {
       if (!confirmCheckOut) return;
 
       const apiUrl = `${process.env.NEXT_PUBLIC_API_URL}/api/book-a-room/${bookingId}`;
-
-      console.log("🔄 Updating status to checked-out for booking:", bookingId);
 
       const response = await fetch(apiUrl, {
         method: "PUT",
@@ -288,22 +328,15 @@ function ExpectedDeparture() {
       });
 
       if (!response.ok) {
-        const errorText = await response.text();
-        console.error("❌ Error response:", errorText);
         throw new Error(`Failed to update status: ${response.status}`);
       }
-
-      const updatedData = await response.json();
-      console.log("✅ Status updated to Checked-Out:", updatedData);
 
       alert(
         "✅ Tamu berhasil di-check-out!\n\nData akan dipindahkan dari Expected Departure dan tercatat sebagai Checked-Out di history."
       );
 
-      // Refresh list Expected Departure
       fetchAllData();
     } catch (error) {
-      console.error("❌ Error updating status:", error);
       alert(
         `❌ Gagal melakukan check-out!\n\nError: ${
           error instanceof Error ? error.message : "Unknown error"
@@ -349,16 +382,44 @@ function ExpectedDeparture() {
     return `${symbol} ${formattedRate}`;
   };
 
+  const formatAdvanceDeposit = (deposit?: number, currency?: string) => {
+    if (!deposit || deposit === 0) return "-";
+    const curr = currency || "USD";
+    const symbol = curr === "USD" ? "$" : "Rp";
+    const formattedDeposit = deposit.toLocaleString("en-US", {
+      minimumFractionDigits: curr === "USD" ? 2 : 0,
+      maximumFractionDigits: curr === "USD" ? 2 : 0,
+    });
+    return `${symbol} ${formattedDeposit}`;
+  };
+
   return (
     <div className="p-4 sm:p-6 lg:p-8">
       <div className="w-full max-w-7xl mx-auto">
         <div className="bg-white p-6 sm:p-8 lg:p-10 rounded-lg shadow-sm border">
-          {/* Judul */}
-          <h2 className="text-2xl sm:text-3xl font-semibold mb-6 sm:mb-8 text-sky-500">
-            Expected Departure
-          </h2>
+          <div className="flex items-center justify-between mb-6 sm:mb-8">
+            <h2 className="text-2xl sm:text-3xl font-semibold text-sky-500">
+              Expected Departure (All Upcoming)
+            </h2>
+            <div className="flex items-center gap-2 px-4 py-2 bg-orange-50 rounded-lg border border-orange-200">
+              <div className="w-2 h-2 bg-orange-500 rounded-full animate-pulse"></div>
+              <span className="text-sm font-medium text-orange-800">
+                Upcoming Departures
+              </span>
+            </div>
+          </div>
 
-          {/* Auto Refresh Info */}
+          <div className="mb-6 p-4 bg-orange-50 rounded-lg border border-orange-200">
+            <p className="text-sm text-orange-700">
+              <strong>ℹ️ Info:</strong> Halaman ini menampilkan semua guest yang{" "}
+              <span className="font-semibold">AKAN DEPARTURE</span> (hari ini
+              dan masa depan) dengan status{" "}
+              <span className="font-semibold">CHECKED-IN</span> atau{" "}
+              <span className="font-semibold">IN-HOUSE</span>. Diurutkan
+              berdasarkan tanggal departure terdekat.
+            </p>
+          </div>
+
           <div className="mb-6 flex flex-col sm:flex-row items-start sm:items-center justify-between bg-sky-50 px-4 py-3 rounded-lg border border-sky-200 gap-3">
             <div className="flex items-center gap-2">
               <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
@@ -393,18 +454,8 @@ function ExpectedDeparture() {
               {[
                 {
                   value: "all",
-                  label: "All Bookings (Today Dept.)",
+                  label: "All Upcoming Departures",
                   color: "bg-gray-100 hover:bg-gray-200",
-                },
-                {
-                  value: "pending",
-                  label: "Pending",
-                  color: "bg-yellow-100 hover:bg-yellow-200 text-yellow-800",
-                },
-                {
-                  value: "confirmed",
-                  label: "Confirmed",
-                  color: "bg-blue-100 hover:bg-blue-200 text-blue-800",
                 },
                 {
                   value: "checked-in",
@@ -412,24 +463,9 @@ function ExpectedDeparture() {
                   color: "bg-green-100 hover:bg-green-200 text-green-800",
                 },
                 {
-                  value: "checked-out",
-                  label: "Checked Out",
-                  color: "bg-purple-100 hover:bg-purple-200 text-purple-800",
-                },
-                {
-                  value: "cancelled",
-                  label: "Cancelled",
-                  color: "bg-red-100 hover:bg-red-200 text-red-800",
-                },
-                {
                   value: "in-house",
                   label: "In-House",
                   color: "bg-teal-100 hover:bg-teal-200 text-teal-800",
-                },
-                {
-                  value: "stay-over",
-                  label: "Stay Over",
-                  color: "bg-indigo-100 hover:bg-indigo-200 text-indigo-800",
                 },
               ].map((status) => (
                 <button
@@ -455,9 +491,10 @@ function ExpectedDeparture() {
               Currently showing:{" "}
               <span className="font-semibold text-sky-600">
                 {statusFilter === "all"
-                  ? "All Departures Today"
-                  : statusFilter.charAt(0).toUpperCase() +
-                    statusFilter.slice(1)}
+                  ? "All Upcoming Departures"
+                  : statusFilter === "checked-in"
+                  ? "Checked In"
+                  : "In-House"}
               </span>
             </p>
           </div>
@@ -536,12 +573,16 @@ function ExpectedDeparture() {
             {loading ? (
               <div className="text-center py-12 bg-gray-50 rounded-lg border-2 border-dashed">
                 <div className="w-12 h-12 mx-auto mb-3 border-4 border-sky-500 border-t-transparent rounded-full animate-spin"></div>
-                <p className="text-gray-500">Loading reservation data...</p>
+                <p className="text-gray-500">Loading departure data...</p>
               </div>
             ) : reservationData.length === 0 ? (
               <div className="text-center py-12 bg-gray-50 rounded-lg border-2 border-dashed">
                 <User className="w-12 h-12 mx-auto text-gray-400 mb-3" />
-                <p className="text-gray-500">No expected departure found.</p>
+                <p className="text-gray-500">No expected departures found.</p>
+                <p className="text-xs text-gray-400 mt-2">
+                  Guest yang akan departure dengan status Checked-In atau
+                  In-House akan muncul di sini.
+                </p>
               </div>
             ) : (
               <div className="overflow-x-auto border rounded-lg">
@@ -566,6 +607,7 @@ function ExpectedDeparture() {
                         "Arr. Time",
                         "Dept. Time",
                         "Status",
+                        "Advance Deposit",
                         "Source",
                         "Note",
                       ].map((head) => (
@@ -584,27 +626,9 @@ function ExpectedDeparture() {
                   <tbody className="bg-white divide-y divide-gray-200">
                     {reservationData.map((r, i) => {
                       const statusLower = (r.status || "").toLowerCase();
-
-                      // ⬇️ DI SINI PERUBAHANNYA:
-                      // boleh Checkout kalau status = "checked-in" ATAU "in-house"
                       const canCheckOut =
                         statusLower === "checked-in" ||
                         statusLower === "in-house";
-
-                      const handlePrimaryCheckOutClick = () => {
-                        if (!canCheckOut) return;
-                        handleCheckOut(r._id);
-                      };
-
-                      //   const handleSecondaryCheckOutClick = () => {
-                      //     if (!canCheckOut) {
-                      //       alert(
-                      //         "Tamu ini belum berstatus IN-HOUSE / CHECKED-IN atau sudah CHECK-OUT."
-                      //       );
-                      //       return;
-                      //     }
-                      //     handleCheckOut(r._id);
-                      //   };
 
                       return (
                         <tr
@@ -612,15 +636,19 @@ function ExpectedDeparture() {
                           className="hover:bg-gray-50 transition-colors"
                         >
                           <td className="px-4 py-3 text-sm">{i + 1}</td>
-                          <td className="px-4 py-3 text-sm">{r.FirstName}</td>
-                          <td className="px-4 py-3 text-sm">{r.LastName}</td>
+                          <td className="px-4 py-3 text-sm font-medium">
+                            {r.FirstName}
+                          </td>
+                          <td className="px-4 py-3 text-sm font-medium">
+                            {r.LastName}
+                          </td>
                           <td className="px-4 py-3 text-sm">
                             {new Date(r.ArrDate).toLocaleDateString("id-ID")}
                           </td>
-                          <td className="px-4 py-3 text-sm">
+                          <td className="px-4 py-3 text-sm font-semibold text-orange-600">
                             {new Date(r.DeptDate).toLocaleDateString("id-ID")}
                           </td>
-                          <td className="px-4 py-3 text-sm">
+                          <td className="px-4 py-3 text-sm font-semibold">
                             {r.RoomNumber || "-"}
                           </td>
                           <td className="px-4 py-3 text-sm">{r.RoomType}</td>
@@ -654,6 +682,12 @@ function ExpectedDeparture() {
                           <td className="px-4 py-3 text-sm">
                             {getStatusBadge(r.status)}
                           </td>
+                          <td className="px-4 py-3 text-sm font-medium">
+                            {formatAdvanceDeposit(
+                              r.AdvanceDeposit,
+                              r.RoomRateCurrency
+                            )}
+                          </td>
                           <td className="px-4 py-3 text-sm">
                             {r.Source || "-"}
                           </td>
@@ -661,23 +695,6 @@ function ExpectedDeparture() {
                             {r.Note || "-"}
                           </td>
 
-                          {/* Action column pertama (status-style button) */}
-                          <td className="px-4 py-3 text-sm">
-                            <Button
-                              onClick={handlePrimaryCheckOutClick}
-                              size="sm"
-                              disabled={!canCheckOut}
-                              className={`text-xs px-3 py-1 whitespace-nowrap ${
-                                canCheckOut
-                                  ? "bg-blue-600 hover:bg-blue-700 text-white"
-                                  : "bg-gray-300 text-gray-600 cursor-not-allowed hover:bg-gray-300"
-                              }`}
-                            >
-                              {canCheckOut ? "Check Out" : "Already Check Out"}
-                            </Button>
-                          </td>
-
-                          {/* Action kedua (View Details + tombol Check Out lagi) */}
                           <td className="px-4 py-3 text-sm">
                             <div className="flex gap-2">
                               <Button
@@ -686,6 +703,18 @@ function ExpectedDeparture() {
                                 className="bg-green-600 hover:bg-green-700 text-white text-xs px-3 py-1 whitespace-nowrap"
                               >
                                 View Details
+                              </Button>
+                              <Button
+                                onClick={() => handleCheckOut(r._id)}
+                                size="sm"
+                                disabled={!canCheckOut}
+                                className={`text-xs px-3 py-1 whitespace-nowrap ${
+                                  canCheckOut
+                                    ? "bg-orange-600 hover:bg-orange-700 text-white"
+                                    : "bg-gray-300 text-gray-600 cursor-not-allowed hover:bg-gray-300"
+                                }`}
+                              >
+                                {canCheckOut ? "Check Out" : "Already Out"}
                               </Button>
                             </div>
                           </td>

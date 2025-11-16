@@ -10,7 +10,6 @@ import {
 } from "lucide-react";
 import { NavMain } from "@/components/nav-main";
 import { NavUser } from "@/components/nav-user";
-// import { useUserContext } from "@/context/userContext";
 import {
   Sidebar,
   SidebarContent,
@@ -18,107 +17,93 @@ import {
   SidebarHeader,
   SidebarRail,
 } from "@/components/ui/sidebar";
+import { useUserContext } from "@/context/userContext";
 
-const data = {
-  navMain: [
-    { title: "Home", url: "/damaga", icon: House, isActive: true },
-    {
-      title: "Client Relations",
-      url: "#",
-      icon: UserPlus,
-      items: [
-        {
-          title: "Guest History Record",
-          url: "/damaga/ClientRelations/GuestHistoryRecord",
-        },
-      ],
-    },
-    {
-      title: "Reservations",
-      url: "#",
-      icon: NotebookPen,
-      items: [
-        { title: "Book A Room", url: "/damaga/Reservations/Book-A-Room" },
-        {
-          title: "Reservation History",
-          url: "/damaga/Reservations/ReservationHistory",
-        },
-      ],
-    },
-    {
-      title: "Front Desk",
-      url: "#",
-      icon: Users,
-      items: [
-        { title: "Registration", url: "/damaga/FrontDesk/Registration" },
-        {
-          title: "Expected Arrivals",
-          url: "/damaga/FrontDesk/ExpectedArrival",
-        },
-        { title: "In House", url: "/damaga/FrontDesk/InHouseGuest" },
-        {
-          title: "In House Guest List",
-          url: "/damaga/FrontDesk/InHouseGuestList",
-        },
-        {
-          title: "Expected Departures",
-          url: "/damaga/FrontDesk/ExpectedDeparture",
-        },
-      ],
-    },
-    {
-      title: "Inventory",
-      url: "#",
-      icon: Box,
-      items: [
-        { title: "Availability", url: "#" },
-        { title: "Room Status", url: "#" },
-      ],
-    },
-    { title: "Financial", url: "#", icon: ChartNoAxesCombined },
-  ],
-};
+// 👇 Menu yang bisa diakses semua user
+const commonNav = [
+  { title: "Home", url: "/damaga", icon: House, isActive: true },
+  {
+    title: "Client Relations",
+    url: "#",
+    icon: UserPlus,
+    items: [
+      {
+        title: "Guest History Record",
+        url: "/damaga/ClientRelations/GuestHistoryRecord",
+      },
+    ],
+  },
+  {
+    title: "Reservations",
+    url: "#",
+    icon: NotebookPen,
+    items: [
+      { title: "Book A Room", url: "/damaga/Reservations/Book-A-Room" },
+      {
+        title: "Reservation History",
+        url: "/damaga/Reservations/ReservationHistory",
+      },
+    ],
+  },
+  {
+    title: "Front Desk",
+    url: "#",
+    icon: Users,
+    items: [
+      { title: "Registration", url: "/damaga/FrontDesk/Registration" },
+      {
+        title: "Expected Arrivals",
+        url: "/damaga/FrontDesk/ExpectedArrival",
+      },
+      { title: "In House", url: "/damaga/FrontDesk/InHouseGuest" },
+      {
+        title: "In House Guest List",
+        url: "/damaga/FrontDesk/InHouseGuestList",
+      },
+      {
+        title: "Expected Departures",
+        url: "/damaga/FrontDesk/ExpectedDeparture",
+      },
+    ],
+  },
+
+  { title: "Financial", url: "#", icon: ChartNoAxesCombined },
+];
+
+// 👇 Menu khusus admin
+const adminNav = [
+  {
+    title: "Inventory",
+    url: "#",
+    icon: Box,
+    items: [
+      { title: "Availability", url: "/damaga/admin/Inventory/Avaibility" },
+      { title: "Room Status", url: "/damaga/admin/Inventory/RoomStatus" },
+    ],
+  },
+];
 
 export function AppSidebar(props: React.ComponentProps<typeof Sidebar>) {
-  // const { setUser, setLoading } = useUserContext();
+  const { user } = useUserContext();
 
-  // useEffect(() => {
-  //   const token = localStorage.getItem("token");
-  //   if (!token) return;
+  const isAdmin = user?.role === "admin";
 
-  //   setLoading(true);
-  //   fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/profile`, {
-  //     headers: { Authorization: `Bearer ${token}` },
-  //   })
-  //     .then((res) => {
-  //       if (!res.ok) {
-  //         throw new Error("Failed to fetch profile");
-  //       }
-  //       return res.json();
-  //     })
-  //     .then((data) => {
-  //       // ✅ Tambahkan null check
-  //       if (data && data.user) {
-  //         setUser(data.user, token);
-  //       }
-  //     })
-  //     .catch((error) => {
-  //       console.error("Failed to fetch profile:", error);
-  //       // Optional: clear user jika token invalid
-  //       // clearUser();
-  //     })
-  //     .finally(() => setLoading(false));
-  // }, [setUser, setLoading]);
+  // Kalau admin → common + admin, kalau bukan → cuma common
+  const navItems = isAdmin ? [...commonNav, ...adminNav] : commonNav;
 
   return (
     <Sidebar collapsible="icon" {...props}>
       <SidebarHeader>
         <NavUser />
       </SidebarHeader>
+
       <SidebarContent>
-        <NavMain items={data.navMain} />
+        {/* Bisa kasih loading state kalau mau */}
+        {/* {loading ? <div className="p-2 text-xs text-muted-foreground">Loading menu...</div> : null} */}
+        <NavMain items={navItems} />
       </SidebarContent>
-      <SidebarFooter>{/* logout button bisa disini */}</SidebarFooter>
+
+      <SidebarFooter>{/* tombol logout dll */}</SidebarFooter>
       <SidebarRail />
     </Sidebar>
   );

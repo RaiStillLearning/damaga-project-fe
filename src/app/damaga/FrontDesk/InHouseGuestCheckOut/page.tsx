@@ -321,7 +321,7 @@ function CheckOutGuest() {
       }
 
       const savedData = await response.json();
-      console.log("✅ Check-out successful:", savedData);
+      console.log(savedData);
 
       alert(
         "Check-out successful! Opening print preview...\nData tamu sekarang tersimpan sebagai CHECKED-OUT dan akan tampil di Guest History Record."

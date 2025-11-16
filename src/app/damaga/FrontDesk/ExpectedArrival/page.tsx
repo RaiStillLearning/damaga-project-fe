@@ -100,7 +100,6 @@ function ReservationHistory() {
   useEffect(() => {
     const shouldRefresh = searchParams.get("refresh");
     if (shouldRefresh === "true") {
-      console.log("🔄 Triggered refresh from check-in");
       fetchAllData();
       window.history.replaceState({}, "", window.location.pathname);
     }
@@ -256,8 +255,6 @@ function ReservationHistory() {
 
       const apiUrl = `${process.env.NEXT_PUBLIC_API_URL}/api/book-a-room/${bookingId}`;
 
-      console.log("🔄 Updating status to In-house for booking:", bookingId);
-
       const response = await fetch(apiUrl, {
         method: "PUT",
         headers: {
@@ -276,7 +273,6 @@ function ReservationHistory() {
       }
 
       const updatedData = await response.json();
-      console.log("✅ Status updated to In-House:", updatedData);
 
       alert(
         "✅ Status berhasil diubah menjadi In-House!\n\nGuest telah dipindahkan dari Expected Arrival dan akan muncul di menu In-House."
