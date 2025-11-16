@@ -33,6 +33,7 @@ interface ReservationBooking {
   City: string;
   ZipCode: number;
   RoomRate: number;
+  RoomRateCurrency?: string;
   NoOfPerson: number;
   Payment: string;
   ReservationMadeBy: string;
@@ -84,7 +85,6 @@ function ReservationHistory() {
   useEffect(() => {
     fetchAllData();
 
-    // Auto-refresh setiap 10 detik (lebih responsif)
     const interval = setInterval(() => {
       fetchAllData();
       setLastUpdate(new Date());
@@ -97,14 +97,11 @@ function ReservationHistory() {
     setIsClient(true);
   }, []);
 
-  // Detect refresh parameter dari URL
   useEffect(() => {
     const shouldRefresh = searchParams.get("refresh");
     if (shouldRefresh === "true") {
       console.log("🔄 Triggered refresh from check-in");
       fetchAllData();
-
-      // Clean URL
       window.history.replaceState({}, "", window.location.pathname);
     }
   }, [searchParams]);
@@ -253,9 +250,13 @@ function ReservationHistory() {
     const statusLower = (status || "pending").toLowerCase();
 
     const statusConfig: Record<string, { bg: string; text: string }> = {
-      "checked-in": { bg: "bg-green-100", text: "text-green-800" },
       pending: { bg: "bg-yellow-100", text: "text-yellow-800" },
+      confirmed: { bg: "bg-blue-100", text: "text-blue-800" },
+      "checked-in": { bg: "bg-green-100", text: "text-green-800" },
       "checked-out": { bg: "bg-purple-100", text: "text-purple-800" },
+      cancelled: { bg: "bg-red-100", text: "text-red-800" },
+      "in-house": { bg: "bg-teal-100", text: "text-teal-800" },
+      "stay-over": { bg: "bg-indigo-100", text: "text-indigo-800" },
     };
 
     const config = statusConfig[statusLower] || {
@@ -270,6 +271,16 @@ function ReservationHistory() {
         {status || "pending"}
       </span>
     );
+  };
+
+  const formatRoomRate = (rate: number, currency?: string) => {
+    const curr = currency || "USD";
+    const symbol = curr === "USD" ? "$" : "Rp";
+    const formattedRate = rate.toLocaleString("en-US", {
+      minimumFractionDigits: curr === "USD" ? 2 : 0,
+      maximumFractionDigits: curr === "USD" ? 2 : 0,
+    });
+    return `${symbol} ${formattedRate}`;
   };
 
   return (
@@ -324,6 +335,11 @@ function ReservationHistory() {
                   color: "bg-yellow-100 hover:bg-yellow-200 text-yellow-800",
                 },
                 {
+                  value: "confirmed",
+                  label: "Confirmed",
+                  color: "bg-blue-100 hover:bg-blue-200 text-blue-800",
+                },
+                {
                   value: "checked-in",
                   label: "Checked In",
                   color: "bg-green-100 hover:bg-green-200 text-green-800",
@@ -332,6 +348,21 @@ function ReservationHistory() {
                   value: "checked-out",
                   label: "Checked Out",
                   color: "bg-purple-100 hover:bg-purple-200 text-purple-800",
+                },
+                {
+                  value: "cancelled",
+                  label: "Cancelled",
+                  color: "bg-red-100 hover:bg-red-200 text-red-800",
+                },
+                {
+                  value: "In-house",
+                  label: "In-house",
+                  color: "bg-teal-100 hover:bg-teal-200 text-teal-800",
+                },
+                {
+                  value: "stay-over",
+                  label: "Stay Over",
+                  color: "bg-indigo-100 hover:bg-indigo-200 text-indigo-800",
                 },
               ].map((status) => (
                 <button
@@ -506,8 +537,8 @@ function ReservationHistory() {
                         <td className="px-4 py-3 text-sm">
                           {r.NoOfPerson || "-"}
                         </td>
-                        <td className="px-4 py-3 text-sm">
-                          {r.RoomRate || "-"}
+                        <td className="px-4 py-3 text-sm font-medium">
+                          {formatRoomRate(r.RoomRate, r.RoomRateCurrency)}
                         </td>
                         <td className="px-4 py-3 text-sm">
                           {r.IDNumber || "-"}

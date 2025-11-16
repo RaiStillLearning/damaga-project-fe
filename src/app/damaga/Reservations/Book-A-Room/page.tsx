@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
@@ -23,7 +24,7 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
-import { Check, ChevronsUpDown } from "lucide-react";
+import { Check, ChevronsUpDown, CheckCircle } from "lucide-react";
 
 const countries = [
   { value: "afghanistan", label: "Afghanistan" },
@@ -92,6 +93,7 @@ const roomTypePrices = {
 };
 
 export default function BookARoomForm() {
+  const router = useRouter();
   const [open, setOpen] = useState(false);
   const [currency, setCurrency] = useState<"USD" | "IDR">("USD");
   const [formData, setFormData] = useState({
@@ -206,6 +208,8 @@ export default function BookARoomForm() {
         RoomRateCurrency: currency,
         NumberOfPerson: Number(formData.NumberOfPerson) || 1,
         Fax: formData.Fax?.toString() || "",
+        status: "confirmed", // Set status to confirmed
+        Source: "Book A Room Form",
       };
 
       console.log("Submitting data:", submitData);
@@ -225,9 +229,14 @@ export default function BookARoomForm() {
         throw new Error(data.message || `Error: ${res.status}`);
       }
 
-      alert("Booking berhasil!");
+      // Success alert with better UI
+      alert(
+        `✅ Booking berhasil dikonfirmasi!\n\nGuest: ${formData.FirstName} ${formData.LastName}\nRoom: ${formData.RoomType} - ${formData.NoOfRoom}\nStatus: Confirmed\n\nBooking akan muncul di Reservation History.`
+      );
+
       console.log("Response:", data);
 
+      // Reset form
       setFormData({
         FirstName: "",
         LastName: "",
@@ -249,14 +258,24 @@ export default function BookARoomForm() {
         Payment: "",
         ReservationMadeBy: "Direct",
         Request: "None",
-        Clerk: "",
+        Clerk: formData.Clerk, // Keep clerk name
       });
       setCurrency("USD");
+
+      // Optional: Redirect to Reservation History after 2 seconds
+      setTimeout(() => {
+        const confirmRedirect = confirm(
+          "Apakah Anda ingin melihat booking di Reservation History?"
+        );
+        if (confirmRedirect) {
+          router.push("/damaga/Reservation/ReservationHistory?refresh=true");
+        }
+      }, 1000);
     } catch (err: unknown) {
       console.error("Submit error:", err);
       const errorMessage =
         err instanceof Error ? err.message : "Unknown error occurred";
-      alert(`Gagal submit booking: ${errorMessage}`);
+      alert(`❌ Gagal submit booking: ${errorMessage}`);
     } finally {
       setIsSubmitting(false);
     }
@@ -281,9 +300,26 @@ export default function BookARoomForm() {
     <div className="p-4 sm:p-6 lg:p-8">
       <div className="w-full max-w-7xl mx-auto">
         <div className="bg-white p-6 sm:p-8 lg:p-10 rounded-lg shadow-sm border">
-          <h2 className="text-2xl sm:text-3xl font-semibold mb-6 sm:mb-8 text-sky-500">
-            Book A Room
-          </h2>
+          <div className="flex items-center justify-between mb-6 sm:mb-8">
+            <h2 className="text-2xl sm:text-3xl font-semibold text-sky-500">
+              Book A Room
+            </h2>
+            <div className="flex items-center gap-2 px-4 py-2 bg-blue-50 rounded-lg border border-blue-200">
+              <CheckCircle className="w-5 h-5 text-blue-600" />
+              <span className="text-sm font-medium text-blue-800">
+                Status: Confirmed
+              </span>
+            </div>
+          </div>
+
+          <div className="mb-6 p-4 bg-sky-50 rounded-lg border border-sky-200">
+            <p className="text-sm text-sky-700">
+              <strong>ℹ️ Info:</strong> Semua booking yang dibuat melalui form
+              ini akan otomatis memiliki status{" "}
+              <span className="font-semibold">CONFIRMED</span> dan akan muncul
+              di Reservation History.
+            </p>
+          </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5 sm:gap-6 mb-8">
             {/* First Name */}
@@ -455,10 +491,10 @@ export default function BookARoomForm() {
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="DSD">
-                    DSD (Damaga Standart Double)
+                    DSD (Damaga Standard Double)
                   </SelectItem>
                   <SelectItem value="DST">
-                    DST (Damaga Standart Twin)
+                    DST (Damaga Standard Twin)
                   </SelectItem>
                   <SelectItem value="DDD">
                     DDD (Damaga Deluxe Double)
@@ -735,7 +771,7 @@ export default function BookARoomForm() {
               disabled={isSubmitting}
               className="px-8 h-11 text-base font-medium bg-sky-600 hover:bg-sky-700 text-white disabled:opacity-50"
             >
-              {isSubmitting ? "Submitting..." : "Book A Room"}
+              {isSubmitting ? "Submitting..." : "Book A Room (Confirm)"}
             </Button>
           </div>
         </div>
