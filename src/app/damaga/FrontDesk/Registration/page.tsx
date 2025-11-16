@@ -1,7 +1,6 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Suspense } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent } from "@/components/ui/card";
@@ -16,7 +15,6 @@ import { FileText } from "lucide-react";
 import { useSearchParams, useRouter } from "next/navigation";
 import Image from "next/image";
 
-// Room type prices mapping
 const roomTypePrices = {
   DSD: { USD: 75, IDR: 1200000 },
   DST: { USD: 80, IDR: 1280000 },
@@ -24,14 +22,6 @@ const roomTypePrices = {
   DDT: { USD: 125, IDR: 2000000 },
   DSDT: { USD: 200, IDR: 3200000 },
 };
-
-export default function HotelRegistrationFormPage() {
-  return (
-    <Suspense fallback={<div className="p-4 text-center">Loading...</div>}>
-      <HotelRegistrationForm />
-    </Suspense>
-  );
-}
 
 interface RegistrationFormData {
   arrivalDate: string;
@@ -63,13 +53,11 @@ interface RegistrationFormData {
   person: string;
 }
 
-function HotelRegistrationForm() {
+export default function HotelRegistrationForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const bookingId = searchParams.get("bookingId");
-  const [saveSuccess, setSaveSuccess] = useState(false);
   const [isCheckedIn, setIsCheckedIn] = useState(false);
-  const [isSaving, setIsSaving] = useState(false);
   const [isViewMode, setIsViewMode] = useState(false);
   const [isLoadingData, setIsLoadingData] = useState(false);
 
@@ -103,7 +91,6 @@ function HotelRegistrationForm() {
     person: "",
   });
 
-  // Format number with thousand separators
   const formatNumber = (num: number) => {
     if (num === 0) return "";
     return num.toLocaleString("en-US", {
@@ -116,7 +103,6 @@ function HotelRegistrationForm() {
     return formData.currency === "USD" ? "$" : "Rp";
   };
 
-  // Handle room type change and auto-fill room rate
   const handleRoomTypeChange = (roomType: string) => {
     const newRoomRate =
       roomTypePrices[roomType as keyof typeof roomTypePrices]?.[
@@ -129,7 +115,6 @@ function HotelRegistrationForm() {
     }));
   };
 
-  // Handle currency change and update room rate
   const handleCurrencyChange = (newCurrency: "USD" | "IDR") => {
     setFormData((prev) => {
       let newRoomRate = prev.dailyRate;
@@ -139,33 +124,23 @@ function HotelRegistrationForm() {
             newCurrency
           ] || 0;
       }
-      return {
-        ...prev,
-        currency: newCurrency,
-        dailyRate: newRoomRate,
-      };
+      return { ...prev, currency: newCurrency, dailyRate: newRoomRate };
     });
   };
 
-  // Auto-fill clerk name from logged in user
   useEffect(() => {
     const storedUser = localStorage.getItem("user");
     if (storedUser) {
       try {
         const parsed = JSON.parse(storedUser);
         const clerkName = parsed.username || parsed.name || "Admin";
-        setFormData((prev) => ({
-          ...prev,
-          clerk: clerkName,
-        }));
+        setFormData((prev) => ({ ...prev, clerk: clerkName }));
       } catch (error) {
-        console.error("Failed to parse user from localStorage");
-        console.error(error);
+        console.error("Failed to parse user from localStorage", error);
       }
     }
   }, []);
 
-  // Fetch booking data if bookingId exists
   useEffect(() => {
     if (bookingId) {
       fetchBookingData(bookingId);
@@ -190,14 +165,10 @@ function HotelRegistrationForm() {
 
       const booking = await res.json();
 
-      console.log("📥 Loaded booking data (full):", booking);
-
-      // Check if already checked-in (view mode)
       if (booking.status === "checked-in" || booking.status === "checked-out") {
         setIsViewMode(true);
       }
 
-      // Helper function to safely format date
       const formatDate = (
         dateValue: string | number | Date | null | undefined
       ): string => {
@@ -211,7 +182,6 @@ function HotelRegistrationForm() {
         }
       };
 
-      // Helper function to safely convert to string
       const toString = (
         value: string | number | null | undefined,
         defaultValue: string = ""
@@ -220,10 +190,8 @@ function HotelRegistrationForm() {
         return String(value);
       };
 
-      // Fill ALL form data from database - prioritize all possible field names
       setFormData((prev) => ({
         ...prev,
-        // Room Information
         arrivalDate: formatDate(booking.ArrDate),
         departureDate: formatDate(booking.DeptDate),
         numberOfRooms: toString(booking.NoOfRoom || booking.numberOfRooms),
@@ -232,29 +200,23 @@ function HotelRegistrationForm() {
         currency: (booking.RoomRateCurrency || booking.currency || "USD") as
           | "USD"
           | "IDR",
-
-        // Guest Information
         lastName: booking.LastName || booking.lastName || "",
         firstName: booking.FirstName || booking.firstName || "",
         address: booking.Address || booking.address || "",
         advanceDeposit: toString(
           booking.AdvanceDeposit || booking.advanceDeposit
         ),
-
-        // Company Information
         companyName: booking.CompanyName || booking.companyName || "",
-        companyPhone: toString(booking.Phone || booking.companyPhone),
+        companyPhone: toString(
+          booking.CompanyPhone || booking.Phone || booking.companyPhone
+        ),
         companyAddress: booking.CompanyAddress || booking.companyAddress || "",
-
-        // Document Information
         dateOfBirth: formatDate(booking.DateOfBirth || booking.dateOfBirth),
         passportId:
           booking.IDNumber || booking.passportId || booking.PassportId || "",
         nationality:
           booking.Country || booking.nationality || booking.Nationality || "",
         dateOfIssue: formatDate(booking.DateOfIssue || booking.dateOfIssue),
-
-        // Payment Information
         paymentCash: booking.Payment === "Cash" || booking.paymentCash === true,
         paymentCredit:
           booking.Payment === "Credit" ||
@@ -264,8 +226,6 @@ function HotelRegistrationForm() {
         creditCardNumber:
           booking.CreditCardNumber || booking.creditCardNumber || "",
         approvalCode: booking.ApprovalCode || booking.approvalCode || "",
-
-        // Additional Information
         remark:
           booking.Request ||
           booking.Note ||
@@ -279,10 +239,8 @@ function HotelRegistrationForm() {
           booking.NoOfPerson || booking.NumberOfPerson || booking.person
         ),
       }));
-
-      console.log("✅ Form data populated successfully");
     } catch (error) {
-      console.error("❌ Error fetching booking:", error);
+      console.error("Error fetching booking:", error);
       alert("Gagal memuat data booking. Silakan coba lagi.");
     } finally {
       setIsLoadingData(false);
@@ -302,7 +260,19 @@ function HotelRegistrationForm() {
   };
 
   const buildPayload = () => {
-    return {
+    // IMPORTANT: Ensure dates are in proper format
+    const formatDateForAPI = (dateString: string) => {
+      if (!dateString) return new Date().toISOString();
+      try {
+        // If date is already in YYYY-MM-DD format, convert to ISO
+        const date = new Date(dateString);
+        return date.toISOString();
+      } catch {
+        return new Date().toISOString();
+      }
+    };
+
+    const payload = {
       FirstName: formData.firstName,
       LastName: formData.lastName,
       Address: formData.address || "-",
@@ -311,8 +281,8 @@ function HotelRegistrationForm() {
       RoomType: formData.roomType || "Standard",
       NoOfRoom: parseInt(formData.numberOfRooms) || 1,
       RoomNumber: formData.roomNo || "",
-      ArrDate: formData.arrivalDate,
-      DeptDate: formData.departureDate,
+      ArrDate: formatDateForAPI(formData.arrivalDate),
+      DeptDate: formatDateForAPI(formData.departureDate),
       ArrTime: "12:00",
       DeptTime: "12:00",
       TypeOfGuest: "Walk-in",
@@ -327,14 +297,19 @@ function HotelRegistrationForm() {
         ? "Credit Card"
         : "Cash",
       ReservationMadeBy: "Direct",
-      Clerk: formData.clerk,
+      Clerk: formData.clerk || "Admin",
       Request: formData.remark || "None",
       IDNumber: formData.passportId || "",
-      DateOfIssue: formData.dateOfIssue || null,
-      DateOfBirth: formData.dateOfBirth || null,
+      DateOfIssue: formData.dateOfIssue
+        ? formatDateForAPI(formData.dateOfIssue)
+        : null,
+      DateOfBirth: formData.dateOfBirth
+        ? formatDateForAPI(formData.dateOfBirth)
+        : null,
       Discount: parseInt(formData.discount) || 0,
       AdvanceDeposit: parseFloat(formData.advanceDeposit) || 0,
       CompanyName: formData.companyName || "",
+      CompanyPhone: formData.companyPhone || "",
       CompanyAddress: formData.companyAddress || "",
       VoucherNumber: formData.voucherNumber || "",
       CreditCardNumber: formData.creditCardNumber || "",
@@ -344,115 +319,107 @@ function HotelRegistrationForm() {
       status: "checked-in",
       checkInDate: new Date().toISOString(),
     };
+
+    console.log("🔍 Built Payload:", payload);
+    return payload;
   };
 
-  const handleCheckIn = async () => {
+  const handleCheckInAndPrint = async () => {
     try {
+      // Validation
       if (!formData.firstName || !formData.lastName) {
-        alert("Please fill in guest name");
+        alert(
+          "Please fill in guest name (First Name and Last Name are required)"
+        );
+        return;
+      }
+
+      if (!formData.arrivalDate || !formData.departureDate) {
+        alert("Please fill in arrival and departure dates");
+        return;
+      }
+
+      if (!formData.roomType) {
+        alert("Please select room type");
         return;
       }
 
       const payload = buildPayload();
 
+      console.log("📤 Sending payload to API:", payload);
+      console.log("🌐 API URL:", process.env.NEXT_PUBLIC_API_URL);
+
       let response;
+      const apiUrl = `${process.env.NEXT_PUBLIC_API_URL}/api/book-a-room`;
+
       if (bookingId) {
-        response = await fetch(
-          `${process.env.NEXT_PUBLIC_API_URL}/api/book-a-room/${bookingId}`,
-          {
-            method: "PUT",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify(payload),
-          }
-        );
+        // Update existing booking
+        console.log("📝 Updating existing booking with ID:", bookingId);
+        response = await fetch(`${apiUrl}/${bookingId}`, {
+          method: "PUT",
+          headers: {
+            "Content-Type": "application/json",
+            Accept: "application/json",
+          },
+          body: JSON.stringify(payload),
+        });
       } else {
-        response = await fetch(
-          `${process.env.NEXT_PUBLIC_API_URL}/api/book-a-room`,
-          {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify(payload),
-          }
-        );
+        // Create new booking
+        console.log("✨ Creating new booking");
+        response = await fetch(apiUrl, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Accept: "application/json",
+          },
+          body: JSON.stringify(payload),
+        });
       }
 
+      console.log("📡 Response status:", response.status);
+      console.log("📡 Response ok:", response.ok);
+
       if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.message || "Failed to check-in");
+        const errorText = await response.text();
+        console.error("❌ Error response:", errorText);
+
+        let errorData;
+        try {
+          errorData = JSON.parse(errorText);
+        } catch {
+          throw new Error(`Server error: ${response.status} - ${errorText}`);
+        }
+
+        throw new Error(
+          errorData.message || `Failed to check-in: ${response.status}`
+        );
       }
 
       const savedData = await response.json();
-      console.log("✅ Check-in successful:", savedData);
+      console.log("✅ Check-in successful! Saved data:", savedData);
+      console.log("🆔 Booking ID:", savedData._id || savedData.id);
 
-      alert("Check-in successful!");
+      alert(
+        "✅ Check-in successful! Data has been saved to Expected Arrival.\n\nOpening print preview..."
+      );
+
       setIsCheckedIn(true);
-      setSaveSuccess(true);
       setIsViewMode(true);
+
+      // Force refresh Expected Arrival page
+      console.log("🔄 Preparing to redirect to Expected Arrival");
     } catch (error) {
-      console.error("Check-in error:", error);
-      alert(
-        `Check-in failed: ${
-          error instanceof Error ? error.message : "Unknown error"
-        }`
+      console.error("❌ Check-in error:", error);
+      console.error(
+        "❌ Error stack:",
+        error instanceof Error ? error.stack : "No stack trace"
       );
-    }
-  };
 
-  const handleSaveCheckIn = async () => {
-    setIsSaving(true);
-    try {
-      if (!formData.firstName || !formData.lastName) {
-        alert("Please fill in guest name");
-        setIsSaving(false);
-        return;
-      }
-
-      const payload = buildPayload();
-
-      let response;
-      if (bookingId) {
-        response = await fetch(
-          `${process.env.NEXT_PUBLIC_API_URL}/api/book-a-room/${bookingId}`,
-          {
-            method: "PUT",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify(payload),
-          }
-        );
-      } else {
-        response = await fetch(
-          `${process.env.NEXT_PUBLIC_API_URL}/api/book-a-room`,
-          {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify(payload),
-          }
-        );
-      }
-
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.message || "Failed to save check-in data");
-      }
-
-      const savedData = await response.json();
-      console.log("✅ Data saved successfully:", savedData);
-
-      alert("Check-in data saved successfully! Redirecting to history...");
-      setSaveSuccess(true);
-
-      setTimeout(() => {
-        router.push("/damaga/Reservation/ReservationHistory?refresh=true");
-      }, 1500);
-    } catch (error) {
-      console.error("Save error:", error);
       alert(
-        `Failed to save check-in data: ${
+        `❌ Check-in failed!\n\nError: ${
           error instanceof Error ? error.message : "Unknown error"
-        }`
+        }\n\nPlease check the console for details.`
       );
-    } finally {
-      setIsSaving(false);
     }
   };
 
@@ -461,10 +428,9 @@ function HotelRegistrationForm() {
   };
 
   const handleBack = () => {
-    setIsCheckedIn(false);
+    router.push("/damaga/Reservation/ExpectedArrival?refresh=true");
   };
 
-  // Show loading state when fetching data
   if (isLoadingData) {
     return (
       <div className="min-h-screen flex items-center justify-center p-4">
@@ -502,11 +468,10 @@ function HotelRegistrationForm() {
             </div>
 
             <div className="space-y-6">
-              {/* Room Information */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Arrival Date
+                    Arrival Date *
                   </label>
                   <Input
                     name="arrivalDate"
@@ -515,11 +480,12 @@ function HotelRegistrationForm() {
                     onChange={handleChange}
                     className="w-full"
                     disabled={isViewMode}
+                    required
                   />
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Departure Date
+                    Departure Date *
                   </label>
                   <Input
                     name="departureDate"
@@ -528,6 +494,7 @@ function HotelRegistrationForm() {
                     onChange={handleChange}
                     className="w-full"
                     disabled={isViewMode}
+                    required
                   />
                 </div>
               </div>
@@ -630,7 +597,6 @@ function HotelRegistrationForm() {
                 </div>
               </div>
 
-              {/* Guest Information */}
               <div className="border-t pt-6">
                 <h3 className="text-lg font-semibold text-gray-800 mb-4">
                   Guest Information
@@ -691,7 +657,6 @@ function HotelRegistrationForm() {
                 </div>
               </div>
 
-              {/* Company & Document Information */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -784,7 +749,6 @@ function HotelRegistrationForm() {
                 />
               </div>
 
-              {/* Payment Information */}
               <div className="border-t pt-6">
                 <h3 className="text-lg font-semibold text-gray-800 mb-4">
                   Form of Settlement
@@ -869,7 +833,6 @@ function HotelRegistrationForm() {
                 />
               </div>
 
-              {/* Clerk Name (Read-only) */}
               <div className="border-t pt-4">
                 <label className="block text-sm font-medium text-gray-700 mb-2">
                   Clerk (Staff Name)
@@ -886,7 +849,6 @@ function HotelRegistrationForm() {
                 </p>
               </div>
 
-              {/* Additional Check-in Information */}
               <div className="border-t pt-4">
                 <h3 className="text-lg font-semibold text-gray-800 mb-4">
                   Check-in Details
@@ -942,15 +904,15 @@ function HotelRegistrationForm() {
                   variant="outline"
                   onClick={() => router.back()}
                 >
-                  {isViewMode ? "Back to History" : "Cancel"}
+                  {isViewMode ? "Back to Expected Arrival" : "Cancel"}
                 </Button>
                 {!isViewMode && (
                   <Button
                     type="button"
-                    onClick={handleCheckIn}
+                    onClick={handleCheckInAndPrint}
                     className="bg-blue-600 hover:bg-blue-700"
                   >
-                    Check In & Continue →
+                    Check In & Print →
                   </Button>
                 )}
                 {isViewMode && (
@@ -970,7 +932,6 @@ function HotelRegistrationForm() {
     );
   }
 
-  // Print View
   return (
     <div className="min-h-screen p-8 print:p-0">
       <div className="max-w-5xl mx-auto">
@@ -986,31 +947,15 @@ function HotelRegistrationForm() {
 
         <div className="no-print mb-6 flex justify-between items-center">
           <Button variant="outline" onClick={handleBack}>
-            ← Back to Form
+            ← Back to Expected Arrival
           </Button>
-          <div className="flex gap-3 items-center">
-            {saveSuccess && (
-              <span className="text-sm text-green-600 font-medium">
-                ✓ Saved successfully
-              </span>
-            )}
-            {!isViewMode && (
-              <Button
-                onClick={handleSaveCheckIn}
-                disabled={isSaving}
-                className="bg-blue-600 hover:bg-blue-700 text-white"
-              >
-                {isSaving ? "Saving..." : "Save Check-In Data"}
-              </Button>
-            )}
-            <Button
-              onClick={handlePrint}
-              className="bg-green-600 hover:bg-green-700"
-            >
-              <FileText className="w-4 h-4 mr-2" />
-              Print / Save PDF
-            </Button>
-          </div>
+          <Button
+            onClick={handlePrint}
+            className="bg-green-600 hover:bg-green-700"
+          >
+            <FileText className="w-4 h-4 mr-2" />
+            Print / Save PDF
+          </Button>
         </div>
 
         <div className="bg-white border-4 border-blue-600 p-6 print:border-4">
@@ -1120,6 +1065,11 @@ function HotelRegistrationForm() {
                     Company
                   </div>
                   <div className="space-y-1 text-xs">
+                    <div className="flex gap-1">
+                      <span className="font-semibold">Name</span>
+                      <span>:</span>
+                      <span>{formData.companyName || "-"}</span>
+                    </div>
                     <div className="flex gap-1">
                       <span className="font-semibold">Phone</span>
                       <span>:</span>

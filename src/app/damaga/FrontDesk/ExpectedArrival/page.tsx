@@ -1,20 +1,11 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Search, User, RefreshCw } from "lucide-react";
-
-export default function ExpectedArrivalPage() {
-  return (
-    <Suspense fallback={<div>Loading...</div>}>
-      <ExpectedArrival />
-    </Suspense>
-  );
-}
 
 interface ReservationBooking {
   _id: string;
@@ -45,11 +36,15 @@ interface ReservationBooking {
   Note?: string;
   status?: string;
   checkInDate?: string;
+  AdvanceDeposit?: number;
+  CompanyName?: string;
+  CompanyPhone?: string;
+  CompanyAddress?: string;
   createdAt: string;
   updatedAt: string;
 }
 
-function ExpectedArrival() {
+export default function ExpectedArrival() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const [searchState, setSearchState] = useState({
@@ -70,6 +65,7 @@ function ExpectedArrival() {
     DeptTime: "",
     Source: "",
     Note: "",
+    CompanyName: "",
   });
 
   const [reservationData, setReservationData] = useState<ReservationBooking[]>(
@@ -83,13 +79,10 @@ function ExpectedArrival() {
 
   useEffect(() => {
     fetchAllData();
-
-    // Auto-refresh setiap 10 detik (lebih responsif)
     const interval = setInterval(() => {
       fetchAllData();
       setLastUpdate(new Date());
     }, 50000);
-
     return () => clearInterval(interval);
   }, []);
 
@@ -97,14 +90,11 @@ function ExpectedArrival() {
     setIsClient(true);
   }, []);
 
-  // Detect refresh parameter dari URL
   useEffect(() => {
     const shouldRefresh = searchParams.get("refresh");
     if (shouldRefresh === "true") {
       console.log("🔄 Triggered refresh from check-in");
       fetchAllData();
-
-      // Clean URL
       window.history.replaceState({}, "", window.location.pathname);
     }
   }, [searchParams]);
@@ -181,6 +171,10 @@ function ExpectedArrival() {
           reservation.IDNumber || "",
           searchState.IDNumber
         );
+        const matchesCompanyName = matchesField(
+          reservation.CompanyName || "",
+          searchState.CompanyName
+        );
 
         let matchesArrDate = true;
         if (searchState.ArrDate) {
@@ -208,6 +202,7 @@ function ExpectedArrival() {
           matchesRoomType &&
           matchesCountry &&
           matchesIDNumber &&
+          matchesCompanyName &&
           matchesStatus
         );
       });
@@ -240,6 +235,7 @@ function ExpectedArrival() {
       DeptTime: "",
       Source: "",
       Note: "",
+      CompanyName: "",
     });
     setStatusFilter("all");
     setReservationData(allData);
@@ -251,18 +247,15 @@ function ExpectedArrival() {
 
   const getStatusBadge = (status?: string) => {
     const statusLower = (status || "pending").toLowerCase();
-
     const statusConfig: Record<string, { bg: string; text: string }> = {
       "checked-in": { bg: "bg-green-100", text: "text-green-800" },
       pending: { bg: "bg-yellow-100", text: "text-yellow-800" },
       "checked-out": { bg: "bg-purple-100", text: "text-purple-800" },
     };
-
     const config = statusConfig[statusLower] || {
       bg: "bg-gray-100",
       text: "text-gray-800",
     };
-
     return (
       <span
         className={`px-2 py-1 rounded-full text-xs font-medium ${config.bg} ${config.text}`}
@@ -277,10 +270,9 @@ function ExpectedArrival() {
       <div className="w-full max-w-7xl mx-auto">
         <div className="bg-white p-6 sm:p-8 lg:p-10 rounded-lg shadow-sm border">
           <h2 className="text-2xl sm:text-3xl font-semibold mb-6 sm:mb-8 text-sky-500">
-            Reservation History
+            Expected Arrival
           </h2>
 
-          {/* Auto Refresh Info */}
           <div className="mb-6 flex flex-col sm:flex-row items-start sm:items-center justify-between bg-sky-50 px-4 py-3 rounded-lg border border-sky-200 gap-3">
             <div className="flex items-center gap-2">
               <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
@@ -294,7 +286,6 @@ function ExpectedArrival() {
                   Last update: {lastUpdate.toLocaleTimeString("id-ID")}
                 </span>
               )}
-
               <Button
                 onClick={fetchAllData}
                 variant="outline"
@@ -306,7 +297,6 @@ function ExpectedArrival() {
             </div>
           </div>
 
-          {/* Status Filter */}
           <div className="mb-6 bg-gradient-to-r from-sky-50 to-blue-50 p-4 rounded-lg border border-sky-200">
             <Label className="text-sm font-medium mb-3 block text-sky-700">
               Filter by Status
@@ -357,14 +347,13 @@ function ExpectedArrival() {
               Currently showing:{" "}
               <span className="font-semibold text-sky-600">
                 {statusFilter === "all"
-                  ? "All Reservations"
+                  ? "All Expected Arrival"
                   : statusFilter.charAt(0).toUpperCase() +
                     statusFilter.slice(1)}
               </span>
             </p>
           </div>
 
-          {/* Search Section */}
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5 sm:gap-6 mb-6">
             {Object.entries({
               FirstName: "First Name",
@@ -384,6 +373,7 @@ function ExpectedArrival() {
               DeptTime: "Departure Time",
               Source: "Source",
               Note: "Request",
+              CompanyName: "Company Name",
             }).map(([key, label]) => (
               <div key={key} className="w-full">
                 <Label className="text-sm font-medium mb-2 block text-sky-500">
@@ -429,21 +419,24 @@ function ExpectedArrival() {
             </Button>
           </div>
 
-          {/* Table Result */}
           <div className="space-y-4">
             <h3 className="text-lg font-semibold text-gray-800">
-              Reservation Records ({reservationData.length})
+              Expected Arrival ({reservationData.length})
             </h3>
 
             {loading ? (
               <div className="text-center py-12 bg-gray-50 rounded-lg border-2 border-dashed">
                 <div className="w-12 h-12 mx-auto mb-3 border-4 border-sky-500 border-t-transparent rounded-full animate-spin"></div>
-                <p className="text-gray-500">Loading reservation data...</p>
+                <p className="text-gray-500">
+                  Loading Expected Arrival data...
+                </p>
               </div>
             ) : reservationData.length === 0 ? (
               <div className="text-center py-12 bg-gray-50 rounded-lg border-2 border-dashed">
                 <User className="w-12 h-12 mx-auto text-gray-400 mb-3" />
-                <p className="text-gray-500">No reservation records found.</p>
+                <p className="text-gray-500">
+                  No Expected Arrival records found.
+                </p>
               </div>
             ) : (
               <div className="overflow-x-auto border rounded-lg">
@@ -468,6 +461,10 @@ function ExpectedArrival() {
                         "Arr. Time",
                         "Dept. Time",
                         "Status",
+                        "Advance Deposit",
+                        "Company Name",
+                        "Company Phone",
+                        "Company Address",
                         "Source",
                         "Note",
                       ].map((head) => (
@@ -529,6 +526,18 @@ function ExpectedArrival() {
                         </td>
                         <td className="px-4 py-3 text-sm">
                           {getStatusBadge(r.status)}
+                        </td>
+                        <td className="px-4 py-3 text-sm">
+                          {r.AdvanceDeposit || "-"}
+                        </td>
+                        <td className="px-4 py-3 text-sm">
+                          {r.CompanyName || "-"}
+                        </td>
+                        <td className="px-4 py-3 text-sm">
+                          {r.CompanyPhone || "-"}
+                        </td>
+                        <td className="px-4 py-3 text-sm max-w-xs truncate">
+                          {r.CompanyAddress || "-"}
                         </td>
                         <td className="px-4 py-3 text-sm">{r.Source || "-"}</td>
                         <td className="px-4 py-3 text-sm max-w-xs truncate">
