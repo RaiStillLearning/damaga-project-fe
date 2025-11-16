@@ -252,7 +252,7 @@ function InHouseGuestList() {
   };
 
   const handleCheckIn = (bookingId: string) => {
-    router.push(`../FrontDesk/Registration?bookingId=${bookingId}`);
+    router.push(`../FrontDesk/InHouseGuest?bookingId=${bookingId}`);
   };
 
   const formatRoomRate = (rate: number, currency?: string) => {

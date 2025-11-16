@@ -8,10 +8,10 @@ import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Search, User, RefreshCw } from "lucide-react";
 
-export default function ExpectedArrivalPage() {
+export default function ReservationHistoryPage() {
   return (
-    <Suspense fallback={<div className="p-5 text-center">Loading...</div>}>
-      <ExpectedArrival />
+    <Suspense fallback={<div>Loading...</div>}>
+      <ReservationHistory />
     </Suspense>
   );
 }
@@ -46,15 +46,11 @@ interface ReservationBooking {
   Note?: string;
   status?: string;
   checkInDate?: string;
-  AdvanceDeposit?: number;
-  CompanyName?: string;
-  CompanyPhone?: string;
-  CompanyAddress?: string;
   createdAt: string;
   updatedAt: string;
 }
 
-function ExpectedArrival() {
+function ReservationHistory() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const [searchState, setSearchState] = useState({
@@ -75,7 +71,6 @@ function ExpectedArrival() {
     DeptTime: "",
     Source: "",
     Note: "",
-    CompanyName: "",
   });
 
   const [reservationData, setReservationData] = useState<ReservationBooking[]>(
@@ -85,13 +80,16 @@ function ExpectedArrival() {
   const [loading, setLoading] = useState(true);
   const [lastUpdate, setLastUpdate] = useState<Date>(new Date());
   const [isClient, setIsClient] = useState(false);
+  const [statusFilter, setStatusFilter] = useState<string>("all");
 
   useEffect(() => {
     fetchAllData();
+
     const interval = setInterval(() => {
       fetchAllData();
       setLastUpdate(new Date());
     }, 50000);
+
     return () => clearInterval(interval);
   }, []);
 
@@ -125,14 +123,8 @@ function ExpectedArrival() {
       const data = await res.json();
       const bookings = Array.isArray(data) ? data : data.bookings || [];
 
-      // Filter hanya yang status checked-in
-      const checkedInBookings = bookings.filter(
-        (booking: ReservationBooking) =>
-          booking.status?.toLowerCase() === "checked-in"
-      );
-
-      setAllData(checkedInBookings);
-      setReservationData(checkedInBookings);
+      setAllData(bookings);
+      setReservationData(bookings);
       setLastUpdate(new Date());
     } catch (err: unknown) {
       console.error("Fetch error:", err);
@@ -186,10 +178,6 @@ function ExpectedArrival() {
           reservation.IDNumber || "",
           searchState.IDNumber
         );
-        const matchesCompanyName = matchesField(
-          reservation.CompanyName || "",
-          searchState.CompanyName
-        );
 
         let matchesArrDate = true;
         if (searchState.ArrDate) {
@@ -205,6 +193,9 @@ function ExpectedArrival() {
             searchState.DeptDate;
         }
 
+        const matchesStatus =
+          statusFilter === "all" || reservation.status === statusFilter;
+
         return (
           matchesFirstName &&
           matchesLastName &&
@@ -214,7 +205,7 @@ function ExpectedArrival() {
           matchesRoomType &&
           matchesCountry &&
           matchesIDNumber &&
-          matchesCompanyName
+          matchesStatus
         );
       });
 
@@ -246,13 +237,88 @@ function ExpectedArrival() {
       DeptTime: "",
       Source: "",
       Note: "",
-      CompanyName: "",
     });
+    setStatusFilter("all");
     setReservationData(allData);
   };
 
   const handleCheckIn = (bookingId: string) => {
     router.push(`../FrontDesk/Registration?bookingId=${bookingId}`);
+  };
+
+  const handleInHouse = async (bookingId: string) => {
+    try {
+      const confirmInHouse = confirm(
+        "Apakah Anda yakin ingin mengubah status guest ini menjadi In-House?\n\nGuest akan dipindahkan dari Expected Arrival ke In-House."
+      );
+
+      if (!confirmInHouse) return;
+
+      const apiUrl = `${process.env.NEXT_PUBLIC_API_URL}/api/book-a-room/${bookingId}`;
+
+      console.log("🔄 Updating status to In-house for booking:", bookingId);
+
+      const response = await fetch(apiUrl, {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+          Accept: "application/json",
+        },
+        body: JSON.stringify({
+          status: "In-house",
+        }),
+      });
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error("❌ Error response:", errorText);
+        throw new Error(`Failed to update status: ${response.status}`);
+      }
+
+      const updatedData = await response.json();
+      console.log("✅ Status updated to In-House:", updatedData);
+
+      alert(
+        "✅ Status berhasil diubah menjadi In-House!\n\nGuest telah dipindahkan dari Expected Arrival dan akan muncul di menu In-House."
+      );
+
+      // Refresh data untuk menghapus guest dari list
+      fetchAllData();
+    } catch (error) {
+      console.error("❌ Error updating status:", error);
+      alert(
+        `❌ Gagal mengubah status!\n\nError: ${
+          error instanceof Error ? error.message : "Unknown error"
+        }\n\nSilakan coba lagi atau hubungi administrator.`
+      );
+    }
+  };
+
+  const getStatusBadge = (status?: string) => {
+    const statusLower = (status || "pending").toLowerCase();
+
+    const statusConfig: Record<string, { bg: string; text: string }> = {
+      pending: { bg: "bg-yellow-100", text: "text-yellow-800" },
+      confirmed: { bg: "bg-blue-100", text: "text-blue-800" },
+      "checked-in": { bg: "bg-green-100", text: "text-green-800" },
+      "checked-out": { bg: "bg-purple-100", text: "text-purple-800" },
+      cancelled: { bg: "bg-red-100", text: "text-red-800" },
+      "in-house": { bg: "bg-teal-100", text: "text-teal-800" },
+      "stay-over": { bg: "bg-indigo-100", text: "text-indigo-800" },
+    };
+
+    const config = statusConfig[statusLower] || {
+      bg: "bg-gray-100",
+      text: "text-gray-800",
+    };
+
+    return (
+      <span
+        className={`px-2 py-1 rounded-full text-xs font-medium ${config.bg} ${config.text}`}
+      >
+        {status || "pending"}
+      </span>
+    );
   };
 
   const formatRoomRate = (rate: number, currency?: string) => {
@@ -265,48 +331,15 @@ function ExpectedArrival() {
     return `${symbol} ${formattedRate}`;
   };
 
-  const getStatusBadge = (status?: string) => {
-    const statusLower = (status || "checked-in").toLowerCase();
-    const statusConfig: Record<string, { bg: string; text: string }> = {
-      "checked-in": { bg: "bg-green-100", text: "text-green-800" },
-    };
-    const config = statusConfig[statusLower] || {
-      bg: "bg-green-100",
-      text: "text-green-800",
-    };
-    return (
-      <span
-        className={`px-2 py-1 rounded-full text-xs font-medium ${config.bg} ${config.text}`}
-      >
-        {status || "checked-in"}
-      </span>
-    );
-  };
-
   return (
     <div className="p-4 sm:p-6 lg:p-8">
       <div className="w-full max-w-7xl mx-auto">
         <div className="bg-white p-6 sm:p-8 lg:p-10 rounded-lg shadow-sm border">
-          <div className="flex items-center justify-between mb-6 sm:mb-8">
-            <h2 className="text-2xl sm:text-3xl font-semibold text-sky-500">
-              Expected Arrival (Checked-In Guests)
-            </h2>
-            <div className="flex items-center gap-2 px-4 py-2 bg-green-50 rounded-lg border border-green-200">
-              <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
-              <span className="text-sm font-medium text-green-800">
-                Status: Checked-In Only
-              </span>
-            </div>
-          </div>
+          <h2 className="text-2xl sm:text-3xl font-semibold mb-6 sm:mb-8 text-sky-500">
+            Reservation History
+          </h2>
 
-          <div className="mb-6 p-4 bg-green-50 rounded-lg border border-green-200">
-            <p className="text-sm text-green-700">
-              <strong>ℹ️ Info:</strong> Halaman ini hanya menampilkan guest yang
-              sudah <span className="font-semibold">CHECKED-IN</span>. Guest
-              dengan status lain tidak akan ditampilkan di sini.
-            </p>
-          </div>
-
+          {/* Auto Refresh Info */}
           <div className="mb-6 flex flex-col sm:flex-row items-start sm:items-center justify-between bg-sky-50 px-4 py-3 rounded-lg border border-sky-200 gap-3">
             <div className="flex items-center gap-2">
               <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
@@ -320,6 +353,7 @@ function ExpectedArrival() {
                   Last update: {lastUpdate.toLocaleTimeString("id-ID")}
                 </span>
               )}
+
               <Button
                 onClick={fetchAllData}
                 variant="outline"
@@ -331,6 +365,85 @@ function ExpectedArrival() {
             </div>
           </div>
 
+          {/* Status Filter */}
+          <div className="mb-6 bg-gradient-to-r from-sky-50 to-blue-50 p-4 rounded-lg border border-sky-200">
+            <Label className="text-sm font-medium mb-3 block text-sky-700">
+              Filter by Status
+            </Label>
+            <div className="flex flex-wrap gap-2">
+              {[
+                {
+                  value: "all",
+                  label: "All Bookings",
+                  color: "bg-gray-100 hover:bg-gray-200",
+                },
+                {
+                  value: "pending",
+                  label: "Pending",
+                  color: "bg-yellow-100 hover:bg-yellow-200 text-yellow-800",
+                },
+                {
+                  value: "confirmed",
+                  label: "Confirmed",
+                  color: "bg-blue-100 hover:bg-blue-200 text-blue-800",
+                },
+                {
+                  value: "checked-in",
+                  label: "Checked In",
+                  color: "bg-green-100 hover:bg-green-200 text-green-800",
+                },
+                {
+                  value: "checked-out",
+                  label: "Checked Out",
+                  color: "bg-purple-100 hover:bg-purple-200 text-purple-800",
+                },
+                {
+                  value: "cancelled",
+                  label: "Cancelled",
+                  color: "bg-red-100 hover:bg-red-200 text-red-800",
+                },
+                {
+                  value: "in-house",
+                  label: "in-house",
+                  color: "bg-teal-100 hover:bg-teal-200 text-teal-800",
+                },
+                {
+                  value: "stay-over",
+                  label: "Stay Over",
+                  color: "bg-indigo-100 hover:bg-indigo-200 text-indigo-800",
+                },
+              ].map((status) => (
+                <button
+                  key={status.value}
+                  onClick={() => {
+                    setStatusFilter(status.value);
+                    setTimeout(handleSearch, 100);
+                  }}
+                  className={`px-4 py-2 rounded-md text-sm font-medium transition-all ${
+                    status.color
+                  } ${
+                    statusFilter === status.value
+                      ? "ring-2 ring-sky-500 shadow-md scale-105"
+                      : "opacity-70"
+                  }`}
+                >
+                  {status.label}
+                  {statusFilter === status.value && " ✓"}
+                </button>
+              ))}
+            </div>
+            <p className="text-xs text-gray-500 mt-2">
+              Currently showing:{" "}
+              <span className="font-semibold text-sky-600">
+                {statusFilter === "all"
+                  ? "All Reservations"
+                  : statusFilter.charAt(0).toUpperCase() +
+                    statusFilter.slice(1)}
+              </span>
+            </p>
+          </div>
+
+          {/* Search Section */}
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5 sm:gap-6 mb-6">
             {Object.entries({
               FirstName: "First Name",
@@ -350,7 +463,6 @@ function ExpectedArrival() {
               DeptTime: "Departure Time",
               Source: "Source",
               Note: "Request",
-              CompanyName: "Company Name",
             }).map(([key, label]) => (
               <div key={key} className="w-full">
                 <Label className="text-sm font-medium mb-2 block text-sky-500">
@@ -396,25 +508,21 @@ function ExpectedArrival() {
             </Button>
           </div>
 
+          {/* Table Result */}
           <div className="space-y-4">
             <h3 className="text-lg font-semibold text-gray-800">
-              Checked-In Guests ({reservationData.length})
+              Reservation Records ({reservationData.length})
             </h3>
 
             {loading ? (
               <div className="text-center py-12 bg-gray-50 rounded-lg border-2 border-dashed">
                 <div className="w-12 h-12 mx-auto mb-3 border-4 border-sky-500 border-t-transparent rounded-full animate-spin"></div>
-                <p className="text-gray-500">
-                  Loading checked-in guests data...
-                </p>
+                <p className="text-gray-500">Loading reservation data...</p>
               </div>
             ) : reservationData.length === 0 ? (
               <div className="text-center py-12 bg-gray-50 rounded-lg border-2 border-dashed">
                 <User className="w-12 h-12 mx-auto text-gray-400 mb-3" />
-                <p className="text-gray-500">
-                  No checked-in guests found. All guests may have checked out or
-                  are still pending.
-                </p>
+                <p className="text-gray-500">No reservation records found.</p>
               </div>
             ) : (
               <div className="overflow-x-auto border rounded-lg">
@@ -439,10 +547,6 @@ function ExpectedArrival() {
                         "Arr. Time",
                         "Dept. Time",
                         "Status",
-                        "Advance Deposit",
-                        "Company Name",
-                        "Company Phone",
-                        "Company Address",
                         "Source",
                         "Note",
                       ].map((head) => (
@@ -465,19 +569,15 @@ function ExpectedArrival() {
                         className="hover:bg-gray-50 transition-colors"
                       >
                         <td className="px-4 py-3 text-sm">{i + 1}</td>
-                        <td className="px-4 py-3 text-sm font-medium">
-                          {r.FirstName}
-                        </td>
-                        <td className="px-4 py-3 text-sm font-medium">
-                          {r.LastName}
-                        </td>
+                        <td className="px-4 py-3 text-sm">{r.FirstName}</td>
+                        <td className="px-4 py-3 text-sm">{r.LastName}</td>
                         <td className="px-4 py-3 text-sm">
                           {new Date(r.ArrDate).toLocaleDateString("id-ID")}
                         </td>
                         <td className="px-4 py-3 text-sm">
                           {new Date(r.DeptDate).toLocaleDateString("id-ID")}
                         </td>
-                        <td className="px-4 py-3 text-sm font-semibold">
+                        <td className="px-4 py-3 text-sm">
                           {r.RoomNumber || "-"}
                         </td>
                         <td className="px-4 py-3 text-sm">{r.RoomType}</td>
@@ -509,30 +609,50 @@ function ExpectedArrival() {
                         <td className="px-4 py-3 text-sm">
                           {getStatusBadge(r.status)}
                         </td>
-                        <td className="px-4 py-3 text-sm">
-                          {r.AdvanceDeposit || "-"}
-                        </td>
-                        <td className="px-4 py-3 text-sm">
-                          {r.CompanyName || "-"}
-                        </td>
-                        <td className="px-4 py-3 text-sm">
-                          {r.CompanyPhone || "-"}
-                        </td>
-                        <td className="px-4 py-3 text-sm max-w-xs truncate">
-                          {r.CompanyAddress || "-"}
-                        </td>
                         <td className="px-4 py-3 text-sm">{r.Source || "-"}</td>
                         <td className="px-4 py-3 text-sm max-w-xs truncate">
                           {r.Note || "-"}
                         </td>
                         <td className="px-4 py-3 text-sm">
-                          <Button
-                            onClick={() => handleCheckIn(r._id)}
-                            size="sm"
-                            className="bg-green-600 hover:bg-green-700 text-white text-xs px-3 py-1 whitespace-nowrap"
-                          >
-                            View Details
-                          </Button>
+                          {(() => {
+                            const statusLower = (r.status || "").toLowerCase();
+                            const isConfirmed = statusLower === "confirmed";
+
+                            return (
+                              <Button
+                                onClick={() => {
+                                  if (isConfirmed) handleCheckIn(r._id);
+                                }}
+                                size="sm"
+                                disabled={!isConfirmed}
+                                className={`text-xs px-3 py-1 whitespace-nowrap ${
+                                  isConfirmed
+                                    ? "bg-blue-600 hover:bg-blue-700 text-white"
+                                    : "bg-gray-300 text-gray-600 cursor-not-allowed hover:bg-gray-300"
+                                }`}
+                              >
+                                {isConfirmed ? "Check In" : "Already Check In"}
+                              </Button>
+                            );
+                          })()}
+                        </td>
+                        <td className="px-4 py-3 text-sm">
+                          <div className="flex gap-2">
+                            <Button
+                              onClick={() => handleCheckIn(r._id)}
+                              size="sm"
+                              className="bg-green-600 hover:bg-green-700 text-white text-xs px-3 py-1 whitespace-nowrap"
+                            >
+                              View Details
+                            </Button>
+                            <Button
+                              onClick={() => handleInHouse(r._id)}
+                              size="sm"
+                              className="bg-teal-600 hover:bg-teal-700 text-white text-xs px-3 py-1 whitespace-nowrap"
+                            >
+                              In-House
+                            </Button>
+                          </div>
                         </td>
                       </tr>
                     ))}

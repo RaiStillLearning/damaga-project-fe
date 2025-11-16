@@ -66,7 +66,7 @@ function InHouseGuest() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const bookingId = searchParams.get("bookingId");
-  const [isCheckedIn, setIsCheckedIn] = useState(false);
+  const [isCheckedIn, setIsCheckedIn] = useState(false); // hanya untuk switch ke print view
   const [isViewMode, setIsViewMode] = useState(false);
   const [isLoadingData, setIsLoadingData] = useState(false);
 
@@ -272,101 +272,13 @@ function InHouseGuest() {
     }
   };
 
-  const buildPayload = () => {
-    return {
-      FirstName: formData.firstName,
-      LastName: formData.lastName,
-      Address: formData.address || "-",
-      Country: formData.nationality || "Unknown",
-      Phone: parseInt(formData.companyPhone) || 0,
-      RoomType: formData.roomType || "Standard",
-      NoOfRoom: parseInt(formData.numberOfRooms) || 1,
-      RoomNumber: formData.roomNo || "",
-      ArrDate: formData.arrivalDate,
-      DeptDate: formData.departureDate,
-      ArrTime: "12:00",
-      DeptTime: "12:00",
-      TypeOfGuest: "Walk-in",
-      City: "-",
-      ZipCode: 0,
-      RoomRate: formData.dailyRate || 0,
-      RoomRateCurrency: formData.currency,
-      NoOfPerson: parseInt(formData.person) || 1,
-      Payment: formData.paymentCash
-        ? "Cash"
-        : formData.paymentCredit
-        ? "Credit Card"
-        : "Cash",
-      ReservationMadeBy: "Direct",
-      Clerk: formData.clerk,
-      Request: formData.remark || "None",
-      IDNumber: formData.passportId || "",
-      DateOfIssue: formData.dateOfIssue || null,
-      DateOfBirth: formData.dateOfBirth || null,
-      Discount: parseInt(formData.discount) || 0,
-      AdvanceDeposit: parseFloat(formData.advanceDeposit) || 0,
-      CompanyName: formData.companyName || "",
-      CompanyPhone: formData.companyPhone || "",
-      CompanyAddress: formData.companyAddress || "",
-      VoucherNumber: formData.voucherNumber || "",
-      CreditCardNumber: formData.creditCardNumber || "",
-      ApprovalCode: formData.approvalCode || "",
-      Source: "In House Guest",
-      Note: formData.remark || "",
-      status: "checked-in",
-      checkInDate: new Date().toISOString(),
-    };
-  };
-
-  const handleCheckInAndPrint = async () => {
-    try {
-      if (!formData.firstName || !formData.lastName) {
-        alert("Please fill in guest name");
-        return;
-      }
-
-      const payload = buildPayload();
-
-      let response;
-      if (bookingId) {
-        response = await fetch(
-          `${process.env.NEXT_PUBLIC_API_URL}/api/book-a-room/${bookingId}`,
-          {
-            method: "PUT",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify(payload),
-          }
-        );
-      } else {
-        response = await fetch(
-          `${process.env.NEXT_PUBLIC_API_URL}/api/book-a-room`,
-          {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify(payload),
-          }
-        );
-      }
-
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.message || "Failed to check-in");
-      }
-
-      const savedData = await response.json();
-      console.log("✅ Check-in successful:", savedData);
-
-      alert("Check-in successful! Opening print preview...");
-      setIsCheckedIn(true);
-      setIsViewMode(true);
-    } catch (error) {
-      console.error("Check-in error:", error);
-      alert(
-        `Check-in failed: ${
-          error instanceof Error ? error.message : "Unknown error"
-        }`
-      );
+  // 🔹 Baru: hanya untuk masuk ke tampilan print, tanpa save ke API
+  const handlePrintPreview = () => {
+    if (!formData.firstName || !formData.lastName) {
+      alert("Please fill in guest name");
+      return;
     }
+    setIsCheckedIn(true);
   };
 
   const handlePrint = () => {
@@ -374,7 +286,7 @@ function InHouseGuest() {
   };
 
   const handleBack = () => {
-    router.push("/damaga/Reservation/ReservationHistory?refresh=true");
+    router.push("/damaga/Reservations/ReservationHistory?refresh=true");
   };
 
   if (isLoadingData) {
@@ -395,6 +307,7 @@ function InHouseGuest() {
     );
   }
 
+  // 🔹 Tampilan form (sebelum print)
   if (!isCheckedIn) {
     return (
       <div className="min-h-screen flex items-center justify-center p-4">
@@ -856,24 +769,14 @@ function InHouseGuest() {
                 >
                   {isViewMode ? "Back to History" : "Cancel"}
                 </Button>
-                {!isViewMode && (
-                  <Button
-                    type="button"
-                    onClick={handleCheckInAndPrint}
-                    className="bg-blue-600 hover:bg-blue-700"
-                  >
-                    Check In & Print →
-                  </Button>
-                )}
-                {isViewMode && (
-                  <Button
-                    type="button"
-                    onClick={() => setIsCheckedIn(true)}
-                    className="bg-green-600 hover:bg-green-700"
-                  >
-                    View Print Preview
-                  </Button>
-                )}
+                {/* 🔹 Sekarang tombol ini hanya untuk print (masuk ke print layout), tanpa save */}
+                <Button
+                  type="button"
+                  onClick={handlePrintPreview}
+                  className="bg-blue-600 hover:bg-blue-700"
+                >
+                  Print →
+                </Button>
               </div>
             </div>
           </CardContent>
@@ -882,7 +785,7 @@ function InHouseGuest() {
     );
   }
 
-  // Print View
+  // 🔹 Print View
   return (
     <div className="min-h-screen p-8 print:p-0">
       <div className="max-w-5xl mx-auto">

@@ -246,6 +246,54 @@ function ReservationHistory() {
     router.push(`../FrontDesk/Registration?bookingId=${bookingId}`);
   };
 
+  const handleInHouse = async (bookingId: string) => {
+    try {
+      const confirmInHouse = confirm(
+        "Apakah Anda yakin ingin mengubah status guest ini menjadi In-House?\n\nGuest akan dipindahkan dari Expected Arrival ke In-House."
+      );
+
+      if (!confirmInHouse) return;
+
+      const apiUrl = `${process.env.NEXT_PUBLIC_API_URL}/api/book-a-room/${bookingId}`;
+
+      console.log("🔄 Updating status to In-house for booking:", bookingId);
+
+      const response = await fetch(apiUrl, {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+          Accept: "application/json",
+        },
+        body: JSON.stringify({
+          status: "In-house",
+        }),
+      });
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error("❌ Error response:", errorText);
+        throw new Error(`Failed to update status: ${response.status}`);
+      }
+
+      const updatedData = await response.json();
+      console.log("✅ Status updated to In-House:", updatedData);
+
+      alert(
+        "✅ Status berhasil diubah menjadi In-House!\n\nGuest telah dipindahkan dari Expected Arrival dan akan muncul di menu In-House."
+      );
+
+      // Refresh data untuk menghapus guest dari list
+      fetchAllData();
+    } catch (error) {
+      console.error("❌ Error updating status:", error);
+      alert(
+        `❌ Gagal mengubah status!\n\nError: ${
+          error instanceof Error ? error.message : "Unknown error"
+        }\n\nSilakan coba lagi atau hubungi administrator.`
+      );
+    }
+  };
+
   const getStatusBadge = (status?: string) => {
     const statusLower = (status || "pending").toLowerCase();
 
@@ -509,9 +557,6 @@ function ReservationHistory() {
                           {head}
                         </th>
                       ))}
-                      <th className="px-4 py-3 text-left text-xs font-semibold text-sky-700 uppercase tracking-wider">
-                        Actions
-                      </th>
                     </tr>
                   </thead>
                   <tbody className="bg-white divide-y divide-gray-200">
@@ -564,15 +609,6 @@ function ReservationHistory() {
                         <td className="px-4 py-3 text-sm">{r.Source || "-"}</td>
                         <td className="px-4 py-3 text-sm max-w-xs truncate">
                           {r.Note || "-"}
-                        </td>
-                        <td className="px-4 py-3 text-sm">
-                          <Button
-                            onClick={() => handleCheckIn(r._id)}
-                            size="sm"
-                            className="bg-blue-600 hover:bg-blue-700 text-white text-xs px-3 py-1 whitespace-nowrap"
-                          >
-                            {r.status === "checked-in" ? "View" : "Check In"}
-                          </Button>
                         </td>
                       </tr>
                     ))}
