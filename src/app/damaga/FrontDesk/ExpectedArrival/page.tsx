@@ -563,99 +563,133 @@ function ReservationHistory() {
                     </tr>
                   </thead>
                   <tbody className="bg-white divide-y divide-gray-200">
-                    {reservationData.map((r, i) => (
-                      <tr
-                        key={r._id}
-                        className="hover:bg-gray-50 transition-colors"
-                      >
-                        <td className="px-4 py-3 text-sm">{i + 1}</td>
-                        <td className="px-4 py-3 text-sm">{r.FirstName}</td>
-                        <td className="px-4 py-3 text-sm">{r.LastName}</td>
-                        <td className="px-4 py-3 text-sm">
-                          {new Date(r.ArrDate).toLocaleDateString("id-ID")}
-                        </td>
-                        <td className="px-4 py-3 text-sm">
-                          {new Date(r.DeptDate).toLocaleDateString("id-ID")}
-                        </td>
-                        <td className="px-4 py-3 text-sm">
-                          {r.RoomNumber || "-"}
-                        </td>
-                        <td className="px-4 py-3 text-sm">{r.RoomType}</td>
-                        <td className="px-4 py-3 text-sm">{r.Phone || "-"}</td>
-                        <td className="px-4 py-3 text-sm">
-                          {r.NoOfPerson || "-"}
-                        </td>
-                        <td className="px-4 py-3 text-sm font-medium">
-                          {formatRoomRate(r.RoomRate, r.RoomRateCurrency)}
-                        </td>
-                        <td className="px-4 py-3 text-sm">
-                          {r.IDNumber || "-"}
-                        </td>
-                        <td className="px-4 py-3 text-sm">{r.Address}</td>
-                        <td className="px-4 py-3 text-sm">{r.Country}</td>
-                        <td className="px-4 py-3 text-sm">
-                          {r.DateOfIssue
-                            ? new Date(r.DateOfIssue).toLocaleDateString(
-                                "id-ID"
-                              )
-                            : "-"}
-                        </td>
-                        <td className="px-4 py-3 text-sm">
-                          {r.ArrTime || "-"}
-                        </td>
-                        <td className="px-4 py-3 text-sm">
-                          {r.DeptTime || "-"}
-                        </td>
-                        <td className="px-4 py-3 text-sm">
-                          {getStatusBadge(r.status)}
-                        </td>
-                        <td className="px-4 py-3 text-sm">{r.Source || "-"}</td>
-                        <td className="px-4 py-3 text-sm max-w-xs truncate">
-                          {r.Note || "-"}
-                        </td>
-                        <td className="px-4 py-3 text-sm">
-                          {(() => {
-                            const statusLower = (r.status || "").toLowerCase();
-                            const isConfirmed = statusLower === "confirmed";
+                    {reservationData.map((r, i) => {
+                      const statusLower = (r.status || "").toLowerCase();
 
-                            return (
+                      // logic tombol check-in
+                      let canCheckIn = statusLower === "confirmed";
+                      let checkInLabel = "Check In";
+
+                      if (statusLower === "checked-out") {
+                        canCheckIn = false;
+                        checkInLabel = "Already Check Out";
+                      } else if (
+                        statusLower === "checked-in" ||
+                        statusLower === "in-house"
+                      ) {
+                        canCheckIn = false;
+                        checkInLabel = "Already Check In";
+                      } else if (statusLower === "cancelled") {
+                        canCheckIn = false;
+                        checkInLabel = "Cancelled";
+                      }
+
+                      // logic tombol in-house: disable kalau sudah checked-out
+                      const canInHouse = statusLower !== "checked-out";
+
+                      return (
+                        <tr
+                          key={r._id}
+                          className="hover:bg-gray-50 transition-colors"
+                        >
+                          <td className="px-4 py-3 text-sm">{i + 1}</td>
+                          <td className="px-4 py-3 text-sm">{r.FirstName}</td>
+                          <td className="px-4 py-3 text-sm">{r.LastName}</td>
+                          <td className="px-4 py-3 text-sm">
+                            {new Date(r.ArrDate).toLocaleDateString("id-ID")}
+                          </td>
+                          <td className="px-4 py-3 text-sm">
+                            {new Date(r.DeptDate).toLocaleDateString("id-ID")}
+                          </td>
+                          <td className="px-4 py-3 text-sm">
+                            {r.RoomNumber || "-"}
+                          </td>
+                          <td className="px-4 py-3 text-sm">{r.RoomType}</td>
+                          <td className="px-4 py-3 text-sm">
+                            {r.Phone || "-"}
+                          </td>
+                          <td className="px-4 py-3 text-sm">
+                            {r.NoOfPerson || "-"}
+                          </td>
+                          <td className="px-4 py-3 text-sm font-medium">
+                            {formatRoomRate(r.RoomRate, r.RoomRateCurrency)}
+                          </td>
+                          <td className="px-4 py-3 text-sm">
+                            {r.IDNumber || "-"}
+                          </td>
+                          <td className="px-4 py-3 text-sm">{r.Address}</td>
+                          <td className="px-4 py-3 text-sm">{r.Country}</td>
+                          <td className="px-4 py-3 text-sm">
+                            {r.DateOfIssue
+                              ? new Date(r.DateOfIssue).toLocaleDateString(
+                                  "id-ID"
+                                )
+                              : "-"}
+                          </td>
+                          <td className="px-4 py-3 text-sm">
+                            {r.ArrTime || "-"}
+                          </td>
+                          <td className="px-4 py-3 text-sm">
+                            {r.DeptTime || "-"}
+                          </td>
+                          <td className="px-4 py-3 text-sm">
+                            {getStatusBadge(r.status)}
+                          </td>
+                          <td className="px-4 py-3 text-sm">
+                            {r.Source || "-"}
+                          </td>
+                          <td className="px-4 py-3 text-sm max-w-xs truncate">
+                            {r.Note || "-"}
+                          </td>
+
+                          {/* Tombol Check In / Already ... */}
+                          <td className="px-4 py-3 text-sm">
+                            <Button
+                              onClick={() => {
+                                if (canCheckIn) handleCheckIn(r._id);
+                              }}
+                              size="sm"
+                              disabled={!canCheckIn}
+                              className={`text-xs px-3 py-1 whitespace-nowrap ${
+                                canCheckIn
+                                  ? "bg-blue-600 hover:bg-blue-700 text-white"
+                                  : "bg-gray-300 text-gray-600 cursor-not-allowed hover:bg-gray-300"
+                              }`}
+                            >
+                              {checkInLabel}
+                            </Button>
+                          </td>
+
+                          {/* Tombol View Details & In-House */}
+                          <td className="px-4 py-3 text-sm">
+                            <div className="flex gap-2">
+                              <Button
+                                onClick={() => handleCheckIn(r._id)}
+                                size="sm"
+                                className="bg-green-600 hover:bg-green-700 text-white text-xs px-3 py-1 whitespace-nowrap"
+                              >
+                                View Details
+                              </Button>
                               <Button
                                 onClick={() => {
-                                  if (isConfirmed) handleCheckIn(r._id);
+                                  if (!canInHouse) return;
+                                  handleInHouse(r._id);
                                 }}
                                 size="sm"
-                                disabled={!isConfirmed}
+                                disabled={!canInHouse}
                                 className={`text-xs px-3 py-1 whitespace-nowrap ${
-                                  isConfirmed
-                                    ? "bg-blue-600 hover:bg-blue-700 text-white"
+                                  canInHouse
+                                    ? "bg-teal-600 hover:bg-teal-700 text-white"
                                     : "bg-gray-300 text-gray-600 cursor-not-allowed hover:bg-gray-300"
                                 }`}
                               >
-                                {isConfirmed ? "Check In" : "Already Check In"}
+                                In-House
                               </Button>
-                            );
-                          })()}
-                        </td>
-                        <td className="px-4 py-3 text-sm">
-                          <div className="flex gap-2">
-                            <Button
-                              onClick={() => handleCheckIn(r._id)}
-                              size="sm"
-                              className="bg-green-600 hover:bg-green-700 text-white text-xs px-3 py-1 whitespace-nowrap"
-                            >
-                              View Details
-                            </Button>
-                            <Button
-                              onClick={() => handleInHouse(r._id)}
-                              size="sm"
-                              className="bg-teal-600 hover:bg-teal-700 text-white text-xs px-3 py-1 whitespace-nowrap"
-                            >
-                              In-House
-                            </Button>
-                          </div>
-                        </td>
-                      </tr>
-                    ))}
+                            </div>
+                          </td>
+                        </tr>
+                      );
+                    })}
                   </tbody>
                 </table>
               </div>
