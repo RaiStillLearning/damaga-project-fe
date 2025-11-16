@@ -85,7 +85,7 @@ const navigationOptions = [
   {
     id: "expected-arrivals",
     title: "Expected Arrivals",
-    url: "#",
+    url: "/damaga/FrontDesk/ExpectedArrival",
     iconName: "Users" as keyof typeof iconMap,
     description: "View upcoming guest arrivals",
     color: "cyan",
