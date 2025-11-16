@@ -55,7 +55,7 @@ const data = {
           title: "Expected Arrivals",
           url: "/damaga/FrontDesk/ExpectedArrival",
         },
-        { title: "In House", url: "#" },
+        { title: "In House", url: "/damaga/FrontDesk/InHouseGuest" },
         { title: "Expected Departures", url: "#" },
       ],
     },

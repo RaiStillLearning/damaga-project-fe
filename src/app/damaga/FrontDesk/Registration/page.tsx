@@ -42,7 +42,7 @@ interface RegistrationFormData {
   lastName: string;
   firstName: string;
   address: string;
-  advanceDeposit: string;
+  advanceDeposit: number;
   companyName: string;
   companyPhone: string;
   companyAddress: string;
@@ -80,7 +80,7 @@ function HotelRegistrationForm() {
     lastName: "",
     firstName: "",
     address: "",
-    advanceDeposit: "",
+    advanceDeposit: 0,
     companyName: "",
     companyPhone: "",
     companyAddress: "",
@@ -110,6 +110,13 @@ function HotelRegistrationForm() {
 
   const getCurrencySymbol = () => {
     return formData.currency === "USD" ? "$" : "Rp";
+  };
+
+  const formatAdvanceDeposit = () => {
+    if (formData.advanceDeposit === 0) return "-";
+    const symbol = getCurrencySymbol();
+    const formatted = formatNumber(formData.advanceDeposit);
+    return `${symbol} ${formatted}`;
   };
 
   const handleRoomTypeChange = (roomType: string) => {
@@ -212,9 +219,8 @@ function HotelRegistrationForm() {
         lastName: booking.LastName || booking.lastName || "",
         firstName: booking.FirstName || booking.firstName || "",
         address: booking.Address || booking.address || "",
-        advanceDeposit: toString(
-          booking.AdvanceDeposit || booking.advanceDeposit
-        ),
+        advanceDeposit:
+          Number(booking.AdvanceDeposit || booking.advanceDeposit) || 0,
         companyName: booking.CompanyName || booking.companyName || "",
         companyPhone: toString(
           booking.CompanyPhone || booking.Phone || booking.companyPhone
@@ -269,11 +275,9 @@ function HotelRegistrationForm() {
   };
 
   const buildPayload = () => {
-    // IMPORTANT: Ensure dates are in proper format
     const formatDateForAPI = (dateString: string) => {
       if (!dateString) return new Date().toISOString();
       try {
-        // If date is already in YYYY-MM-DD format, convert to ISO
         const date = new Date(dateString);
         return date.toISOString();
       } catch {
@@ -316,7 +320,7 @@ function HotelRegistrationForm() {
         ? formatDateForAPI(formData.dateOfBirth)
         : null,
       Discount: parseInt(formData.discount) || 0,
-      AdvanceDeposit: parseFloat(formData.advanceDeposit) || 0,
+      AdvanceDeposit: formData.advanceDeposit || 0,
       CompanyName: formData.companyName || "",
       CompanyPhone: formData.companyPhone || "",
       CompanyAddress: formData.companyAddress || "",
@@ -335,7 +339,6 @@ function HotelRegistrationForm() {
 
   const handleCheckInAndPrint = async () => {
     try {
-      // Validation
       if (!formData.firstName || !formData.lastName) {
         alert(
           "Please fill in guest name (First Name and Last Name are required)"
@@ -362,7 +365,6 @@ function HotelRegistrationForm() {
       const apiUrl = `${process.env.NEXT_PUBLIC_API_URL}/api/book-a-room`;
 
       if (bookingId) {
-        // Update existing booking
         console.log("📝 Updating existing booking with ID:", bookingId);
         response = await fetch(`${apiUrl}/${bookingId}`, {
           method: "PUT",
@@ -373,7 +375,6 @@ function HotelRegistrationForm() {
           body: JSON.stringify(payload),
         });
       } else {
-        // Create new booking
         console.log("✨ Creating new booking");
         response = await fetch(apiUrl, {
           method: "POST",
@@ -415,7 +416,6 @@ function HotelRegistrationForm() {
       setIsCheckedIn(true);
       setIsViewMode(true);
 
-      // Force refresh Expected Arrival page
       console.log("🔄 Preparing to redirect to Expected Arrival");
     } catch (error) {
       console.error("❌ Check-in error:", error);
@@ -437,7 +437,7 @@ function HotelRegistrationForm() {
   };
 
   const handleBack = () => {
-    router.push("/damaga/Reservation/ExpectedArrival?refresh=true");
+    router.push("/damaga/FrontDesk/ExpectedArrival?refresh=true");
   };
 
   if (isLoadingData) {
@@ -653,15 +653,34 @@ function HotelRegistrationForm() {
                   </div>
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Advance Deposit
+                      Advance Deposit ({getCurrencySymbol()})
                     </label>
-                    <Input
-                      name="advanceDeposit"
-                      value={formData.advanceDeposit}
-                      onChange={handleChange}
-                      placeholder="Amount"
-                      disabled={isViewMode}
-                    />
+                    <div className="relative">
+                      <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500 font-medium">
+                        {getCurrencySymbol()}
+                      </span>
+                      <Input
+                        name="advanceDeposit"
+                        type="text"
+                        value={
+                          formData.advanceDeposit > 0
+                            ? formatNumber(formData.advanceDeposit)
+                            : ""
+                        }
+                        onChange={(e) => {
+                          const value = e.target.value.replace(/,/g, "");
+                          if (!isNaN(Number(value)) || value === "") {
+                            setFormData({
+                              ...formData,
+                              advanceDeposit: Number(value) || 0,
+                            });
+                          }
+                        }}
+                        placeholder="Enter amount"
+                        className="pl-12"
+                        disabled={isViewMode}
+                      />
+                    </div>
                   </div>
                 </div>
               </div>
@@ -1059,7 +1078,7 @@ function HotelRegistrationForm() {
                     Advance Deposit
                   </div>
                   <div className="h-12 flex items-center justify-center text-base font-bold">
-                    {formData.advanceDeposit || "-"}
+                    {formatAdvanceDeposit()}
                   </div>
                 </td>
               </tr>

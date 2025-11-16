@@ -33,6 +33,7 @@ interface ReservationBooking {
   City: string;
   ZipCode: number;
   RoomRate: number;
+  RoomRateCurrency?: string;
   NoOfPerson: number;
   Payment: string;
   ReservationMadeBy: string;
@@ -84,7 +85,6 @@ function ExpectedArrival() {
   const [loading, setLoading] = useState(true);
   const [lastUpdate, setLastUpdate] = useState<Date>(new Date());
   const [isClient, setIsClient] = useState(false);
-  const [statusFilter, setStatusFilter] = useState<string>("all");
 
   useEffect(() => {
     fetchAllData();
@@ -125,8 +125,14 @@ function ExpectedArrival() {
       const data = await res.json();
       const bookings = Array.isArray(data) ? data : data.bookings || [];
 
-      setAllData(bookings);
-      setReservationData(bookings);
+      // Filter hanya yang status checked-in
+      const checkedInBookings = bookings.filter(
+        (booking: ReservationBooking) =>
+          booking.status?.toLowerCase() === "checked-in"
+      );
+
+      setAllData(checkedInBookings);
+      setReservationData(checkedInBookings);
       setLastUpdate(new Date());
     } catch (err: unknown) {
       console.error("Fetch error:", err);
@@ -199,9 +205,6 @@ function ExpectedArrival() {
             searchState.DeptDate;
         }
 
-        const matchesStatus =
-          statusFilter === "all" || reservation.status === statusFilter;
-
         return (
           matchesFirstName &&
           matchesLastName &&
@@ -211,8 +214,7 @@ function ExpectedArrival() {
           matchesRoomType &&
           matchesCountry &&
           matchesIDNumber &&
-          matchesCompanyName &&
-          matchesStatus
+          matchesCompanyName
         );
       });
 
@@ -246,7 +248,6 @@ function ExpectedArrival() {
       Note: "",
       CompanyName: "",
     });
-    setStatusFilter("all");
     setReservationData(allData);
   };
 
@@ -254,22 +255,30 @@ function ExpectedArrival() {
     router.push(`../FrontDesk/Registration?bookingId=${bookingId}`);
   };
 
+  const formatRoomRate = (rate: number, currency?: string) => {
+    const curr = currency || "USD";
+    const symbol = curr === "USD" ? "$" : "Rp";
+    const formattedRate = rate.toLocaleString("en-US", {
+      minimumFractionDigits: curr === "USD" ? 2 : 0,
+      maximumFractionDigits: curr === "USD" ? 2 : 0,
+    });
+    return `${symbol} ${formattedRate}`;
+  };
+
   const getStatusBadge = (status?: string) => {
-    const statusLower = (status || "pending").toLowerCase();
+    const statusLower = (status || "checked-in").toLowerCase();
     const statusConfig: Record<string, { bg: string; text: string }> = {
       "checked-in": { bg: "bg-green-100", text: "text-green-800" },
-      pending: { bg: "bg-yellow-100", text: "text-yellow-800" },
-      "checked-out": { bg: "bg-purple-100", text: "text-purple-800" },
     };
     const config = statusConfig[statusLower] || {
-      bg: "bg-gray-100",
-      text: "text-gray-800",
+      bg: "bg-green-100",
+      text: "text-green-800",
     };
     return (
       <span
         className={`px-2 py-1 rounded-full text-xs font-medium ${config.bg} ${config.text}`}
       >
-        {status || "pending"}
+        {status || "checked-in"}
       </span>
     );
   };
@@ -278,9 +287,25 @@ function ExpectedArrival() {
     <div className="p-4 sm:p-6 lg:p-8">
       <div className="w-full max-w-7xl mx-auto">
         <div className="bg-white p-6 sm:p-8 lg:p-10 rounded-lg shadow-sm border">
-          <h2 className="text-2xl sm:text-3xl font-semibold mb-6 sm:mb-8 text-sky-500">
-            Expected Arrival
-          </h2>
+          <div className="flex items-center justify-between mb-6 sm:mb-8">
+            <h2 className="text-2xl sm:text-3xl font-semibold text-sky-500">
+              Expected Arrival (Checked-In Guests)
+            </h2>
+            <div className="flex items-center gap-2 px-4 py-2 bg-green-50 rounded-lg border border-green-200">
+              <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
+              <span className="text-sm font-medium text-green-800">
+                Status: Checked-In Only
+              </span>
+            </div>
+          </div>
+
+          <div className="mb-6 p-4 bg-green-50 rounded-lg border border-green-200">
+            <p className="text-sm text-green-700">
+              <strong>ℹ️ Info:</strong> Halaman ini hanya menampilkan guest yang
+              sudah <span className="font-semibold">CHECKED-IN</span>. Guest
+              dengan status lain tidak akan ditampilkan di sini.
+            </p>
+          </div>
 
           <div className="mb-6 flex flex-col sm:flex-row items-start sm:items-center justify-between bg-sky-50 px-4 py-3 rounded-lg border border-sky-200 gap-3">
             <div className="flex items-center gap-2">
@@ -304,63 +329,6 @@ function ExpectedArrival() {
                 <RefreshCw className="w-3 h-3 mr-1" /> Refresh Now
               </Button>
             </div>
-          </div>
-
-          <div className="mb-6 bg-gradient-to-r from-sky-50 to-blue-50 p-4 rounded-lg border border-sky-200">
-            <Label className="text-sm font-medium mb-3 block text-sky-700">
-              Filter by Status
-            </Label>
-            <div className="flex flex-wrap gap-2">
-              {[
-                {
-                  value: "all",
-                  label: "All Bookings",
-                  color: "bg-gray-100 hover:bg-gray-200",
-                },
-                {
-                  value: "pending",
-                  label: "Pending",
-                  color: "bg-yellow-100 hover:bg-yellow-200 text-yellow-800",
-                },
-                {
-                  value: "checked-in",
-                  label: "Checked In",
-                  color: "bg-green-100 hover:bg-green-200 text-green-800",
-                },
-                {
-                  value: "checked-out",
-                  label: "Checked Out",
-                  color: "bg-purple-100 hover:bg-purple-200 text-purple-800",
-                },
-              ].map((status) => (
-                <button
-                  key={status.value}
-                  onClick={() => {
-                    setStatusFilter(status.value);
-                    setTimeout(handleSearch, 100);
-                  }}
-                  className={`px-4 py-2 rounded-md text-sm font-medium transition-all ${
-                    status.color
-                  } ${
-                    statusFilter === status.value
-                      ? "ring-2 ring-sky-500 shadow-md scale-105"
-                      : "opacity-70"
-                  }`}
-                >
-                  {status.label}
-                  {statusFilter === status.value && " ✓"}
-                </button>
-              ))}
-            </div>
-            <p className="text-xs text-gray-500 mt-2">
-              Currently showing:{" "}
-              <span className="font-semibold text-sky-600">
-                {statusFilter === "all"
-                  ? "All Expected Arrival"
-                  : statusFilter.charAt(0).toUpperCase() +
-                    statusFilter.slice(1)}
-              </span>
-            </p>
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5 sm:gap-6 mb-6">
@@ -430,21 +398,22 @@ function ExpectedArrival() {
 
           <div className="space-y-4">
             <h3 className="text-lg font-semibold text-gray-800">
-              Expected Arrival ({reservationData.length})
+              Checked-In Guests ({reservationData.length})
             </h3>
 
             {loading ? (
               <div className="text-center py-12 bg-gray-50 rounded-lg border-2 border-dashed">
                 <div className="w-12 h-12 mx-auto mb-3 border-4 border-sky-500 border-t-transparent rounded-full animate-spin"></div>
                 <p className="text-gray-500">
-                  Loading Expected Arrival data...
+                  Loading checked-in guests data...
                 </p>
               </div>
             ) : reservationData.length === 0 ? (
               <div className="text-center py-12 bg-gray-50 rounded-lg border-2 border-dashed">
                 <User className="w-12 h-12 mx-auto text-gray-400 mb-3" />
                 <p className="text-gray-500">
-                  No Expected Arrival records found.
+                  No checked-in guests found. All guests may have checked out or
+                  are still pending.
                 </p>
               </div>
             ) : (
@@ -496,15 +465,19 @@ function ExpectedArrival() {
                         className="hover:bg-gray-50 transition-colors"
                       >
                         <td className="px-4 py-3 text-sm">{i + 1}</td>
-                        <td className="px-4 py-3 text-sm">{r.FirstName}</td>
-                        <td className="px-4 py-3 text-sm">{r.LastName}</td>
+                        <td className="px-4 py-3 text-sm font-medium">
+                          {r.FirstName}
+                        </td>
+                        <td className="px-4 py-3 text-sm font-medium">
+                          {r.LastName}
+                        </td>
                         <td className="px-4 py-3 text-sm">
                           {new Date(r.ArrDate).toLocaleDateString("id-ID")}
                         </td>
                         <td className="px-4 py-3 text-sm">
                           {new Date(r.DeptDate).toLocaleDateString("id-ID")}
                         </td>
-                        <td className="px-4 py-3 text-sm">
+                        <td className="px-4 py-3 text-sm font-semibold">
                           {r.RoomNumber || "-"}
                         </td>
                         <td className="px-4 py-3 text-sm">{r.RoomType}</td>
@@ -512,8 +485,8 @@ function ExpectedArrival() {
                         <td className="px-4 py-3 text-sm">
                           {r.NoOfPerson || "-"}
                         </td>
-                        <td className="px-4 py-3 text-sm">
-                          {r.RoomRate || "-"}
+                        <td className="px-4 py-3 text-sm font-medium">
+                          {formatRoomRate(r.RoomRate, r.RoomRateCurrency)}
                         </td>
                         <td className="px-4 py-3 text-sm">
                           {r.IDNumber || "-"}
@@ -556,9 +529,9 @@ function ExpectedArrival() {
                           <Button
                             onClick={() => handleCheckIn(r._id)}
                             size="sm"
-                            className="bg-blue-600 hover:bg-blue-700 text-white text-xs px-3 py-1 whitespace-nowrap"
+                            className="bg-green-600 hover:bg-green-700 text-white text-xs px-3 py-1 whitespace-nowrap"
                           >
-                            {r.status === "checked-in" ? "View" : "Check In"}
+                            View Details
                           </Button>
                         </td>
                       </tr>
