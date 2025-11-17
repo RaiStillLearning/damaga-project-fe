@@ -27,12 +27,14 @@ export default function AccountPage() {
   });
   const [isLoading, setIsLoading] = useState(false);
 
+  const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
+
   // ✅ Ambil profile dari token
   useEffect(() => {
     const token = localStorage.getItem("token");
     if (!token) return router.push("/login");
 
-    fetch("http://localhost:5000/api/profile", {
+    fetch(`${API_URL}/api/profile`, {
       headers: { Authorization: `Bearer ${token}` },
     })
       .then((res) => res.json())
@@ -74,7 +76,7 @@ export default function AccountPage() {
       const token = localStorage.getItem("token");
       if (!token) return router.push("/login");
 
-      const res = await fetch("http://localhost:5000/api/profile", {
+      const res = await fetch(`${API_URL}/api/profile`,  {
         method: "PUT",
         headers: {
           "Content-Type": "application/json",
