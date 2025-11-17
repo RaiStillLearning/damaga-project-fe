@@ -149,6 +149,8 @@ export default function HomePage() {
   const [loading, setLoading] = useState(true);
   const router = useRouter();
 
+  const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
+
   useEffect(() => {
     const token = localStorage.getItem("token");
     if (!token) {
@@ -156,14 +158,14 @@ export default function HomePage() {
       return;
     }
 
-    fetch("http://localhost:5000/api/profile", {
+    fetch(`${API_URL}/api/profile`,  {
       headers: { Authorization: `Bearer ${token}` },
     })
       .then((res) => res.json())
       .then((data) => setUser(data.user))
       .catch(() => router.push("/login"));
 
-    fetch("http://localhost:5000/api/tiles", {
+    fetch(`${API_URL}/api/tiles`,  {
       headers: { Authorization: `Bearer ${token}` },
     })
       .then((res) => res.json())
@@ -191,7 +193,7 @@ export default function HomePage() {
     if (!token) return;
 
     try {
-      await fetch("http://localhost:5000/api/tiles", {
+      await fetch(`${API_URL}/api/tiles`,  {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
