@@ -1,5 +1,6 @@
 "use client";
 
+import React from "react";
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { Input } from "@/components/ui/input";
@@ -83,19 +84,23 @@ const countries = [
   { value: "vietnam", label: "Vietnam" },
 ];
 
-// Room type prices mapping
-const roomTypePrices = {
-  DSD: { USD: 75, IDR: 1200000 },
-  DST: { USD: 80, IDR: 1280000 },
-  DDD: { USD: 120, IDR: 1920000 },
-  DDT: { USD: 125, IDR: 2000000 },
-  DSDT: { USD: 200, IDR: 3200000 },
-};
+interface RoomRate {
+  _id?: string;
+  roomType: string;      // contoh: "DSD"
+  roomTypeName?: string; // contoh: "Damaga Standard Double"
+  priceUSD: number;
+  priceIDR: number;
+}
 
 export default function BookARoomForm() {
   const router = useRouter();
   const [open, setOpen] = useState(false);
   const [currency, setCurrency] = useState<"USD" | "IDR">("USD");
+
+  const [roomRates, setRoomRates] = useState<RoomRate[]>([]);
+  const [roomRateLoading, setRoomRateLoading] = useState<boolean>(false);
+  const [roomRateError, setRoomRateError] = useState<string | null>(null);
+
   const [formData, setFormData] = useState({
     FirstName: "",
     LastName: "",
@@ -126,7 +131,6 @@ export default function BookARoomForm() {
     return currency === "USD" ? "$" : "Rp";
   };
 
-  // Format number with thousand separators
   const formatNumber = (num: number) => {
     return num.toLocaleString("en-US", {
       minimumFractionDigits: currency === "USD" ? 2 : 0,
@@ -134,12 +138,18 @@ export default function BookARoomForm() {
     });
   };
 
-  // Handle room type change and auto-fill room rate
+  const getRoomRateFromBackend = (
+    roomType: string,
+    curr: "USD" | "IDR"
+  ): number => {
+    const rate = roomRates.find((r) => r.roomType === roomType);
+    if (!rate) return 0;
+    return curr === "USD" ? rate.priceUSD : rate.priceIDR;
+  };
+
   const handleRoomTypeChange = (roomType: string) => {
     setFormData((prev) => {
-      const newRoomRate =
-        roomTypePrices[roomType as keyof typeof roomTypePrices]?.[currency] ||
-        0;
+      const newRoomRate = getRoomRateFromBackend(roomType, currency);
       return {
         ...prev,
         RoomType: roomType,
@@ -148,14 +158,13 @@ export default function BookARoomForm() {
     });
   };
 
-  // Handle currency change and update room rate
   const handleCurrencyChange = (newCurrency: "USD" | "IDR") => {
     setCurrency(newCurrency);
     if (formData.RoomType) {
-      const newRoomRate =
-        roomTypePrices[formData.RoomType as keyof typeof roomTypePrices]?.[
-          newCurrency
-        ] || 0;
+      const newRoomRate = getRoomRateFromBackend(
+        formData.RoomType,
+        newCurrency
+      );
       setFormData((prev) => ({
         ...prev,
         RoomRate: newRoomRate,
@@ -207,7 +216,7 @@ export default function BookARoomForm() {
         RoomRateCurrency: currency,
         NumberOfPerson: Number(formData.NumberOfPerson) || 1,
         Fax: formData.Fax?.toString() || "",
-        status: "confirmed", // Set status to confirmed
+        status: "confirmed",
         Source: "Book A Room Form",
       };
 
@@ -226,14 +235,12 @@ export default function BookARoomForm() {
         throw new Error(data.message || `Error: ${res.status}`);
       }
 
-      // Success alert with better UI
       alert(
         `✅ Booking berhasil dikonfirmasi!\n\nGuest: ${formData.FirstName} ${formData.LastName}\nRoom: ${formData.RoomType} - ${formData.NoOfRoom}\nStatus: Confirmed\n\nBooking akan muncul di Reservation History.`
       );
 
       console.log("Response:", data);
 
-      // Reset form
       setFormData({
         FirstName: "",
         LastName: "",
@@ -255,11 +262,10 @@ export default function BookARoomForm() {
         Payment: "",
         ReservationMadeBy: "Direct",
         Request: "None",
-        Clerk: formData.Clerk, // Keep clerk name
+        Clerk: formData.Clerk,
       });
       setCurrency("USD");
 
-      // Optional: Redirect to Reservation History after 2 seconds
       setTimeout(() => {
         const confirmRedirect = confirm(
           "Apakah Anda ingin melihat booking di Reservation History?"
@@ -288,6 +294,42 @@ export default function BookARoomForm() {
         }));
       } catch {}
     }
+  }, []);
+
+  useEffect(() => {
+    const fetchRoomRates = async () => {
+      setRoomRateLoading(true);
+      setRoomRateError(null);
+
+      try {
+        const res = await fetch(
+          `${process.env.NEXT_PUBLIC_API_URL}/api/room-rates`,
+          {
+            method: "GET",
+            headers: { "Content-Type": "application/json" },
+          }
+        );
+
+        if (!res.ok) {
+          throw new Error("Failed to fetch room rates");
+        }
+
+        const data = await res.json();
+
+        const rates: RoomRate[] = Array.isArray(data)
+          ? data
+          : data.rates || [];
+
+        setRoomRates(rates);
+      } catch (err) {
+        console.error("Error fetching room rates:", err);
+        setRoomRateError("Gagal mengambil data room rate dari server.");
+      } finally {
+        setRoomRateLoading(false);
+      }
+    };
+
+    fetchRoomRates();
   }, []);
 
   return (
@@ -387,7 +429,7 @@ export default function BookARoomForm() {
               />
             </div>
 
-            {/* Country - Searchable Dropdown */}
+            {/* Country */}
             <div className="w-full">
               <Label className="text-sm font-medium mb-2 block text-sky-500">
                 Country *
@@ -675,13 +717,20 @@ export default function BookARoomForm() {
                       });
                     }
                   }}
-                  placeholder="Select room type first"
+                  placeholder={
+                    roomRateLoading
+                      ? "Loading room rates..."
+                      : "Select room type first"
+                  }
                   className="w-full h-10 pl-12"
                 />
               </div>
-              {formData.RoomType && (
+              {roomRateError && (
+                <p className="text-xs text-red-500 mt-1">{roomRateError}</p>
+              )}
+              {formData.RoomType && !roomRateError && (
                 <p className="text-xs text-gray-500 mt-1">
-                  Auto-filled based on room type
+                  Auto-filled based on latest room rate
                 </p>
               )}
             </div>

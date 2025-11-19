@@ -93,7 +93,7 @@ const navigationOptions = [
   {
     id: "in-house",
     title: "In House",
-    url: "#",
+    url: "/damaga/FrontDesk/InHouseGuest",
     iconName: "Users" as keyof typeof iconMap,
     description: "View currently checked-in guests",
     color: "teal",
@@ -101,7 +101,7 @@ const navigationOptions = [
   {
     id: "expected-departures",
     title: "Expected Departures",
-    url: "#",
+    url: "/damaga/FrontDesk/ExpectedDeparture",
     iconName: "Users" as keyof typeof iconMap,
     description: "View upcoming guest departures",
     color: "amber",
@@ -109,7 +109,7 @@ const navigationOptions = [
   {
     id: "availability",
     title: "Availability",
-    url: "#",
+    url: "/damaga/admin/Inventory/Avaibility",
     iconName: "Box" as keyof typeof iconMap,
     description: "Check room availability",
     color: "pink",
@@ -117,10 +117,18 @@ const navigationOptions = [
   {
     id: "room-status",
     title: "Room Status",
-    url: "#",
+    url: "/damaga/admin/Inventory/RoomStatus",
     iconName: "Box" as keyof typeof iconMap,
     description: "View room status and housekeeping",
     color: "rose",
+  },
+  {
+    id: "room-rate",
+    title: "Room Rate",
+    url: "/damaga/admin/Inventory/RoomRate",
+    iconName: "Box" as keyof typeof iconMap,
+    description: "View room status and housekeeping",
+    color: "cyan",
   },
   {
     id: "financial",
@@ -141,8 +149,15 @@ type TileSlot = {
   color: string;
 } | null;
 
+type User = {
+  username?: string;
+  role?: string;
+  divisi?: string;
+};
+
 export default function HomePage() {
-  const [user, setUser] = useState<{ username?: string } | null>(null);
+  const [user, setUser] = useState<User | null>(null);
+  const [isAdmin, setIsAdmin] = useState(false);
   const [open, setOpen] = useState(false);
   const [selectedSlot, setSelectedSlot] = useState<number | null>(null);
   const [tiles, setTiles] = useState<TileSlot[]>(Array(6).fill(null));
@@ -151,6 +166,8 @@ export default function HomePage() {
 
   const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
 
+  const RESTRICTED_IDS = ["availability", "room-status"];
+
   useEffect(() => {
     const token = localStorage.getItem("token");
     if (!token) {
@@ -158,20 +175,49 @@ export default function HomePage() {
       return;
     }
 
-    fetch(`${API_URL}/api/profile`,  {
+    // Ambil profile dari API
+    fetch(`${API_URL}/api/profile`, {
       headers: { Authorization: `Bearer ${token}` },
     })
       .then((res) => res.json())
-      .then((data) => setUser(data.user))
-      .catch(() => router.push("/login"));
+      .then((data) => {
+        const u: User = data.user || {};
+        setUser(u);
 
-    fetch(`${API_URL}/api/tiles`,  {
+        const roleFromProfile = (u.role || u.divisi || "").toLowerCase();
+
+        if (roleFromProfile) {
+          setIsAdmin(roleFromProfile === "admin");
+        } else {
+          // fallback ke localStorage user (seperti di komponen lain)
+          const storedUser = localStorage.getItem("user");
+          if (storedUser) {
+            try {
+              const parsed = JSON.parse(storedUser);
+              const roleFromLocal = (
+                parsed.role ||
+                parsed.divisi ||
+                ""
+              ).toLowerCase();
+              setIsAdmin(roleFromLocal === "admin");
+            } catch {
+              setIsAdmin(false);
+            }
+          }
+        }
+      })
+      .catch(() => {
+        router.push("/login");
+      });
+
+    // Ambil tiles
+    fetch(`${API_URL}/api/tiles`, {
       headers: { Authorization: `Bearer ${token}` },
     })
       .then((res) => res.json())
       .then((data) => {
         const serverTiles = data.tiles || [];
-        const tilesArray = Array(6).fill(null);
+        const tilesArray: TileSlot[] = Array(6).fill(null);
 
         serverTiles.forEach((tile: TileSlot, index: number) => {
           if (index < 6 && tile && iconMap[tile.iconName]) {
@@ -186,20 +232,28 @@ export default function HomePage() {
         setTiles(Array(6).fill(null));
         setLoading(false);
       });
-  }, [router]);
+  }, [router, API_URL]);
 
   const saveTilesToServer = async (newTiles: TileSlot[]) => {
     const token = localStorage.getItem("token");
     if (!token) return;
 
+    // Jika bukan admin, jangan kirim shortcut yang restricted
+    const safeTiles = newTiles.map((tile) => {
+      if (!isAdmin && tile && RESTRICTED_IDS.includes(tile.id)) {
+        return null;
+      }
+      return tile;
+    });
+
     try {
-      await fetch(`${API_URL}/api/tiles`,  {
+      await fetch(`${API_URL}/api/tiles`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
           Authorization: `Bearer ${token}`,
         },
-        body: JSON.stringify({ tiles: newTiles }),
+        body: JSON.stringify({ tiles: safeTiles }),
       });
     } catch (error) {
       console.error("Error saving tiles:", error);
@@ -213,6 +267,11 @@ export default function HomePage() {
 
   const handleSelectNavigation = (option: (typeof navigationOptions)[0]) => {
     if (selectedSlot === null) return;
+
+    // Safety: kalau bukan admin & mencoba pilih restricted, abaikan
+    if (!isAdmin && RESTRICTED_IDS.includes(option.id)) {
+      return;
+    }
 
     const newTiles = [...tiles];
     newTiles[selectedSlot] = option;
@@ -337,6 +396,14 @@ export default function HomePage() {
     );
   }
 
+  // Filter navigation options di dialog: non-admin tidak bisa lihat Availability & Room Status
+  const selectableNavigationOptions = navigationOptions.filter((option) => {
+    if (!isAdmin && RESTRICTED_IDS.includes(option.id)) {
+      return false;
+    }
+    return true;
+  });
+
   return (
     <div className="w-full max-w-7xl mx-auto">
       <div className="mb-8">
@@ -388,9 +455,18 @@ export default function HomePage() {
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
         {tiles.map((tile, index) => {
-          if (tile) {
-            const IconComponent = iconMap[tile.iconName];
-            const colors = getColorClasses(tile.color);
+          // Non-admin tidak boleh lihat tile Availability & Room Status
+          const effectiveTile =
+            !isAdmin &&
+            tile &&
+            tile.id &&
+            (tile.id === "availability" || tile.id === "room-status")
+              ? null
+              : tile;
+
+          if (effectiveTile) {
+            const IconComponent = iconMap[effectiveTile.iconName];
+            const colors = getColorClasses(effectiveTile.color);
 
             if (!IconComponent) {
               return null;
@@ -400,7 +476,7 @@ export default function HomePage() {
               <div
                 key={index}
                 className={`relative group ${colors.bg} p-6 rounded-lg shadow-sm border-2 border-transparent ${colors.border} transition-all duration-200 cursor-pointer`}
-                onClick={() => handleNavigateToTile(tile.url)}
+                onClick={() => handleNavigateToTile(effectiveTile.url)}
               >
                 <button
                   onClick={(e) => {
@@ -421,20 +497,22 @@ export default function HomePage() {
                   </div>
                   <div className="flex-1">
                     <h3 className={`text-lg font-semibold mb-1 ${colors.text}`}>
-                      {tile.title}
+                      {effectiveTile.title}
                     </h3>
-                    <p className="text-sm text-gray-600">{tile.description}</p>
+                    <p className="text-sm text-gray-600">
+                      {effectiveTile.description}
+                    </p>
                   </div>
                 </div>
 
-                {tile.url !== "#" && (
+                {effectiveTile.url !== "#" && (
                   <div className="flex items-center gap-2 mt-4 text-sm font-medium text-gray-700 group-hover:text-blue-600 transition-colors">
                     <span>Open</span>
                     <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" />
                   </div>
                 )}
 
-                {tile.url === "#" && (
+                {effectiveTile.url === "#" && (
                   <span className="inline-block mt-4 text-xs bg-gray-200 text-gray-600 px-2 py-1 rounded">
                     Coming Soon
                   </span>
@@ -443,6 +521,7 @@ export default function HomePage() {
             );
           }
 
+          // Slot kosong → Add Tile
           return (
             <button
               key={index}
@@ -474,7 +553,7 @@ export default function HomePage() {
           </DialogHeader>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mt-4 max-h-96 overflow-y-auto pr-2">
-            {navigationOptions.map((option) => {
+            {selectableNavigationOptions.map((option) => {
               const IconComponent = iconMap[option.iconName];
               const colors = getColorClasses(option.color);
               const isAlreadyAdded = tiles.some(

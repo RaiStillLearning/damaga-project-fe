@@ -79,6 +79,7 @@ const adminNav = [
     items: [
       { title: "Availability", url: "/damaga/admin/Inventory/Avaibility" },
       { title: "Room Status", url: "/damaga/admin/Inventory/RoomStatus" },
+      { title: "Room Rate", url: "/damaga/admin/Inventory/RoomRate" },
     ],
   },
 ];

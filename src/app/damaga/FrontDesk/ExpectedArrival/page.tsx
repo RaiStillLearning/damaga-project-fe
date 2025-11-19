@@ -332,7 +332,7 @@ function ReservationHistory() {
       <div className="w-full max-w-7xl mx-auto">
         <div className="bg-white p-6 sm:p-8 lg:p-10 rounded-lg shadow-sm border">
           <h2 className="text-2xl sm:text-3xl font-semibold mb-6 sm:mb-8 text-sky-500">
-            Reservation History
+            Expected Arrival
           </h2>
 
           {/* Auto Refresh Info */}
@@ -507,13 +507,13 @@ function ReservationHistory() {
           {/* Table Result */}
           <div className="space-y-4">
             <h3 className="text-lg font-semibold text-gray-800">
-              Reservation Records ({reservationData.length})
+              Expected Arival Records ({reservationData.length})
             </h3>
 
             {loading ? (
               <div className="text-center py-12 bg-gray-50 rounded-lg border-2 border-dashed">
                 <div className="w-12 h-12 mx-auto mb-3 border-4 border-sky-500 border-t-transparent rounded-full animate-spin"></div>
-                <p className="text-gray-500">Loading reservation data...</p>
+                <p className="text-gray-500">Loading Expected Arrival data...</p>
               </div>
             ) : reservationData.length === 0 ? (
               <div className="text-center py-12 bg-gray-50 rounded-lg border-2 border-dashed">
