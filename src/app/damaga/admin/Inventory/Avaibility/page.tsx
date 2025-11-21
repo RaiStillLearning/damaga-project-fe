@@ -18,6 +18,7 @@ import { useRouter } from "next/navigation";
 interface RoomBooking {
   _id: string;
   RoomNumber?: string;
+  NoOfRoom?: string | number; // fallback
   RoomType: string;
   ArrDate: string;
   DeptDate: string;
@@ -39,6 +40,16 @@ interface RoomCalendar {
   roomType: string;
   days: CalendarCell[];
 }
+
+// 🔧 Helper: parse "YYYY-MM-DD" atau ISO string jadi Date tanpa masalah timezone
+const parseDateOnly = (dateStr: string): Date => {
+  if (!dateStr) return new Date(NaN);
+
+  // Ambil bagian tanggal saja
+  const raw = dateStr.split("T")[0]; // "2025-01-20"
+  const [y, m, d] = raw.split("-").map((v) => Number(v));
+  return new Date(y, m - 1, d); // local date, jam 00:00 tanpa geser timezone
+};
 
 export default function AvailabilityCalendar() {
   const router = useRouter();
@@ -66,39 +77,12 @@ export default function AvailabilityCalendar() {
         setUserRole(parsed.role || parsed.divisi || "");
       } catch (error) {
         console.error("Failed to parse user");
+        console.log(error);
       }
     }
   }, []);
 
-  useEffect(() => {
-    fetchBookingData();
-  }, []);
-
-  const fetchBookingData = async () => {
-    setLoading(true);
-    try {
-      const res = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL}/api/book-a-room`,
-        {
-          method: "GET",
-          headers: { "Content-Type": "application/json" },
-        }
-      );
-
-      if (!res.ok) throw new Error(`HTTP error! status: ${res.status}`);
-
-      const data = await res.json();
-      const bookingData = Array.isArray(data) ? data : data.bookings || [];
-      setBookings(bookingData);
-    } catch (error) {
-      console.error("Fetch error:", error);
-      alert("Failed to load data");
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const generateCalendar = () => {
+  const generateCalendar = (sourceBookings: RoomBooking[] = bookings) => {
     let startDate: Date;
     let endDate: Date;
 
@@ -154,17 +138,37 @@ export default function AvailabilityCalendar() {
       const currentDate = new Date(startDate);
 
       while (currentDate <= endDate) {
-        const dateStr = currentDate.toISOString().split("T")[0];
-
         // Find booking for this room and date
-        const booking = bookings.find((b) => {
-          if (b.RoomNumber !== room.number) return false;
-          if (b.status !== "checked-in") return false;
+        const booking = sourceBookings.find((b) => {
+          // Pakai RoomNumber terlebih dahulu, lalu fallback ke NoOfRoom
+          const roomNum =
+            b.RoomNumber ??
+            (b.NoOfRoom !== undefined && b.NoOfRoom !== null
+              ? String(b.NoOfRoom)
+              : undefined);
 
-          const arrDate = new Date(b.ArrDate);
-          const deptDate = new Date(b.DeptDate);
+          if (roomNum !== room.number) return false;
 
+          // Tampilkan booking dengan status confirmed & checked-in.
+          // Kalau status kosong, dianggap valid juga.
+          if (
+            b.status &&
+            !["confirmed", "checked-in"].includes(b.status.toLowerCase())
+          ) {
+            return false;
+          }
+
+          const arrDate = parseDateOnly(b.ArrDate);
+          const deptDate = parseDateOnly(b.DeptDate);
+
+          if (isNaN(arrDate.getTime()) || isNaN(deptDate.getTime())) {
+            return false;
+          }
+
+          // Di sini masih pakai <= untuk mempertahankan behavior lama
           return currentDate >= arrDate && currentDate <= deptDate;
+          // Kalau mau hari checkout dianggap kosong, pakai:
+          // return currentDate >= arrDate && currentDate < deptDate;
         });
 
         const cell: CalendarCell = {
@@ -172,8 +176,8 @@ export default function AvailabilityCalendar() {
         };
 
         if (booking) {
-          const arrDate = new Date(booking.ArrDate);
-          const deptDate = new Date(booking.DeptDate);
+          const arrDate = parseDateOnly(booking.ArrDate);
+          const deptDate = parseDateOnly(booking.DeptDate);
 
           cell.guestName = `${booking.FirstName} ${booking.LastName}`;
           cell.isCheckIn =
@@ -197,13 +201,42 @@ export default function AvailabilityCalendar() {
     setCalendar(roomCalendars);
   };
 
-  useEffect(() => {
-    if (bookings.length > 0) {
-      generateCalendar();
+  const fetchBookingData = async () => {
+    setLoading(true);
+    try {
+      const res = await fetch(
+        `${process.env.NEXT_PUBLIC_API_URL}/api/book-a-room`,
+        {
+          method: "GET",
+          headers: { "Content-Type": "application/json" },
+        }
+      );
+
+      if (!res.ok) throw new Error(`HTTP error! status: ${res.status}`);
+
+      const data = await res.json();
+      const bookingData: RoomBooking[] = Array.isArray(data)
+        ? data
+        : data.bookings || [];
+      setBookings(bookingData);
+
+      // 🔹 Generate calendar langsung setelah data berhasil di-load
+      generateCalendar(bookingData);
+    } catch (error) {
+      console.error("Fetch error:", error);
+      alert("Failed to load data");
+    } finally {
+      setLoading(false);
     }
-  }, [bookings, filters, viewMode]);
+  };
+
+  // Load data di awal
+  useEffect(() => {
+    fetchBookingData();
+  }, []);
 
   const handleSort = () => {
+    // 🔹 Saat klik SORT, pakai state bookings terkini
     generateCalendar();
   };
 
@@ -450,7 +483,7 @@ export default function AvailabilityCalendar() {
 
                           if (day.isOccupied) {
                             if (day.isCheckIn) {
-                              bgColor = "bg-yellow-300";
+                              bgColor = "bg-blue-300";
                               textColor = "text-gray-900";
                               content = day.guestName || "";
                             } else if (day.isCheckOut) {
@@ -491,7 +524,7 @@ export default function AvailabilityCalendar() {
         {/* Legend */}
         <div className="mt-4 flex gap-6 justify-center flex-wrap">
           <div className="flex items-center gap-2">
-            <div className="w-8 h-8 bg-yellow-300 border-2 border-gray-400"></div>
+            <div className="w-8 h-8 bg-blue-300 border-2 border-gray-400"></div>
             <span className="text-sm font-medium text-gray-700">Check-in</span>
           </div>
           <div className="flex items-center gap-2">

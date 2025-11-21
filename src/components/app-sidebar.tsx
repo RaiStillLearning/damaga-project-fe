@@ -67,7 +67,7 @@ const commonNav = [
     ],
   },
 
-  { title: "Financial", url: "#", icon: ChartNoAxesCombined },
+  { title: "Financial", url: "/damaga/Financial", icon: ChartNoAxesCombined },
 ];
 
 // 👇 Menu khusus admin

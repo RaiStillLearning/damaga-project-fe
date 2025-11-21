@@ -16,15 +16,16 @@ import { Home, XCircle } from "lucide-react";
 import { useRouter } from "next/navigation";
 
 interface Room {
-  number: string;
-  type: string;
-  floor: string;
-  status: string;
+  roomNumber: string;
+  roomType: string;
+  floor: number; // dari backend number
+  status: string; // VD, VC, VCI, OD, OC, OS, OO
 }
 
 export default function RoomStatusPage() {
   const router = useRouter();
   const [userRole, setUserRole] = useState<string>("");
+
   const [allRooms, setAllRooms] = useState<Room[]>([]);
   const [filteredRooms, setFilteredRooms] = useState<Room[]>([]);
 
@@ -34,7 +35,10 @@ export default function RoomStatusPage() {
     status: "",
   });
 
-  // Check user role
+  const [loading, setLoading] = useState(false);
+  const [updatingRoom, setUpdatingRoom] = useState<string | null>(null); // room yg sedang di-update
+
+  // 🔐 Check user role
   useEffect(() => {
     const storedUser = localStorage.getItem("user");
     if (storedUser) {
@@ -47,62 +51,60 @@ export default function RoomStatusPage() {
     }
   }, []);
 
+  // 🔄 Fetch rooms from backend
   useEffect(() => {
-    initializeRooms();
+    fetchRoomsFromBackend();
   }, []);
 
-  const initializeRooms = () => {
-    const rooms: Room[] = [
-      // Floor 2
-      { number: "201", type: "DSD", floor: "2", status: "VD" },
-      { number: "202", type: "DST", floor: "2", status: "VD" },
-      { number: "203", type: "DDD", floor: "2", status: "VC" },
-      { number: "204", type: "DDT", floor: "2", status: "VCI" },
-      { number: "205", type: "DSTD", floor: "2", status: "OD" },
-      { number: "206", type: "DSTT", floor: "2", status: "OC" },
-      { number: "207", type: "DDT", floor: "2", status: "VC" },
-      { number: "208", type: "DSTD", floor: "2", status: "VCI" },
-      { number: "209", type: "DSTT", floor: "2", status: "OD" },
-      { number: "210", type: "DSTT", floor: "2", status: "OC" },
+  const fetchRoomsFromBackend = async () => {
+    setLoading(true);
+    try {
+      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/rooms`, {
+        method: "GET",
+        headers: { "Content-Type": "application/json" },
+        cache: "no-store",
+      });
 
-      // Floor 3
-      { number: "301", type: "DSD", floor: "3", status: "VD" },
-      { number: "302", type: "DST", floor: "3", status: "VD" },
-      { number: "303", type: "DDD", floor: "3", status: "VC" },
-      { number: "304", type: "DDT", floor: "3", status: "VCI" },
-      { number: "305", type: "DSTD", floor: "3", status: "OD" },
-      { number: "306", type: "DSTT", floor: "3", status: "OC" },
-      { number: "307", type: "DDT", floor: "3", status: "VC" },
-      { number: "308", type: "DSTD", floor: "3", status: "VCI" },
-      { number: "309", type: "DSTT", floor: "3", status: "OD" },
-      { number: "310", type: "DSTT", floor: "3", status: "OC" },
+      if (!res.ok) {
+        throw new Error(`HTTP error! status: ${res.status}`);
+      }
 
-      // Floor 4
-      { number: "401", type: "DSD", floor: "4", status: "OD" },
-      { number: "402", type: "DST", floor: "4", status: "VD" },
-      { number: "403", type: "DDD", floor: "4", status: "VC" },
-      { number: "404", type: "DDT", floor: "4", status: "VCI" },
-      { number: "405", type: "DSTD", floor: "4", status: "OD" },
-      { number: "406", type: "DSTT", floor: "4", status: "OC" },
-      { number: "407", type: "DDT", floor: "4", status: "VC" },
-      { number: "408", type: "DSTD", floor: "4", status: "VCI" },
-      { number: "409", type: "DSTT", floor: "4", status: "OD" },
-      { number: "410", type: "DSTT", floor: "4", status: "OC" },
-    ];
+      const data = await res.json();
 
-    setAllRooms(rooms);
-    setFilteredRooms(rooms);
+      console.log("🔎 /api/rooms response:", data);
+
+      const rooms: Room[] = Array.isArray(data) ? data : data.rooms || [];
+
+      const normalizedRooms = rooms.map((r) => ({
+        ...r,
+        floor: typeof r.floor === "string" ? Number(r.floor) : r.floor,
+      }));
+
+      console.log("✅ normalizedRooms:", normalizedRooms);
+
+      setAllRooms(normalizedRooms);
+      setFilteredRooms(normalizedRooms);
+    } catch (err) {
+      console.error("Error fetching rooms:", err);
+      alert("Gagal mengambil data room status dari server.");
+    } finally {
+      setLoading(false);
+    }
   };
 
   const handleSort = () => {
     let filtered = [...allRooms];
 
     if (filters.roomType) {
-      filtered = filtered.filter((room) => room.type === filters.roomType);
+      filtered = filtered.filter(
+        (room) => room.roomType.toLowerCase() === filters.roomType.toLowerCase()
+      );
     }
 
     if (filters.floor) {
-      filtered = filtered.filter((room) => room.floor === filters.floor);
+      filtered = filtered.filter(
+        (room) => room.floor === Number(filters.floor)
+      );
     }
 
     if (filters.status) {
@@ -121,7 +123,7 @@ export default function RoomStatusPage() {
     setFilteredRooms(allRooms);
   };
 
-  const getRoomsByFloor = (floor: string) => {
+  const getRoomsByFloor = (floor: number) => {
     return filteredRooms.filter((room) => room.floor === floor);
   };
 
@@ -138,7 +140,63 @@ export default function RoomStatusPage() {
     return statusMap[code] || code;
   };
 
-  // Check if user is admin
+  // 🔁 Update status kamar ke backend
+  const handleUpdateStatus = async (roomNumber: string, newStatus: string) => {
+    try {
+      setUpdatingRoom(roomNumber);
+
+      const res = await fetch(
+        `${process.env.NEXT_PUBLIC_API_URL}/api/rooms/${roomNumber}`,
+        {
+          method: "PUT",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({ status: newStatus }),
+        }
+      );
+
+      if (!res.ok) {
+        const text = await res.text();
+        console.error("Update error:", text);
+        throw new Error(`Failed to update status (${res.status})`);
+      }
+
+      const updated = await res.json();
+
+      // update di allRooms
+      setAllRooms((prev) =>
+        prev.map((r) =>
+          r.roomNumber === updated.roomNumber
+            ? { ...r, status: updated.status }
+            : r
+        )
+      );
+
+      // update di filteredRooms
+      setFilteredRooms((prev) =>
+        prev.map((r) =>
+          r.roomNumber === updated.roomNumber
+            ? { ...r, status: updated.status }
+            : r
+        )
+      );
+
+      // optional: kasih notifikasi
+      alert(
+        `✅ Room ${roomNumber} status berhasil diubah menjadi ${newStatus} (${getStatusLabel(
+          newStatus
+        )})`
+      );
+    } catch (err) {
+      console.error("Error updating room status:", err);
+      alert("❌ Gagal update status kamar. Coba lagi.");
+    } finally {
+      setUpdatingRoom(null);
+    }
+  };
+
+  // ❌ Kalau bukan admin
   if (userRole.toLowerCase() !== "admin") {
     return (
       <div className="min-h-screen flex items-center justify-center p-4">
@@ -168,6 +226,10 @@ export default function RoomStatusPage() {
             <h1 className="text-3xl font-bold text-blue-900 mb-2">
               ROOM STATUS
             </h1>
+            <p className="text-sm text-gray-500">
+              Menampilkan semua kamar berdasarkan data di backend (collection{" "}
+              <span className="font-semibold">rooms</span>).
+            </p>
           </div>
           <Button
             variant="outline"
@@ -187,6 +249,11 @@ export default function RoomStatusPage() {
                 <Label className="text-sm font-semibold mb-2 block text-blue-900">
                   Sort by :
                 </Label>
+                {loading && (
+                  <p className="text-xs text-gray-500">
+                    Loading rooms from server...
+                  </p>
+                )}
               </div>
               <div>
                 <Label className="text-sm font-semibold mb-2 block text-blue-900">
@@ -253,10 +320,16 @@ export default function RoomStatusPage() {
               <Button
                 onClick={handleSort}
                 className="bg-blue-600 hover:bg-blue-700 text-white px-8"
+                disabled={loading}
               >
                 SORT
               </Button>
-              <Button onClick={handleClear} variant="outline" className="px-8">
+              <Button
+                onClick={handleClear}
+                variant="outline"
+                className="px-8"
+                disabled={loading}
+              >
                 CLEAR
               </Button>
             </div>
@@ -272,7 +345,7 @@ export default function RoomStatusPage() {
                 <thead>
                   <tr className="bg-blue-200">
                     <th className="border-2 border-blue-400 p-3 text-left font-bold text-blue-900 text-sm">
-                      ROOM NUMBER
+                      ROOM NUMBER (2F)
                     </th>
                     <th className="border-2 border-blue-400 p-3 text-left font-bold text-blue-900 text-sm">
                       ROOM TYPE
@@ -283,21 +356,62 @@ export default function RoomStatusPage() {
                   </tr>
                 </thead>
                 <tbody>
-                  {getRoomsByFloor("2").map((room) => (
-                    <tr key={room.number} className="hover:bg-blue-50">
+                  {getRoomsByFloor(2).map((room) => (
+                    <tr key={room.roomNumber} className="hover:bg-blue-50">
                       <td className="border border-blue-200 p-3 text-center font-semibold text-gray-800">
-                        {room.number}
+                        {room.roomNumber}
                       </td>
                       <td className="border border-blue-200 p-3 text-center text-gray-700">
-                        {room.type}
+                        {room.roomType}
                       </td>
                       <td className="border border-blue-200 p-3 text-center font-medium text-gray-800">
-                        <span title={getStatusLabel(room.status)}>
-                          {room.status}
-                        </span>
+                        <Select
+                          value={room.status}
+                          onValueChange={(val) =>
+                            handleUpdateStatus(room.roomNumber, val)
+                          }
+                          disabled={updatingRoom === room.roomNumber}
+                        >
+                          <SelectTrigger className="h-8 text-xs justify-center">
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="VD">
+                              VD - Vacant Dirty
+                            </SelectItem>
+                            <SelectItem value="VC">
+                              VC - Vacant Clean
+                            </SelectItem>
+                            <SelectItem value="VCI">
+                              VCI - Vacant Clean Inspected
+                            </SelectItem>
+                            <SelectItem value="OD">
+                              OD - Occupied Dirty
+                            </SelectItem>
+                            <SelectItem value="OC">
+                              OC - Occupied Clean
+                            </SelectItem>
+                            <SelectItem value="OS">
+                              OS - Out of Service
+                            </SelectItem>
+                            <SelectItem value="OO">
+                              OO - Out of Order
+                            </SelectItem>
+                          </SelectContent>
+                        </Select>
                       </td>
                     </tr>
                   ))}
+                  {getRoomsByFloor(2).length === 0 && !loading && (
+                    <tr>
+                      <td
+                        colSpan={3}
+                        className="border border-blue-200 p-3 text-center text-sm text-gray-500"
+                      >
+                        No rooms on this floor / filter.
+                      </td>
+                    </tr>
+                  )}
                 </tbody>
               </table>
             </CardContent>
@@ -310,7 +424,7 @@ export default function RoomStatusPage() {
                 <thead>
                   <tr className="bg-blue-200">
                     <th className="border-2 border-blue-400 p-3 text-left font-bold text-blue-900 text-sm">
-                      ROOM NUMBER
+                      ROOM NUMBER (3F)
                     </th>
                     <th className="border-2 border-blue-400 p-3 text-left font-bold text-blue-900 text-sm">
                       ROOM TYPE
@@ -321,21 +435,62 @@ export default function RoomStatusPage() {
                   </tr>
                 </thead>
                 <tbody>
-                  {getRoomsByFloor("3").map((room) => (
-                    <tr key={room.number} className="hover:bg-blue-50">
+                  {getRoomsByFloor(3).map((room) => (
+                    <tr key={room.roomNumber} className="hover:bg-blue-50">
                       <td className="border border-blue-200 p-3 text-center font-semibold text-gray-800">
-                        {room.number}
+                        {room.roomNumber}
                       </td>
                       <td className="border border-blue-200 p-3 text-center text-gray-700">
-                        {room.type}
+                        {room.roomType}
                       </td>
                       <td className="border border-blue-200 p-3 text-center font-medium text-gray-800">
-                        <span title={getStatusLabel(room.status)}>
-                          {room.status}
-                        </span>
+                        <Select
+                          value={room.status}
+                          onValueChange={(val) =>
+                            handleUpdateStatus(room.roomNumber, val)
+                          }
+                          disabled={updatingRoom === room.roomNumber}
+                        >
+                          <SelectTrigger className="h-8 text-xs justify-center">
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="VD">
+                              VD - Vacant Dirty
+                            </SelectItem>
+                            <SelectItem value="VC">
+                              VC - Vacant Clean
+                            </SelectItem>
+                            <SelectItem value="VCI">
+                              VCI - Vacant Clean Inspected
+                            </SelectItem>
+                            <SelectItem value="OD">
+                              OD - Occupied Dirty
+                            </SelectItem>
+                            <SelectItem value="OC">
+                              OC - Occupied Clean
+                            </SelectItem>
+                            <SelectItem value="OS">
+                              OS - Out of Service
+                            </SelectItem>
+                            <SelectItem value="OO">
+                              OO - Out of Order
+                            </SelectItem>
+                          </SelectContent>
+                        </Select>
                       </td>
                     </tr>
                   ))}
+                  {getRoomsByFloor(3).length === 0 && !loading && (
+                    <tr>
+                      <td
+                        colSpan={3}
+                        className="border border-blue-200 p-3 text-center text-sm text-gray-500"
+                      >
+                        No rooms on this floor / filter.
+                      </td>
+                    </tr>
+                  )}
                 </tbody>
               </table>
             </CardContent>
@@ -348,7 +503,7 @@ export default function RoomStatusPage() {
                 <thead>
                   <tr className="bg-blue-200">
                     <th className="border-2 border-blue-400 p-3 text-left font-bold text-blue-900 text-sm">
-                      ROOM NUMBER
+                      ROOM NUMBER (4F)
                     </th>
                     <th className="border-2 border-blue-400 p-3 text-left font-bold text-blue-900 text-sm">
                       ROOM TYPE
@@ -359,21 +514,62 @@ export default function RoomStatusPage() {
                   </tr>
                 </thead>
                 <tbody>
-                  {getRoomsByFloor("4").map((room) => (
-                    <tr key={room.number} className="hover:bg-blue-50">
+                  {getRoomsByFloor(4).map((room) => (
+                    <tr key={room.roomNumber} className="hover:bg-blue-50">
                       <td className="border border-blue-200 p-3 text-center font-semibold text-gray-800">
-                        {room.number}
+                        {room.roomNumber}
                       </td>
                       <td className="border border-blue-200 p-3 text-center text-gray-700">
-                        {room.type}
+                        {room.roomType}
                       </td>
                       <td className="border border-blue-200 p-3 text-center font-medium text-gray-800">
-                        <span title={getStatusLabel(room.status)}>
-                          {room.status}
-                        </span>
+                        <Select
+                          value={room.status}
+                          onValueChange={(val) =>
+                            handleUpdateStatus(room.roomNumber, val)
+                          }
+                          disabled={updatingRoom === room.roomNumber}
+                        >
+                          <SelectTrigger className="h-8 text-xs justify-center">
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="VD">
+                              VD - Vacant Dirty
+                            </SelectItem>
+                            <SelectItem value="VC">
+                              VC - Vacant Clean
+                            </SelectItem>
+                            <SelectItem value="VCI">
+                              VCI - Vacant Clean Inspected
+                            </SelectItem>
+                            <SelectItem value="OD">
+                              OD - Occupied Dirty
+                            </SelectItem>
+                            <SelectItem value="OC">
+                              OC - Occupied Clean
+                            </SelectItem>
+                            <SelectItem value="OS">
+                              OS - Out of Service
+                            </SelectItem>
+                            <SelectItem value="OO">
+                              OO - Out of Order
+                            </SelectItem>
+                          </SelectContent>
+                        </Select>
                       </td>
                     </tr>
                   ))}
+                  {getRoomsByFloor(4).length === 0 && !loading && (
+                    <tr>
+                      <td
+                        colSpan={3}
+                        className="border border-blue-200 p-3 text-center text-sm text-gray-500"
+                      >
+                        No rooms on this floor / filter.
+                      </td>
+                    </tr>
+                  )}
                 </tbody>
               </table>
             </CardContent>
@@ -384,7 +580,7 @@ export default function RoomStatusPage() {
         <Card className="mt-6 bg-blue-50">
           <CardContent className="pt-6">
             <h3 className="text-lg font-bold text-blue-900 mb-4">
-              ROOM STATUS
+              ROOM STATUS LEGEND
             </h3>
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
               <div className="flex items-center gap-2">

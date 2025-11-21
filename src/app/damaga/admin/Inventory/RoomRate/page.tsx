@@ -390,7 +390,6 @@ export default function RoomRateManagement() {
         <div className="mb-6 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
           <div>
             <h1 className="text-3xl font-bold text-gray-800 mb-2 flex items-center gap-2">
-              <DollarSign className="w-8 h-8 text-green-600" />
               Room Rate Management
             </h1>
             <p className="text-gray-600">Manage room prices for USD and IDR</p>
@@ -571,12 +570,8 @@ export default function RoomRateManagement() {
                     <TableRow>
                       <TableHead className="w-[120px]">Room Type</TableHead>
                       <TableHead>Room Name</TableHead>
-                      <TableHead className="text-right">
-                        Price (USD)
-                      </TableHead>
-                      <TableHead className="text-right">
-                        Price (IDR)
-                      </TableHead>
+                      <TableHead className="text-right">Price (USD)</TableHead>
+                      <TableHead className="text-right">Price (IDR)</TableHead>
                       <TableHead>Description</TableHead>
                       <TableHead className="text-center w-[120px]">
                         Actions
@@ -614,9 +609,7 @@ export default function RoomRateManagement() {
                             <Button
                               variant="ghost"
                               size="sm"
-                              onClick={() =>
-                                rate._id && handleDelete(rate._id)
-                              }
+                              onClick={() => rate._id && handleDelete(rate._id)}
                               className="hover:bg-red-50"
                             >
                               <Trash2 className="w-4 h-4 text-red-600" />

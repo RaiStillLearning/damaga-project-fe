@@ -84,9 +84,40 @@ const countries = [
   { value: "vietnam", label: "Vietnam" },
 ];
 
+// semua nomor kamar yang tersedia (buat multi-select)
+const roomNumbers = [
+  "201",
+  "202",
+  "204",
+  "205",
+  "206",
+  "207",
+  "208",
+  "209",
+  "210",
+  "301",
+  "302",
+  "304",
+  "305",
+  "306",
+  "307",
+  "308",
+  "309",
+  "310",
+  "401",
+  "402",
+  "404",
+  "405",
+  "406",
+  "407",
+  "408",
+  "409",
+  "410",
+];
+
 interface RoomRate {
   _id?: string;
-  roomType: string;      // contoh: "DSD"
+  roomType: string; // contoh: "DSD"
   roomTypeName?: string; // contoh: "Damaga Standard Double"
   priceUSD: number;
   priceIDR: number;
@@ -94,7 +125,8 @@ interface RoomRate {
 
 export default function BookARoomForm() {
   const router = useRouter();
-  const [open, setOpen] = useState(false);
+  const [countryOpen, setCountryOpen] = useState(false);
+  const [roomsPopoverOpen, setRoomsPopoverOpen] = useState(false);
   const [currency, setCurrency] = useState<"USD" | "IDR">("USD");
 
   const [roomRates, setRoomRates] = useState<RoomRate[]>([]);
@@ -108,7 +140,7 @@ export default function BookARoomForm() {
     Country: "",
     Phone: "",
     RoomType: "",
-    NoOfRoom: "",
+    NoOfRoom: 1, // ⬅️ sekarang jumlah kamar, bukan nomor kamar
     ArrDate: new Date().toISOString().split("T")[0],
     DeptDate: new Date().toISOString().split("T")[0],
     TypeOfGuest: "",
@@ -124,6 +156,9 @@ export default function BookARoomForm() {
     Request: "None",
     Clerk: "Admin",
   });
+
+  // daftar nomor kamar yang dipilih (multi booking)
+  const [selectedRooms, setSelectedRooms] = useState<string[]>([]);
 
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -174,7 +209,20 @@ export default function BookARoomForm() {
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
-    setFormData({ ...formData, [name]: value });
+
+    // khusus NoOfRoom & NumberOfPerson & ZipCode jadi number
+    if (
+      name === "NoOfRoom" ||
+      name === "NumberOfPerson" ||
+      name === "ZipCode"
+    ) {
+      setFormData({
+        ...formData,
+        [name]: Number(value) || 0,
+      });
+    } else {
+      setFormData({ ...formData, [name]: value });
+    }
   };
 
   const handleSubmit = async () => {
@@ -187,7 +235,6 @@ export default function BookARoomForm() {
         "Country",
         "Phone",
         "RoomType",
-        "NoOfRoom",
         "TypeOfGuest",
         "City",
         "RoomRate",
@@ -207,40 +254,75 @@ export default function BookARoomForm() {
         }
       }
 
-      const submitData = {
-        ...formData,
-        Phone: Number(formData.Phone),
-        NoOfRoom: Number(formData.NoOfRoom),
-        ZipCode: Number(formData.ZipCode) || 0,
-        RoomRate: Number(formData.RoomRate) || 0,
-        RoomRateCurrency: currency,
-        NumberOfPerson: Number(formData.NumberOfPerson) || 1,
-        Fax: formData.Fax?.toString() || "",
-        status: "confirmed",
-        Source: "Book A Room Form",
-      };
+      const totalRooms = Number(formData.NoOfRoom) || 0;
 
-      const res = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL}/api/book-a-room`,
-        {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(submitData),
+      if (totalRooms < 1) {
+        alert("No Of Room minimal 1");
+        setIsSubmitting(false);
+        return;
+      }
+
+      if (selectedRooms.length === 0) {
+        alert("Pilih minimal 1 Room Number untuk dibooking");
+        setIsSubmitting(false);
+        return;
+      }
+
+      if (selectedRooms.length !== totalRooms) {
+        alert(
+          `Jumlah Room Number yang dipilih (${selectedRooms.length}) tidak sama dengan No Of Room (${totalRooms}). Sesuaikan dulu.`
+        );
+        setIsSubmitting(false);
+        return;
+      }
+
+      // kirim multiple booking: 1 POST per RoomNumber
+      for (const roomNo of selectedRooms) {
+        const submitData = {
+          ...formData,
+          Phone: Number(formData.Phone),
+          NoOfRoom: totalRooms, // jumlah kamar di group ini
+          RoomNumber: roomNo, // ⬅️ nomor kamar spesifik
+          ZipCode: Number(formData.ZipCode) || 0,
+          RoomRate: Number(formData.RoomRate) || 0,
+          RoomRateCurrency: currency,
+          NumberOfPerson: Number(formData.NumberOfPerson) || 1,
+          Fax: formData.Fax?.toString() || "",
+          status: "confirmed",
+          Source: "Book A Room Form",
+        };
+
+        const res = await fetch(
+          `${process.env.NEXT_PUBLIC_API_URL}/api/book-a-room`,
+          {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(submitData),
+          }
+        );
+
+        const data = await res.json();
+
+        if (!res.ok) {
+          throw new Error(
+            data.message || `Error pada kamar ${roomNo}: ${res.status}`
+          );
         }
-      );
 
-      const data = await res.json();
-
-      if (!res.ok) {
-        throw new Error(data.message || `Error: ${res.status}`);
+        console.log("Response booking kamar", roomNo, ":", data);
       }
 
       alert(
-        `✅ Booking berhasil dikonfirmasi!\n\nGuest: ${formData.FirstName} ${formData.LastName}\nRoom: ${formData.RoomType} - ${formData.NoOfRoom}\nStatus: Confirmed\n\nBooking akan muncul di Reservation History.`
+        `✅ Booking berhasil dikonfirmasi!\n\nGuest: ${formData.FirstName} ${
+          formData.LastName
+        }\nRoom Type: ${
+          formData.RoomType
+        }\nJumlah Kamar: ${totalRooms}\nRoom Numbers: ${selectedRooms.join(
+          ", "
+        )}\nStatus: Confirmed\n\nSemua booking akan muncul di Reservation History & Availability.`
       );
 
-      console.log("Response:", data);
-
+      // reset form
       setFormData({
         FirstName: "",
         LastName: "",
@@ -248,7 +330,7 @@ export default function BookARoomForm() {
         Country: "",
         Phone: "",
         RoomType: "",
-        NoOfRoom: "",
+        NoOfRoom: 1,
         ArrDate: new Date().toISOString().split("T")[0],
         DeptDate: new Date().toISOString().split("T")[0],
         TypeOfGuest: "",
@@ -264,6 +346,7 @@ export default function BookARoomForm() {
         Request: "None",
         Clerk: formData.Clerk,
       });
+      setSelectedRooms([]);
       setCurrency("USD");
 
       setTimeout(() => {
@@ -275,6 +358,7 @@ export default function BookARoomForm() {
         }
       }, 1000);
     } catch (err: unknown) {
+      console.error(err);
       const errorMessage =
         err instanceof Error ? err.message : "Unknown error occurred";
       alert(`❌ Gagal submit booking: ${errorMessage}`);
@@ -316,9 +400,7 @@ export default function BookARoomForm() {
 
         const data = await res.json();
 
-        const rates: RoomRate[] = Array.isArray(data)
-          ? data
-          : data.rates || [];
+        const rates: RoomRate[] = Array.isArray(data) ? data : data.rates || [];
 
         setRoomRates(rates);
       } catch (err) {
@@ -353,7 +435,8 @@ export default function BookARoomForm() {
               <strong>ℹ️ Info:</strong> Semua booking yang dibuat melalui form
               ini akan otomatis memiliki status{" "}
               <span className="font-semibold">CONFIRMED</span> dan akan muncul
-              di Reservation History.
+              di Reservation History & Availability. Untuk multiple booking,
+              sistem akan membuat 1 record per nomor kamar.
             </p>
           </div>
 
@@ -434,12 +517,12 @@ export default function BookARoomForm() {
               <Label className="text-sm font-medium mb-2 block text-sky-500">
                 Country *
               </Label>
-              <Popover open={open} onOpenChange={setOpen}>
+              <Popover open={countryOpen} onOpenChange={setCountryOpen}>
                 <PopoverTrigger asChild>
                   <Button
                     variant="outline"
                     role="combobox"
-                    aria-expanded={open}
+                    aria-expanded={countryOpen}
                     className="w-full h-10 justify-between font-normal"
                   >
                     {formData.Country
@@ -464,7 +547,7 @@ export default function BookARoomForm() {
                               ...formData,
                               Country: country.label,
                             });
-                            setOpen(false);
+                            setCountryOpen(false);
                           }}
                         >
                           <Check
@@ -543,51 +626,83 @@ export default function BookARoomForm() {
               </Select>
             </div>
 
-            {/* No Of Room*/}
+            {/* No Of Room (jumlah kamar) */}
             <div className="w-full">
               <Label className="text-sm font-medium mb-2 block text-sky-500">
                 No Of Room *
               </Label>
-              <Select
+              <Input
                 name="NoOfRoom"
+                type="number"
+                min={1}
                 value={formData.NoOfRoom}
-                onValueChange={(val) =>
-                  setFormData({ ...formData, NoOfRoom: val })
-                }
+                onChange={handleChange}
+                placeholder="Masukkan jumlah kamar"
+                className="w-full h-10"
+              />
+              <p className="text-xs text-gray-500 mt-1">
+                Ini adalah jumlah kamar yang akan dibooking.
+              </p>
+            </div>
+
+            {/* Room Numbers (multi-select) */}
+            <div className="w-full">
+              <Label className="text-sm font-medium mb-2 block text-sky-500">
+                Room Numbers (multi) *
+              </Label>
+              <Popover
+                open={roomsPopoverOpen}
+                onOpenChange={setRoomsPopoverOpen}
               >
-                <SelectTrigger className="w-full h-10">
-                  <SelectValue placeholder="Select room number" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="201">201</SelectItem>
-                  <SelectItem value="202">202</SelectItem>
-                  <SelectItem value="204">204</SelectItem>
-                  <SelectItem value="205">205</SelectItem>
-                  <SelectItem value="206">206</SelectItem>
-                  <SelectItem value="207">207</SelectItem>
-                  <SelectItem value="208">208</SelectItem>
-                  <SelectItem value="209">209</SelectItem>
-                  <SelectItem value="210">210</SelectItem>
-                  <SelectItem value="301">301</SelectItem>
-                  <SelectItem value="302">302</SelectItem>
-                  <SelectItem value="304">304</SelectItem>
-                  <SelectItem value="305">305</SelectItem>
-                  <SelectItem value="306">306</SelectItem>
-                  <SelectItem value="307">307</SelectItem>
-                  <SelectItem value="308">308</SelectItem>
-                  <SelectItem value="309">309</SelectItem>
-                  <SelectItem value="310">310</SelectItem>
-                  <SelectItem value="401">401</SelectItem>
-                  <SelectItem value="402">402</SelectItem>
-                  <SelectItem value="404">404</SelectItem>
-                  <SelectItem value="405">405</SelectItem>
-                  <SelectItem value="406">406</SelectItem>
-                  <SelectItem value="407">407</SelectItem>
-                  <SelectItem value="408">408</SelectItem>
-                  <SelectItem value="409">409</SelectItem>
-                  <SelectItem value="410">410</SelectItem>
-                </SelectContent>
-              </Select>
+                <PopoverTrigger asChild>
+                  <Button
+                    variant="outline"
+                    role="combobox"
+                    aria-expanded={roomsPopoverOpen}
+                    className="w-full h-10 justify-between font-normal"
+                  >
+                    {selectedRooms.length > 0
+                      ? selectedRooms.join(", ")
+                      : "Select room numbers..."}
+                    <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-[260px] p-0">
+                  <Command>
+                    <CommandInput placeholder="Search room..." />
+                    <CommandEmpty>No room found.</CommandEmpty>
+                    <CommandGroup className="max-h-64 overflow-auto">
+                      {roomNumbers.map((roomNo) => {
+                        const isSelected = selectedRooms.includes(roomNo);
+                        return (
+                          <CommandItem
+                            key={roomNo}
+                            value={roomNo}
+                            onSelect={() => {
+                              setSelectedRooms((prev) =>
+                                isSelected
+                                  ? prev.filter((r) => r !== roomNo)
+                                  : [...prev, roomNo]
+                              );
+                            }}
+                          >
+                            <Check
+                              className={`mr-2 h-4 w-4 ${
+                                isSelected ? "opacity-100" : "opacity-0"
+                              }`}
+                            />
+                            {roomNo}
+                          </CommandItem>
+                        );
+                      })}
+                    </CommandGroup>
+                  </Command>
+                </PopoverContent>
+              </Popover>
+              <p className="text-xs text-gray-500 mt-1">
+                Pilih {formData.NoOfRoom || 0} kamar. Sistem akan membuat 1
+                booking per nomor kamar.
+              </p>
             </div>
 
             {/* Type of Guest */}
@@ -814,7 +929,7 @@ export default function BookARoomForm() {
               disabled={isSubmitting}
               className="px-8 h-11 text-base font-medium bg-sky-600 hover:bg-sky-700 text-white disabled:opacity-50"
             >
-              {isSubmitting ? "Submitting..." : "Book A Room (Confirm)"}
+              {isSubmitting ? "Submitting..." : "Book Rooms (Confirm)"}
             </Button>
           </div>
         </div>

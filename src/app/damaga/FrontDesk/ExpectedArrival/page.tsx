@@ -50,9 +50,15 @@ interface ReservationBooking {
   updatedAt: string;
 }
 
+interface RoomStatus {
+  roomNumber?: string | number;
+  status?: string;
+}
+
 function ReservationHistory() {
   const router = useRouter();
   const searchParams = useSearchParams();
+
   const [searchState, setSearchState] = useState({
     FirstName: "",
     LastName: "",
@@ -82,13 +88,34 @@ function ReservationHistory() {
   const [isClient, setIsClient] = useState(false);
   const [statusFilter, setStatusFilter] = useState<string>("all");
 
+  // 🔹 Room status map: { "201": "VC", ... }
+  const [roomStatuses, setRoomStatuses] = useState<Record<string, string>>({});
+  const [roomStatusLoading, setRoomStatusLoading] = useState(false);
+
+  // Helper untuk label room status
+  const getRoomStatusLabel = (code?: string) => {
+    if (!code) return "-";
+    const statusMap: Record<string, string> = {
+      VD: "Vacant Dirty",
+      VC: "Vacant Clean",
+      VCI: "Vacant Clean Inspected",
+      OD: "Occupied Dirty",
+      OC: "Occupied Clean",
+      OS: "Out of Service",
+      OO: "Out of Order",
+    };
+    return statusMap[code] || code;
+  };
+
   useEffect(() => {
     fetchAllData();
+    fetchRoomStatus();
 
     const interval = setInterval(() => {
       fetchAllData();
+      fetchRoomStatus();
       setLastUpdate(new Date());
-    }, 50000);
+    }, 50000); // 50 detik
 
     return () => clearInterval(interval);
   }, []);
@@ -101,6 +128,7 @@ function ReservationHistory() {
     const shouldRefresh = searchParams.get("refresh");
     if (shouldRefresh === "true") {
       fetchAllData();
+      fetchRoomStatus();
       window.history.replaceState({}, "", window.location.pathname);
     }
   }, [searchParams]);
@@ -132,6 +160,40 @@ function ReservationHistory() {
       alert(`Gagal memuat data: ${errorMessage}`);
     } finally {
       setLoading(false);
+    }
+  };
+
+  // 🔹 Ambil room status dari API /api/rooms
+  const fetchRoomStatus = async () => {
+    setRoomStatusLoading(true);
+    try {
+      const res = await fetch(
+        `${process.env.NEXT_PUBLIC_API_URL}/api/rooms?t=${Date.now()}`,
+        {
+          method: "GET",
+          headers: { "Content-Type": "application/json" },
+          cache: "no-store",
+        }
+      );
+
+      if (!res.ok) throw new Error(`HTTP error! status: ${res.status}`);
+
+      const data = await res.json();
+      const rooms = Array.isArray(data) ? data : data.rooms || [];
+
+      const map: Record<string, string> = {};
+      rooms.forEach((r: RoomStatus) => {
+        if (r.roomNumber && r.status) {
+          map[r.roomNumber] = r.status;
+        }
+      });
+
+      setRoomStatuses(map);
+    } catch (err) {
+      console.error("Fetch room status error:", err);
+      // boleh tanpa alert supaya nggak ganggu FO
+    } finally {
+      setRoomStatusLoading(false);
     }
   };
 
@@ -272,14 +334,14 @@ function ReservationHistory() {
         throw new Error(`Failed to update status: ${response.status}`);
       }
 
-      const updatedData = await response.json();
+      await response.json();
 
       alert(
         "✅ Status berhasil diubah menjadi In-House!\n\nGuest telah dipindahkan dari Expected Arrival dan akan muncul di menu In-House."
       );
 
-      // Refresh data untuk menghapus guest dari list
       fetchAllData();
+      fetchRoomStatus();
     } catch (error) {
       console.error("❌ Error updating status:", error);
       alert(
@@ -351,7 +413,10 @@ function ReservationHistory() {
               )}
 
               <Button
-                onClick={fetchAllData}
+                onClick={() => {
+                  fetchAllData();
+                  fetchRoomStatus();
+                }}
                 variant="outline"
                 size="sm"
                 className="h-8 px-3"
@@ -507,13 +572,15 @@ function ReservationHistory() {
           {/* Table Result */}
           <div className="space-y-4">
             <h3 className="text-lg font-semibold text-gray-800">
-              Expected Arival Records ({reservationData.length})
+              Expected Arrival Records ({reservationData.length})
             </h3>
 
             {loading ? (
               <div className="text-center py-12 bg-gray-50 rounded-lg border-2 border-dashed">
                 <div className="w-12 h-12 mx-auto mb-3 border-4 border-sky-500 border-t-transparent rounded-full animate-spin"></div>
-                <p className="text-gray-500">Loading Expected Arrival data...</p>
+                <p className="text-gray-500">
+                  Loading Expected Arrival data...
+                </p>
               </div>
             ) : reservationData.length === 0 ? (
               <div className="text-center py-12 bg-gray-50 rounded-lg border-2 border-dashed">
@@ -532,6 +599,7 @@ function ReservationHistory() {
                         "Arr. Date",
                         "Dept. Date",
                         "Room Number",
+                        "Room Status", // ⬅️ kolom baru
                         "Room Type",
                         "Phone",
                         "Person",
@@ -583,6 +651,13 @@ function ReservationHistory() {
                       // logic tombol in-house: disable kalau sudah checked-out
                       const canInHouse = statusLower !== "checked-out";
 
+                      const roomNumber = r.RoomNumber || "";
+                      const roomStatusCode = roomNumber
+                        ? roomStatuses[roomNumber]
+                        : undefined;
+                      const roomStatusLabel =
+                        getRoomStatusLabel(roomStatusCode);
+
                       return (
                         <tr
                           key={r._id}
@@ -597,9 +672,36 @@ function ReservationHistory() {
                           <td className="px-4 py-3 text-sm">
                             {new Date(r.DeptDate).toLocaleDateString("id-ID")}
                           </td>
+
+                          {/* Room Number */}
                           <td className="px-4 py-3 text-sm">
                             {r.RoomNumber || "-"}
                           </td>
+
+                          {/* Room Status (dari /api/rooms) */}
+                          <td className="px-4 py-3 text-sm">
+                            {roomNumber ? (
+                              roomStatusCode ? (
+                                <span
+                                  className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-emerald-50 text-emerald-700 border border-emerald-200"
+                                  title={roomStatusLabel}
+                                >
+                                  {roomStatusCode} – {roomStatusLabel}
+                                </span>
+                              ) : roomStatusLoading ? (
+                                <span className="text-xs text-gray-400">
+                                  Loading...
+                                </span>
+                              ) : (
+                                <span className="text-xs text-gray-400">
+                                  Not set
+                                </span>
+                              )
+                            ) : (
+                              <span className="text-xs text-gray-400">-</span>
+                            )}
+                          </td>
+
                           <td className="px-4 py-3 text-sm">{r.RoomType}</td>
                           <td className="px-4 py-3 text-sm">
                             {r.Phone || "-"}
