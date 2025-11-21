@@ -15,12 +15,10 @@ export default function ForbiddenPage() {
           <ShieldAlert className="w-16 h-16 mx-auto text-red-500 mb-4" />
 
           <h1 className="text-3xl font-bold text-gray-800 mb-2">
-            403 Forbidden
+            404 Not Found
           </h1>
 
-          <p className="text-gray-600 mb-6">
-            You do not have permission to access this page.
-          </p>
+          <p className="text-gray-600 mb-6">This page will coming soon later</p>
 
           <Button
             onClick={() => router.push("/damaga")}
