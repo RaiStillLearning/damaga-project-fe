@@ -4,37 +4,12 @@
 import { ReactNode } from "react";
 import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/app-sidebar";
-import { UserProvider, useUserContext } from "@/context/userContext";
-import ForbiddenPage from "@/components/Forbidden";
+import { UserProvider } from "@/context/userContext";
+// import ForbiddenPage from "@/components/Forbidden";
 
 function DamagaInnerLayout({ children }: { children: ReactNode }) {
-  const { user, loading } = useUserContext();
+  // Tidak ada lagi useUserContext, tidak ada cek role / user / loading
 
-  // Bisa diganti skeleton / spinner kalau mau
-  if (loading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50">
-        <div className="text-center text-sm text-gray-500">
-          Checking permission...
-        </div>
-      </div>
-    );
-  }
-
-  // Ambil role dari user (sesuaikan dengan struktur AppUser kamu)
-  const rawRole = user?.role ?? user?.divisi ?? "";
-
-  const role = String(rawRole || "").toLowerCase();
-
-  // 🔐 Aturan role yang boleh akses area /damaga
-  const allowedRoles = ["admin", "office", "frontdesk", "superadmin"];
-
-  if (!user || !role || !allowedRoles.includes(role)) {
-    // Tidak ada user / role tidak diizinkan -> 403
-    return <ForbiddenPage />;
-  }
-
-  // ✅ Kalau lolos guard, baru render layout asli kamu
   return (
     <SidebarProvider>
       <div className="flex min-h-screen w-full">
