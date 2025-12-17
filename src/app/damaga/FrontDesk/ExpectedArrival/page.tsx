@@ -6,7 +6,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
-import { Search, User, RefreshCw } from "lucide-react";
+import { Search, User, RefreshCw, Calendar } from "lucide-react";
 
 export default function ReservationHistoryPage() {
   return (
@@ -79,20 +79,17 @@ function ReservationHistory() {
     Note: "",
   });
 
-  const [reservationData, setReservationData] = useState<ReservationBooking[]>(
-    []
-  );
+  const [reservationData, setReservationData] = useState<ReservationBooking[]>([]);
   const [allData, setAllData] = useState<ReservationBooking[]>([]);
   const [loading, setLoading] = useState(true);
   const [lastUpdate, setLastUpdate] = useState<Date>(new Date());
   const [isClient, setIsClient] = useState(false);
   const [statusFilter, setStatusFilter] = useState<string>("all");
+  const [selectedDate, setSelectedDate] = useState<string>("");
 
-  // 🔹 Room status map: { "201": "VC", ... }
   const [roomStatuses, setRoomStatuses] = useState<Record<string, string>>({});
   const [roomStatusLoading, setRoomStatusLoading] = useState(false);
 
-  // Helper untuk label room status
   const getRoomStatusLabel = (code?: string) => {
     if (!code) return "-";
     const statusMap: Record<string, string> = {
@@ -107,7 +104,15 @@ function ReservationHistory() {
     return statusMap[code] || code;
   };
 
+  // Get today's date in YYYY-MM-DD format
+  const getTodayString = () => {
+    const today = new Date();
+    return today.toISOString().split("T")[0];
+  };
+
   useEffect(() => {
+    // Set default date to today
+    setSelectedDate(getTodayString());
     fetchAllData();
     fetchRoomStatus();
 
@@ -115,7 +120,7 @@ function ReservationHistory() {
       fetchAllData();
       fetchRoomStatus();
       setLastUpdate(new Date());
-    }, 50000); // 50 detik
+    }, 50000);
 
     return () => clearInterval(interval);
   }, []);
@@ -132,6 +137,13 @@ function ReservationHistory() {
       window.history.replaceState({}, "", window.location.pathname);
     }
   }, [searchParams]);
+
+  // Filter data whenever selectedDate changes
+  useEffect(() => {
+    if (selectedDate && allData.length > 0) {
+      filterByDate(selectedDate);
+    }
+  }, [selectedDate, allData]);
 
   const fetchAllData = async () => {
     setLoading(true);
@@ -151,8 +163,7 @@ function ReservationHistory() {
       const bookings = Array.isArray(data) ? data : data.bookings || [];
 
       setAllData(bookings);
-      setReservationData(bookings);
-      setLastUpdate(new Date());
+      // Will be filtered by useEffect
     } catch (err: unknown) {
       console.error("Fetch error:", err);
       const errorMessage =
@@ -163,7 +174,6 @@ function ReservationHistory() {
     }
   };
 
-  // 🔹 Ambil room status dari API /api/rooms
   const fetchRoomStatus = async () => {
     setRoomStatusLoading(true);
     try {
@@ -191,20 +201,49 @@ function ReservationHistory() {
       setRoomStatuses(map);
     } catch (err) {
       console.error("Fetch room status error:", err);
-      // boleh tanpa alert supaya nggak ganggu FO
     } finally {
       setRoomStatusLoading(false);
     }
+  };
+
+  const filterByDate = (dateString: string) => {
+    if (!dateString) {
+      setReservationData(allData);
+      return;
+    }
+
+    const filtered = allData.filter((reservation) => {
+      const arrDate = new Date(reservation.ArrDate).toISOString().split("T")[0];
+      return arrDate === dateString;
+    });
+
+    setReservationData(filtered);
   };
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setSearchState({ ...searchState, [e.target.name]: e.target.value });
   };
 
+  const handleDateChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const newDate = e.target.value;
+    setSelectedDate(newDate);
+  };
+
   const handleSearch = () => {
     setLoading(true);
     try {
-      const filtered = allData.filter((reservation) => {
+      let filtered = allData;
+
+      // First filter by selected date
+      if (selectedDate) {
+        filtered = filtered.filter((reservation) => {
+          const arrDate = new Date(reservation.ArrDate).toISOString().split("T")[0];
+          return arrDate === selectedDate;
+        });
+      }
+
+      // Then apply other filters
+      filtered = filtered.filter((reservation) => {
         const matchesField = (
           reservationValue: string | number,
           searchValue: string
@@ -240,13 +279,6 @@ function ReservationHistory() {
           searchState.IDNumber
         );
 
-        let matchesArrDate = true;
-        if (searchState.ArrDate) {
-          matchesArrDate =
-            new Date(reservation.ArrDate).toISOString().split("T")[0] ===
-            searchState.ArrDate;
-        }
-
         let matchesDeptDate = true;
         if (searchState.DeptDate) {
           matchesDeptDate =
@@ -260,7 +292,6 @@ function ReservationHistory() {
         return (
           matchesFirstName &&
           matchesLastName &&
-          matchesArrDate &&
           matchesDeptDate &&
           matchesRoomNumber &&
           matchesRoomType &&
@@ -300,7 +331,11 @@ function ReservationHistory() {
       Note: "",
     });
     setStatusFilter("all");
-    setReservationData(allData);
+    setSelectedDate(getTodayString());
+  };
+
+  const handleSetToday = () => {
+    setSelectedDate(getTodayString());
   };
 
   const handleCheckIn = (bookingId: string) => {
@@ -396,6 +431,44 @@ function ReservationHistory() {
           <h2 className="text-2xl sm:text-3xl font-semibold mb-6 sm:mb-8 text-sky-500">
             Expected Arrival
           </h2>
+
+          {/* Date Selector */}
+          <div className="mb-6 bg-gradient-to-r from-sky-50 to-blue-50 p-5 rounded-lg border border-sky-200">
+            <Label className="text-sm font-medium mb-3 block text-sky-700">
+              <Calendar className="w-4 h-4 inline mr-2" />
+              Select Arrival Date
+            </Label>
+            <div className="flex gap-3 items-end">
+              <div className="flex-1 max-w-xs">
+                <Input
+                  type="date"
+                  value={selectedDate}
+                  onChange={handleDateChange}
+                  className="w-full h-10 text-base"
+                />
+              </div>
+              <Button
+                onClick={handleSetToday}
+                variant="outline"
+                className="h-10 px-4"
+              >
+                Today
+              </Button>
+            </div>
+            <p className="text-xs text-gray-600 mt-2">
+              Currently showing arrivals for:{" "}
+              <span className="font-semibold text-sky-600">
+                {selectedDate
+                  ? new Date(selectedDate + "T00:00:00").toLocaleDateString("id-ID", {
+                      weekday: "long",
+                      year: "numeric",
+                      month: "long",
+                      day: "numeric",
+                    })
+                  : "All dates"}
+              </span>
+            </p>
+          </div>
 
           {/* Auto Refresh Info */}
           <div className="mb-6 flex flex-col sm:flex-row items-start sm:items-center justify-between bg-sky-50 px-4 py-3 rounded-lg border border-sky-200 gap-3">
@@ -509,7 +582,6 @@ function ReservationHistory() {
             {Object.entries({
               FirstName: "First Name",
               LastName: "Last Name",
-              ArrDate: "Arrival Date",
               DeptDate: "Departure Date",
               RoomNumber: "Room Number",
               RoomType: "Room Type",
@@ -585,7 +657,7 @@ function ReservationHistory() {
             ) : reservationData.length === 0 ? (
               <div className="text-center py-12 bg-gray-50 rounded-lg border-2 border-dashed">
                 <User className="w-12 h-12 mx-auto text-gray-400 mb-3" />
-                <p className="text-gray-500">No reservation records found.</p>
+                <p className="text-gray-500">No reservation records found for this date.</p>
               </div>
             ) : (
               <div className="overflow-x-auto border rounded-lg">
@@ -599,7 +671,7 @@ function ReservationHistory() {
                         "Arr. Date",
                         "Dept. Date",
                         "Room Number",
-                        "Room Status", // ⬅️ kolom baru
+                        "Room Status",
                         "Room Type",
                         "Phone",
                         "Person",
@@ -630,7 +702,6 @@ function ReservationHistory() {
                     {reservationData.map((r, i) => {
                       const statusLower = (r.status || "").toLowerCase();
 
-                      // logic tombol check-in
                       let canCheckIn = statusLower === "confirmed";
                       let checkInLabel = "Check In";
 
@@ -648,7 +719,6 @@ function ReservationHistory() {
                         checkInLabel = "Cancelled";
                       }
 
-                      // logic tombol in-house: disable kalau sudah checked-out
                       const canInHouse = statusLower !== "checked-out";
 
                       const roomNumber = r.RoomNumber || "";
@@ -673,12 +743,10 @@ function ReservationHistory() {
                             {new Date(r.DeptDate).toLocaleDateString("id-ID")}
                           </td>
 
-                          {/* Room Number */}
                           <td className="px-4 py-3 text-sm">
                             {r.RoomNumber || "-"}
                           </td>
 
-                          {/* Room Status (dari /api/rooms) */}
                           <td className="px-4 py-3 text-sm">
                             {roomNumber ? (
                               roomStatusCode ? (
@@ -740,7 +808,6 @@ function ReservationHistory() {
                             {r.Note || "-"}
                           </td>
 
-                          {/* Tombol Check In / Already ... */}
                           <td className="px-4 py-3 text-sm">
                             <Button
                               onClick={() => {
@@ -758,7 +825,6 @@ function ReservationHistory() {
                             </Button>
                           </td>
 
-                          {/* Tombol View Details & In-House */}
                           <td className="px-4 py-3 text-sm">
                             <div className="flex gap-2">
                               <Button

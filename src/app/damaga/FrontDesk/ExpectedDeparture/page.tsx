@@ -6,7 +6,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
-import { Search, User, RefreshCw } from "lucide-react";
+import { Search, User, RefreshCw, Calendar } from "lucide-react";
 
 export default function ExpectedDeparturePage() {
   return (
@@ -78,16 +78,23 @@ function ExpectedDeparture() {
     Note: "",
   });
 
-  const [reservationData, setReservationData] = useState<ReservationBooking[]>(
-    []
-  );
+  const [reservationData, setReservationData] = useState<ReservationBooking[]>([]);
   const [allData, setAllData] = useState<ReservationBooking[]>([]);
   const [loading, setLoading] = useState(true);
   const [lastUpdate, setLastUpdate] = useState<Date>(new Date());
   const [isClient, setIsClient] = useState(false);
   const [statusFilter, setStatusFilter] = useState<string>("all");
+  const [selectedDate, setSelectedDate] = useState<string>("");
+
+  // Get today's date in YYYY-MM-DD format
+  const getTodayString = () => {
+    const today = new Date();
+    return today.toISOString().split("T")[0];
+  };
 
   useEffect(() => {
+    // Set default date to today
+    setSelectedDate(getTodayString());
     fetchAllData();
 
     const interval = setInterval(() => {
@@ -110,6 +117,13 @@ function ExpectedDeparture() {
     }
   }, [searchParams]);
 
+  // Filter data whenever selectedDate changes
+  useEffect(() => {
+    if (selectedDate && allData.length > 0) {
+      filterByDate(selectedDate);
+    }
+  }, [selectedDate, allData]);
+
   const fetchAllData = async () => {
     setLoading(true);
     try {
@@ -131,60 +145,13 @@ function ExpectedDeparture() {
 
       console.log("📊 Total bookings fetched:", bookings.length);
 
-      // 🔹 Expected Departure logic:
-      // Menampilkan semua booking yang belum checkout (checked-in atau in-house)
-      // Sorted by DeptDate (yang paling dekat duluan)
-      const today = new Date();
-      today.setHours(0, 0, 0, 0); // Reset to start of day
-
-      console.log("📅 Today's date:", today.toISOString().split("T")[0]);
-
-      const upcomingDepartures = bookings.filter((b) => {
-        if (!b.DeptDate) {
-          console.log(`⚠️ No DeptDate for: ${b.FirstName} ${b.LastName}`);
-          return false;
-        }
-
-        const deptDate = new Date(b.DeptDate);
-        deptDate.setHours(0, 0, 0, 0);
-        const deptDateStr = deptDate.toISOString().split("T")[0];
-
-        // Check if departure date is today or in the future
-        const isTodayOrFuture = deptDate >= today;
+      // Filter hanya guest yang checked-in atau in-house
+      const validDepartures = bookings.filter((b) => {
         const statusLower = (b.status || "").toLowerCase();
-        const isValidStatus =
-          statusLower === "checked-in" || statusLower === "in-house";
-
-        // Debug setiap booking
-        console.log(`🔍 Checking: ${b.FirstName} ${b.LastName}`);
-        console.log(
-          `   - DeptDate: ${deptDateStr} → ${
-            isTodayOrFuture ? "✅ (Today or Future)" : "❌ (Past)"
-          }`
-        );
-        console.log(
-          `   - Status: "${b.status}" → ${isValidStatus ? "✅" : "❌"}`
-        );
-
-        if (isTodayOrFuture && !isValidStatus) {
-          console.log(
-            `   ⚠️ Date valid but status is "${b.status}", needs "checked-in" or "in-house"`
-          );
-        }
-
-        return isTodayOrFuture && isValidStatus;
+        return statusLower === "checked-in" || statusLower === "in-house";
       });
 
-      // Sort by DeptDate (ascending - paling dekat duluan)
-      upcomingDepartures.sort((a, b) => {
-        const dateA = new Date(a.DeptDate).getTime();
-        const dateB = new Date(b.DeptDate).getTime();
-        return dateA - dateB;
-      });
-
-      setAllData(upcomingDepartures);
-      setReservationData(upcomingDepartures);
-      setLastUpdate(new Date());
+      setAllData(validDepartures);
     } catch (err: unknown) {
       console.error("Fetch error:", err);
       const errorMessage =
@@ -195,14 +162,44 @@ function ExpectedDeparture() {
     }
   };
 
+  const filterByDate = (dateString: string) => {
+    if (!dateString) {
+      setReservationData(allData);
+      return;
+    }
+
+    const filtered = allData.filter((reservation) => {
+      const deptDate = new Date(reservation.DeptDate).toISOString().split("T")[0];
+      return deptDate === dateString;
+    });
+
+    setReservationData(filtered);
+  };
+
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setSearchState({ ...searchState, [e.target.name]: e.target.value });
+  };
+
+  const handleDateChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const newDate = e.target.value;
+    setSelectedDate(newDate);
   };
 
   const handleSearch = () => {
     setLoading(true);
     try {
-      const filtered = allData.filter((reservation) => {
+      let filtered = allData;
+
+      // First filter by selected date
+      if (selectedDate) {
+        filtered = filtered.filter((reservation) => {
+          const deptDate = new Date(reservation.DeptDate).toISOString().split("T")[0];
+          return deptDate === selectedDate;
+        });
+      }
+
+      // Then apply other filters
+      filtered = filtered.filter((reservation) => {
         const matchesField = (
           reservationValue: string | number,
           searchValue: string
@@ -245,13 +242,6 @@ function ExpectedDeparture() {
             searchState.ArrDate;
         }
 
-        let matchesDeptDate = true;
-        if (searchState.DeptDate) {
-          matchesDeptDate =
-            new Date(reservation.DeptDate).toISOString().split("T")[0] ===
-            searchState.DeptDate;
-        }
-
         const matchesStatus =
           statusFilter === "all" || reservation.status === statusFilter;
 
@@ -259,7 +249,6 @@ function ExpectedDeparture() {
           matchesFirstName &&
           matchesLastName &&
           matchesArrDate &&
-          matchesDeptDate &&
           matchesRoomNumber &&
           matchesRoomType &&
           matchesCountry &&
@@ -298,7 +287,11 @@ function ExpectedDeparture() {
       Note: "",
     });
     setStatusFilter("all");
-    setReservationData(allData);
+    setSelectedDate(getTodayString());
+  };
+
+  const handleSetToday = () => {
+    setSelectedDate(getTodayString());
   };
 
   const handleViewDetails = (bookingId: string) => {
@@ -399,24 +392,60 @@ function ExpectedDeparture() {
         <div className="bg-white p-6 sm:p-8 lg:p-10 rounded-lg shadow-sm border">
           <div className="flex items-center justify-between mb-6 sm:mb-8">
             <h2 className="text-2xl sm:text-3xl font-semibold text-sky-500">
-              Expected Departure (All Upcoming)
+              Expected Departure
             </h2>
             <div className="flex items-center gap-2 px-4 py-2 bg-orange-50 rounded-lg border border-orange-200">
               <div className="w-2 h-2 bg-orange-500 rounded-full animate-pulse"></div>
               <span className="text-sm font-medium text-orange-800">
-                Upcoming Departures
+                Today`s Departures
               </span>
             </div>
           </div>
 
+          {/* Date Selector */}
+          <div className="mb-6 bg-gradient-to-r from-orange-50 to-red-50 p-5 rounded-lg border border-orange-200">
+            <Label className="text-sm font-medium mb-3 block text-orange-700">
+              <Calendar className="w-4 h-4 inline mr-2" />
+              Select Departure Date
+            </Label>
+            <div className="flex gap-3 items-end">
+              <div className="flex-1 max-w-xs">
+                <Input
+                  type="date"
+                  value={selectedDate}
+                  onChange={handleDateChange}
+                  className="w-full h-10 text-base"
+                />
+              </div>
+              <Button
+                onClick={handleSetToday}
+                variant="outline"
+                className="h-10 px-4"
+              >
+                Today
+              </Button>
+            </div>
+            <p className="text-xs text-gray-600 mt-2">
+              Currently showing departures for:{" "}
+              <span className="font-semibold text-orange-600">
+                {selectedDate
+                  ? new Date(selectedDate + "T00:00:00").toLocaleDateString("id-ID", {
+                      weekday: "long",
+                      year: "numeric",
+                      month: "long",
+                      day: "numeric",
+                    })
+                  : "All dates"}
+              </span>
+            </p>
+          </div>
+
           <div className="mb-6 p-4 bg-orange-50 rounded-lg border border-orange-200">
             <p className="text-sm text-orange-700">
-              <strong>ℹ️ Info:</strong> Halaman ini menampilkan semua guest yang{" "}
-              <span className="font-semibold">AKAN DEPARTURE</span> (hari ini
-              dan masa depan) dengan status{" "}
+              <strong>ℹ️ Info:</strong> Halaman ini menampilkan guest yang{" "}
+              <span className="font-semibold">AKAN DEPARTURE</span> pada tanggal yang dipilih dengan status{" "}
               <span className="font-semibold">CHECKED-IN</span> atau{" "}
-              <span className="font-semibold">IN-HOUSE</span>. Diurutkan
-              berdasarkan tanggal departure terdekat.
+              <span className="font-semibold">IN-HOUSE</span>.
             </p>
           </div>
 
@@ -454,7 +483,7 @@ function ExpectedDeparture() {
               {[
                 {
                   value: "all",
-                  label: "All Upcoming Departures",
+                  label: "All Departures",
                   color: "bg-gray-100 hover:bg-gray-200",
                 },
                 {
@@ -491,7 +520,7 @@ function ExpectedDeparture() {
               Currently showing:{" "}
               <span className="font-semibold text-sky-600">
                 {statusFilter === "all"
-                  ? "All Upcoming Departures"
+                  ? "All Departures"
                   : statusFilter === "checked-in"
                   ? "Checked In"
                   : "In-House"}
@@ -505,7 +534,6 @@ function ExpectedDeparture() {
               FirstName: "First Name",
               LastName: "Last Name",
               ArrDate: "Arrival Date",
-              DeptDate: "Departure Date",
               RoomNumber: "Room Number",
               RoomType: "Room Type",
               Phone: "Phone",
@@ -578,7 +606,7 @@ function ExpectedDeparture() {
             ) : reservationData.length === 0 ? (
               <div className="text-center py-12 bg-gray-50 rounded-lg border-2 border-dashed">
                 <User className="w-12 h-12 mx-auto text-gray-400 mb-3" />
-                <p className="text-gray-500">No expected departures found.</p>
+                <p className="text-gray-500">No expected departures found for this date.</p>
                 <p className="text-xs text-gray-400 mt-2">
                   Guest yang akan departure dengan status Checked-In atau
                   In-House akan muncul di sini.

@@ -18,7 +18,7 @@ import { useRouter } from "next/navigation";
 interface RoomBooking {
   _id: string;
   RoomNumber?: string;
-  NoOfRoom?: string | number; // fallback
+  NoOfRoom?: string | number;
   RoomType: string;
   ArrDate: string;
   DeptDate: string;
@@ -41,14 +41,12 @@ interface RoomCalendar {
   days: CalendarCell[];
 }
 
-// 🔧 Helper: parse "YYYY-MM-DD" atau ISO string jadi Date tanpa masalah timezone
+// ✅ Helper: parse date tanpa masalah timezone
 const parseDateOnly = (dateStr: string): Date => {
   if (!dateStr) return new Date(NaN);
-
-  // Ambil bagian tanggal saja
-  const raw = dateStr.split("T")[0]; // "2025-01-20"
+  const raw = dateStr.split("T")[0];
   const [y, m, d] = raw.split("-").map((v) => Number(v));
-  return new Date(y, m - 1, d); // local date, jam 00:00 tanpa geser timezone
+  return new Date(y, m - 1, d);
 };
 
 export default function AvailabilityCalendar() {
@@ -58,7 +56,6 @@ export default function AvailabilityCalendar() {
   const [loading, setLoading] = useState(false);
   const [userRole, setUserRole] = useState<string>("");
 
-  // Filter states
   const [filters, setFilters] = useState({
     month: (new Date().getMonth() + 1).toString(),
     year: new Date().getFullYear().toString(),
@@ -68,7 +65,6 @@ export default function AvailabilityCalendar() {
 
   const [viewMode, setViewMode] = useState<"month" | "range">("month");
 
-  // Check user role
   useEffect(() => {
     const storedUser = localStorage.getItem("user");
     if (storedUser) {
@@ -76,8 +72,7 @@ export default function AvailabilityCalendar() {
         const parsed = JSON.parse(storedUser);
         setUserRole(parsed.role || parsed.divisi || "");
       } catch (error) {
-        console.error("Failed to parse user");
-        console.log(error);
+        console.error("Failed to parse user", error);
       }
     }
   }, []);
@@ -97,7 +92,7 @@ export default function AvailabilityCalendar() {
       endDate = new Date(filters.endDate);
     }
 
-    // Define all rooms with their types
+    // ✅ FIXED: Hapus room 203 agar konsisten dengan BookARoomForm
     const allRooms = [
       { number: "201", type: "DSD" },
       { number: "202", type: "DST" },
@@ -138,19 +133,16 @@ export default function AvailabilityCalendar() {
       const currentDate = new Date(startDate);
 
       while (currentDate <= endDate) {
-        // Find booking for this room and date
+        // ✅ FIXED: Hanya pakai RoomNumber untuk matching
         const booking = sourceBookings.find((b) => {
-          // Pakai RoomNumber terlebih dahulu, lalu fallback ke NoOfRoom
-          const roomNum =
-            b.RoomNumber ??
-            (b.NoOfRoom !== undefined && b.NoOfRoom !== null
-              ? String(b.NoOfRoom)
-              : undefined);
+          // Hanya ambil RoomNumber, JANGAN fallback ke NoOfRoom
+          const roomNum = b.RoomNumber;
+          
+          if (!roomNum || roomNum !== room.number) {
+            return false;
+          }
 
-          if (roomNum !== room.number) return false;
-
-          // Tampilkan booking dengan status confirmed & checked-in.
-          // Kalau status kosong, dianggap valid juga.
+          // Hanya tampilkan status confirmed & checked-in
           if (
             b.status &&
             !["confirmed", "checked-in"].includes(b.status.toLowerCase())
@@ -165,10 +157,7 @@ export default function AvailabilityCalendar() {
             return false;
           }
 
-          // Di sini masih pakai <= untuk mempertahankan behavior lama
           return currentDate >= arrDate && currentDate <= deptDate;
-          // Kalau mau hari checkout dianggap kosong, pakai:
-          // return currentDate >= arrDate && currentDate < deptDate;
         });
 
         const cell: CalendarCell = {
@@ -218,25 +207,33 @@ export default function AvailabilityCalendar() {
       const bookingData: RoomBooking[] = Array.isArray(data)
         ? data
         : data.bookings || [];
+      
+      // ✅ Debug: Log data yang diterima
+      console.log("📊 Total bookings loaded:", bookingData.length);
+      console.log("📊 Sample booking data:", bookingData.slice(0, 3).map(b => ({
+        RoomNumber: b.RoomNumber,
+        Name: `${b.FirstName} ${b.LastName}`,
+        ArrDate: b.ArrDate,
+        DeptDate: b.DeptDate,
+        Status: b.status
+      })));
+      
       setBookings(bookingData);
-
-      // 🔹 Generate calendar langsung setelah data berhasil di-load
       generateCalendar(bookingData);
     } catch (error) {
-      console.error("Fetch error:", error);
+      console.error("❌ Fetch error:", error);
       alert("Failed to load data");
     } finally {
       setLoading(false);
     }
   };
 
-  // Load data di awal
   useEffect(() => {
     fetchBookingData();
   }, []);
 
   const handleSort = () => {
-    // 🔹 Saat klik SORT, pakai state bookings terkini
+    console.log("🔄 Regenerating calendar with current bookings...");
     generateCalendar();
   };
 
@@ -251,7 +248,6 @@ export default function AvailabilityCalendar() {
     });
   };
 
-  // Check if user is admin
   if (userRole.toLowerCase() !== "admin") {
     return (
       <div className="min-h-screen flex items-center justify-center p-4">
@@ -277,7 +273,6 @@ export default function AvailabilityCalendar() {
   return (
     <div className="p-4 sm:p-6 lg:p-8">
       <div className="w-full max-w-full mx-auto">
-        {/* Header */}
         <div className="mb-6 flex justify-between items-center">
           <div>
             <h1 className="text-3xl font-bold text-blue-700 mb-2">
@@ -294,7 +289,6 @@ export default function AvailabilityCalendar() {
           </Button>
         </div>
 
-        {/* Filters */}
         <Card className="mb-6 border-2 border-blue-200">
           <CardContent className="pt-6">
             <div className="mb-4">
@@ -413,7 +407,6 @@ export default function AvailabilityCalendar() {
           </CardContent>
         </Card>
 
-        {/* Calendar Table */}
         <Card className="border-2 border-blue-200">
           <CardContent className="p-0">
             {loading ? (
@@ -521,7 +514,6 @@ export default function AvailabilityCalendar() {
           </CardContent>
         </Card>
 
-        {/* Legend */}
         <div className="mt-4 flex gap-6 justify-center flex-wrap">
           <div className="flex items-center gap-2">
             <div className="w-8 h-8 bg-blue-300 border-2 border-gray-400"></div>

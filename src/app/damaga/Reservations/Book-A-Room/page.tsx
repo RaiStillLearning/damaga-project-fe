@@ -84,41 +84,17 @@ const countries = [
   { value: "vietnam", label: "Vietnam" },
 ];
 
-// semua nomor kamar yang tersedia (buat multi-select)
+// ✅ FIXED: Semua nomor kamar yang tersedia (konsisten dengan AvailabilityCalendar)
 const roomNumbers = [
-  "201",
-  "202",
-  "204",
-  "205",
-  "206",
-  "207",
-  "208",
-  "209",
-  "210",
-  "301",
-  "302",
-  "304",
-  "305",
-  "306",
-  "307",
-  "308",
-  "309",
-  "310",
-  "401",
-  "402",
-  "404",
-  "405",
-  "406",
-  "407",
-  "408",
-  "409",
-  "410",
+  "201", "202", "203", "204", "205", "206", "207", "208", "219", "210",
+  "301", "302", "303", "304", "305", "306", "307", "308", "319", "310",
+  "401", "402", "403", "404", "405", "406", "407", "408", "409", "410",
 ];
 
 interface RoomRate {
   _id?: string;
-  roomType: string; // contoh: "DSD"
-  roomTypeName?: string; // contoh: "Damaga Standard Double"
+  roomType: string;
+  roomTypeName?: string;
   priceUSD: number;
   priceIDR: number;
 }
@@ -140,7 +116,7 @@ export default function BookARoomForm() {
     Country: "",
     Phone: "",
     RoomType: "",
-    NoOfRoom: 1, // ⬅️ sekarang jumlah kamar, bukan nomor kamar
+    NoOfRoom: 1,
     ArrDate: new Date().toISOString().split("T")[0],
     DeptDate: new Date().toISOString().split("T")[0],
     TypeOfGuest: "",
@@ -157,9 +133,7 @@ export default function BookARoomForm() {
     Clerk: "Admin",
   });
 
-  // daftar nomor kamar yang dipilih (multi booking)
   const [selectedRooms, setSelectedRooms] = useState<string[]>([]);
-
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const getCurrencySymbol = () => {
@@ -210,7 +184,6 @@ export default function BookARoomForm() {
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
 
-    // khusus NoOfRoom & NumberOfPerson & ZipCode jadi number
     if (
       name === "NoOfRoom" ||
       name === "NumberOfPerson" ||
@@ -276,21 +249,29 @@ export default function BookARoomForm() {
         return;
       }
 
-      // kirim multiple booking: 1 POST per RoomNumber
+      // ✅ FIXED: Kirim multiple booking dengan RoomNumber yang jelas
       for (const roomNo of selectedRooms) {
         const submitData = {
           ...formData,
           Phone: Number(formData.Phone),
-          NoOfRoom: totalRooms, // jumlah kamar di group ini
-          RoomNumber: roomNo, // ⬅️ nomor kamar spesifik
+          NoOfRoom: totalRooms,
+          RoomNumber: roomNo, // ✅ Field ini WAJIB ada dan berisi nomor kamar
           ZipCode: Number(formData.ZipCode) || 0,
           RoomRate: Number(formData.RoomRate) || 0,
           RoomRateCurrency: currency,
           NumberOfPerson: Number(formData.NumberOfPerson) || 1,
           Fax: formData.Fax?.toString() || "",
-          status: "confirmed",
+          status: "confirmed", // ✅ Status confirmed agar muncul di availability
           Source: "Book A Room Form",
         };
+
+        console.log("📤 Sending booking data:", {
+          RoomNumber: roomNo,
+          Name: `${formData.FirstName} ${formData.LastName}`,
+          ArrDate: formData.ArrDate,
+          DeptDate: formData.DeptDate,
+          status: submitData.status
+        });
 
         const res = await fetch(
           `${process.env.NEXT_PUBLIC_API_URL}/api/book-a-room`,
@@ -309,7 +290,7 @@ export default function BookARoomForm() {
           );
         }
 
-        console.log("Response booking kamar", roomNo, ":", data);
+        console.log("✅ Booking success untuk kamar", roomNo, ":", data);
       }
 
       alert(
@@ -322,7 +303,7 @@ export default function BookARoomForm() {
         )}\nStatus: Confirmed\n\nSemua booking akan muncul di Reservation History & Availability.`
       );
 
-      // reset form
+      // Reset form
       setFormData({
         FirstName: "",
         LastName: "",
@@ -358,7 +339,7 @@ export default function BookARoomForm() {
         }
       }, 1000);
     } catch (err: unknown) {
-      console.error(err);
+      console.error("❌ Error submitting booking:", err);
       const errorMessage =
         err instanceof Error ? err.message : "Unknown error occurred";
       alert(`❌ Gagal submit booking: ${errorMessage}`);
@@ -399,9 +380,7 @@ export default function BookARoomForm() {
         }
 
         const data = await res.json();
-
         const rates: RoomRate[] = Array.isArray(data) ? data : data.rates || [];
-
         setRoomRates(rates);
       } catch (err) {
         console.error("Error fetching room rates:", err);
@@ -626,7 +605,7 @@ export default function BookARoomForm() {
               </Select>
             </div>
 
-            {/* No Of Room (jumlah kamar) */}
+            {/* No Of Room */}
             <div className="w-full">
               <Label className="text-sm font-medium mb-2 block text-sky-500">
                 No Of Room *
@@ -808,7 +787,7 @@ export default function BookARoomForm() {
               </Select>
             </div>
 
-            {/* Room Rate with Dynamic Currency */}
+            {/* Room Rate */}
             <div className="w-full">
               <Label className="text-sm font-medium mb-2 block text-sky-500">
                 Room Rate ({getCurrencySymbol()}) *
@@ -872,7 +851,6 @@ export default function BookARoomForm() {
                 </SelectContent>
               </Select>
             </div>
-
             {/* Reservation Made By */}
             <div className="w-full">
               <Label className="text-sm font-medium mb-2 block text-sky-500">
