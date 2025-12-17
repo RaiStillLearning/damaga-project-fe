@@ -55,7 +55,6 @@ const commonNav = [
         title: "Expected Arrivals",
         url: "/damaga/FrontDesk/ExpectedArrival",
       },
-      { title: "In House", url: "/damaga/FrontDesk/InHouseGuest" },
       {
         title: "In House Guest List",
         url: "/damaga/FrontDesk/InHouseGuestList",

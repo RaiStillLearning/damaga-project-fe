@@ -12,9 +12,12 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { FileText } from "lucide-react";
+import { FileText, CalendarIcon } from "lucide-react";
 import { useSearchParams, useRouter } from "next/navigation";
 import Image from "next/image";
+import { Calendar } from "@/components/ui/calendar";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { format } from "date-fns";
 
 export default function registrationFormPage() {
   return (
@@ -63,9 +66,18 @@ interface RegistrationFormData {
 }
 
 function HotelRegistrationForm() {
-  const router = useRouter();
+ const router = useRouter();
   const searchParams = useSearchParams();
   const bookingId = searchParams.get("bookingId");
+
+  /* ===== CALENDAR STATES ===== */
+  const [arrivalDate, setArrivalDate] = useState<Date | undefined>();
+  const [departureDate, setDepartureDate] = useState<Date | undefined>();
+  const [dateOfBirthDate, setDateOfBirthDate] = useState<Date | undefined>();
+  const [dateOfIssueDate, setDateOfIssueDate] = useState<Date | undefined>();
+
+  const [mounted, setMounted] = useState(false)
+
   const [isCheckedIn, setIsCheckedIn] = useState(false);
   const [isViewMode, setIsViewMode] = useState(false);
   const [isLoadingData, setIsLoadingData] = useState(false);
@@ -99,6 +111,10 @@ function HotelRegistrationForm() {
     discount: "",
     person: "",
   });
+
+  useEffect(() => {
+    setMounted(true)
+  },[])
 
   const formatNumber = (num: number) => {
     if (num === 0) return "";
@@ -143,6 +159,26 @@ function HotelRegistrationForm() {
       return { ...prev, currency: newCurrency, dailyRate: newRoomRate };
     });
   };
+
+useEffect(() => {
+  setFormData((prev) => ({
+    ...prev,
+    dateOfIssue: dateOfIssueDate
+      ? dateOfIssueDate.toISOString().split("T")[0]
+      : "",
+  }));
+}, [dateOfIssueDate]);
+
+useEffect(() => {
+  setFormData((prev) => ({
+    ...prev,
+    dateOfBirth: dateOfBirthDate
+      ? dateOfBirthDate.toISOString().split("T")[0]
+      : "",
+  }));
+}, [dateOfBirthDate]);
+  
+
 
   useEffect(() => {
     const storedUser = localStorage.getItem("user");
@@ -432,6 +468,7 @@ function HotelRegistrationForm() {
       </div>
     );
   }
+
 
   if (!isCheckedIn) {
     return (
@@ -725,31 +762,77 @@ function HotelRegistrationForm() {
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Date of Issue
-                  </label>
-                  <Input
-                    name="dateOfIssue"
-                    type="date"
-                    value={formData.dateOfIssue}
-                    onChange={handleChange}
-                    disabled={isViewMode}
-                  />
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+  Date of Issue
+</label>
+
+<Popover>
+  <PopoverTrigger asChild>
+    <Button
+      variant="outline"
+      className="w-full justify-start text-left font-normal"
+      disabled={isViewMode}
+    >
+      <CalendarIcon className="mr-2 h-4 w-4" />
+      {dateOfIssueDate
+        ? format(dateOfIssueDate, "yyyy-MM-dd")
+        : "Select date"}
+    </Button>
+  </PopoverTrigger>
+
+  <PopoverContent className="w-auto p-0" align="start">
+    {mounted && (
+      <Calendar
+        mode="single"
+        selected={dateOfIssueDate}
+        onSelect={setDateOfIssueDate}
+        captionLayout="dropdown"
+        fromYear={2000}
+        toYear={new Date().getFullYear()}
+        initialFocus
+      />
+    )}
+  </PopoverContent>
+</Popover>
+
+
                 </div>
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Date of Birth
-                </label>
-                <Input
-                  name="dateOfBirth"
-                  type="date"
-                  value={formData.dateOfBirth}
-                  onChange={handleChange}
-                  className="max-w-xs"
-                  disabled={isViewMode}
-                />
+               <label className="block text-sm font-medium text-gray-700 mb-2">
+  Date of Birth
+</label>
+
+<Popover>
+  <PopoverTrigger asChild>
+    <Button
+      variant="outline"
+      className="w-full max-w-xs justify-start text-left font-normal"
+      disabled={isViewMode}
+    >
+      <CalendarIcon className="mr-2 h-4 w-4" />
+      {dateOfBirthDate
+        ? format(dateOfBirthDate, "yyyy-MM-dd")
+        : "Select birth date"}
+    </Button>
+  </PopoverTrigger>
+
+  <PopoverContent className="w-auto p-0" align="start">
+    {mounted && (
+      <Calendar
+        mode="single"
+        selected={dateOfBirthDate}
+        onSelect={setDateOfBirthDate}
+        captionLayout="dropdown"
+        fromYear={1900}
+        toYear={new Date().getFullYear()}
+        initialFocus
+      />
+    )}
+  </PopoverContent>
+</Popover>
+
               </div>
 
               <div className="border-t pt-6">
@@ -939,14 +1022,49 @@ function HotelRegistrationForm() {
     <div className="min-h-screen p-8 print:p-0">
       <div className="max-w-5xl mx-auto">
         <style>{`
-          @media print {
-            body { margin: 0; padding: 15px; }
-            .no-print { display: none !important; }
-            table { page-break-inside: avoid; border-collapse: collapse; width: 100%; }
-            td, th { border: 2px solid #000; padding: 6px; font-size: 10px; }
-            .blue-bg { background-color: #6CB4EE !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
-          }
-        `}</style>
+    @media print {
+      /* SEMBUNYIKAN SEMUA */
+      body * {
+        visibility: hidden;
+      }
+
+      /* TAMPILKAN HANYA PRINT AREA */
+      .print-area,
+      .print-area * {
+        visibility: visible;
+      }
+
+      .print-area {
+        position: absolute;
+        left: 0;
+        top: 0;
+        width: 100%;
+      }
+
+      body {
+        margin: 0;
+        padding: 15px;
+      }
+
+      table {
+        page-break-inside: avoid;
+        border-collapse: collapse;
+        width: 100%;
+      }
+
+      td, th {
+        border: 2px solid #000;
+        padding: 6px;
+        font-size: 10px;
+      }
+
+      .blue-bg {
+        background-color: #6CB4EE !important;
+        -webkit-print-color-adjust: exact;
+        print-color-adjust: exact;
+      }
+    }
+  `}</style>
 
         <div className="no-print mb-6 flex justify-between items-center">
           <Button variant="outline" onClick={handleBack}>
@@ -961,7 +1079,7 @@ function HotelRegistrationForm() {
           </Button>
         </div>
 
-        <div className="bg-white border-4 border-blue-600 p-6 print:border-4">
+        <div className="print-area bg-white border-4 border-blue-600 p-6 print:border-4">
           <div className="flex justify-between items-center mb-4">
             <Image
               src="/logo/DAMAGA SUITES MRR.png"

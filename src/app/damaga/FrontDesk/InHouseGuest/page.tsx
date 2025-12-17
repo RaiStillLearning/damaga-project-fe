@@ -790,14 +790,49 @@ function InHouseGuest() {
     <div className="min-h-screen p-8 print:p-0">
       <div className="max-w-5xl mx-auto">
         <style>{`
-          @media print {
-            body { margin: 0; padding: 15px; }
-            .no-print { display: none !important; }
-            table { page-break-inside: avoid; border-collapse: collapse; width: 100%; }
-            td, th { border: 2px solid #000; padding: 6px; font-size: 10px; }
-            .blue-bg { background-color: #6CB4EE !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
-          }
-        `}</style>
+    @media print {
+      /* SEMBUNYIKAN SEMUA */
+      body * {
+        visibility: hidden;
+      }
+
+      /* TAMPILKAN HANYA PRINT AREA */
+      .print-area,
+      .print-area * {
+        visibility: visible;
+      }
+
+      .print-area {
+        position: absolute;
+        left: 0;
+        top: 0;
+        width: 100%;
+      }
+
+      body {
+        margin: 0;
+        padding: 15px;
+      }
+
+      table {
+        page-break-inside: avoid;
+        border-collapse: collapse;
+        width: 100%;
+      }
+
+      td, th {
+        border: 2px solid #000;
+        padding: 6px;
+        font-size: 10px;
+      }
+
+      .blue-bg {
+        background-color: #6CB4EE !important;
+        -webkit-print-color-adjust: exact;
+        print-color-adjust: exact;
+      }
+    }
+  `}</style>
 
         <div className="no-print mb-6 flex justify-between items-center">
           <Button variant="outline" onClick={handleBack}>
@@ -812,7 +847,7 @@ function InHouseGuest() {
           </Button>
         </div>
 
-        <div className="bg-white border-4 border-blue-600 p-6 print:border-4">
+        <div className="print-area bg-white border-4 border-blue-600 p-6 print:border-4">
           <div className="flex justify-between items-center mb-4">
             <Image
               src="/logo/DAMAGA SUITES MRR.png"
