@@ -92,8 +92,16 @@ function ExpectedDeparture() {
     return today.toISOString().split("T")[0];
   };
 
+  // Fungsi untuk normalize tanggal ke format YYYY-MM-DD
+  const normalizeDate = (dateString: string): string => {
+    const date = new Date(dateString);
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const day = String(date.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
+  };
+
   useEffect(() => {
-    // Set default date to today
     setSelectedDate(getTodayString());
     fetchAllData();
 
@@ -117,7 +125,6 @@ function ExpectedDeparture() {
     }
   }, [searchParams]);
 
-  // Filter data whenever selectedDate changes
   useEffect(() => {
     if (selectedDate && allData.length > 0) {
       filterByDate(selectedDate);
@@ -145,11 +152,14 @@ function ExpectedDeparture() {
 
       console.log("📊 Total bookings fetched:", bookings.length);
 
-      // Filter hanya guest yang checked-in atau in-house
+      // PERUBAHAN: Tidak filter berdasarkan status, tampilkan semua yang belum check-out
       const validDepartures = bookings.filter((b) => {
         const statusLower = (b.status || "").toLowerCase();
-        return statusLower === "checked-in" || statusLower === "in-house";
+        // Hanya exclude yang sudah checked-out atau cancelled
+        return statusLower !== "checked-out" && statusLower !== "cancelled";
       });
+
+      console.log("✅ Valid departures (not checked-out/cancelled):", validDepartures.length);
 
       setAllData(validDepartures);
     } catch (err: unknown) {
@@ -168,11 +178,21 @@ function ExpectedDeparture() {
       return;
     }
 
+    console.log("🔍 Filtering by date:", dateString);
+
     const filtered = allData.filter((reservation) => {
-      const deptDate = new Date(reservation.DeptDate).toISOString().split("T")[0];
-      return deptDate === dateString;
+      // PERBAIKAN: Gunakan normalizeDate untuk memastikan format konsisten
+      const deptDate = normalizeDate(reservation.DeptDate);
+      const match = deptDate === dateString;
+      
+      if (match) {
+        console.log(`✅ Match found: ${reservation.FirstName} ${reservation.LastName} - Dept: ${deptDate}`);
+      }
+      
+      return match;
     });
 
+    console.log(`📋 Filtered results: ${filtered.length} departures on ${dateString}`);
     setReservationData(filtered);
   };
 
@@ -193,7 +213,7 @@ function ExpectedDeparture() {
       // First filter by selected date
       if (selectedDate) {
         filtered = filtered.filter((reservation) => {
-          const deptDate = new Date(reservation.DeptDate).toISOString().split("T")[0];
+          const deptDate = normalizeDate(reservation.DeptDate);
           return deptDate === selectedDate;
         });
       }
@@ -237,9 +257,7 @@ function ExpectedDeparture() {
 
         let matchesArrDate = true;
         if (searchState.ArrDate) {
-          matchesArrDate =
-            new Date(reservation.ArrDate).toISOString().split("T")[0] ===
-            searchState.ArrDate;
+          matchesArrDate = normalizeDate(reservation.ArrDate) === searchState.ArrDate;
         }
 
         const matchesStatus =
@@ -443,9 +461,9 @@ function ExpectedDeparture() {
           <div className="mb-6 p-4 bg-orange-50 rounded-lg border border-orange-200">
             <p className="text-sm text-orange-700">
               <strong>ℹ️ Info:</strong> Halaman ini menampilkan guest yang{" "}
-              <span className="font-semibold">AKAN DEPARTURE</span> pada tanggal yang dipilih dengan status{" "}
-              <span className="font-semibold">CHECKED-IN</span> atau{" "}
-              <span className="font-semibold">IN-HOUSE</span>.
+              <span className="font-semibold">AKAN DEPARTURE</span> pada tanggal yang dipilih.
+              Guest akan otomatis muncul berdasarkan <span className="font-semibold">Departure Date</span>{" "}
+              tanpa perlu check-in terlebih dahulu.
             </p>
           </div>
 
@@ -487,6 +505,16 @@ function ExpectedDeparture() {
                   color: "bg-gray-100 hover:bg-gray-200",
                 },
                 {
+                  value: "pending",
+                  label: "Pending",
+                  color: "bg-yellow-100 hover:bg-yellow-200 text-yellow-800",
+                },
+                {
+                  value: "confirmed",
+                  label: "Confirmed",
+                  color: "bg-blue-100 hover:bg-blue-200 text-blue-800",
+                },
+                {
                   value: "checked-in",
                   label: "Checked In",
                   color: "bg-green-100 hover:bg-green-200 text-green-800",
@@ -521,9 +549,7 @@ function ExpectedDeparture() {
               <span className="font-semibold text-sky-600">
                 {statusFilter === "all"
                   ? "All Departures"
-                  : statusFilter === "checked-in"
-                  ? "Checked In"
-                  : "In-House"}
+                  : statusFilter.charAt(0).toUpperCase() + statusFilter.slice(1)}
               </span>
             </p>
           </div>
@@ -608,8 +634,7 @@ function ExpectedDeparture() {
                 <User className="w-12 h-12 mx-auto text-gray-400 mb-3" />
                 <p className="text-gray-500">No expected departures found for this date.</p>
                 <p className="text-xs text-gray-400 mt-2">
-                  Guest yang akan departure dengan status Checked-In atau
-                  In-House akan muncul di sini.
+                  Guest dengan departure date pada tanggal ini akan muncul otomatis.
                 </p>
               </div>
             ) : (
@@ -654,9 +679,7 @@ function ExpectedDeparture() {
                   <tbody className="bg-white divide-y divide-gray-200">
                     {reservationData.map((r, i) => {
                       const statusLower = (r.status || "").toLowerCase();
-                      const canCheckOut =
-                        statusLower === "checked-in" ||
-                        statusLower === "in-house";
+                      const canCheckOut = statusLower !== "checked-out" && statusLower !== "cancelled";
 
                       return (
                         <tr

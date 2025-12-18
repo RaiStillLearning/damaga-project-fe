@@ -92,7 +92,6 @@ export default function AvailabilityCalendar() {
       endDate = new Date(filters.endDate);
     }
 
-    // ✅ FIXED: Hapus room 203 agar konsisten dengan BookARoomForm
     const allRooms = [
       { number: "201", type: "DSD" },
       { number: "202", type: "DST" },
@@ -133,9 +132,7 @@ export default function AvailabilityCalendar() {
       const currentDate = new Date(startDate);
 
       while (currentDate <= endDate) {
-        // ✅ FIXED: Hanya pakai RoomNumber untuk matching
         const booking = sourceBookings.find((b) => {
-          // Hanya ambil RoomNumber, JANGAN fallback ke NoOfRoom
           const roomNum = b.RoomNumber;
           
           if (!roomNum || roomNum !== room.number) {
@@ -145,7 +142,7 @@ export default function AvailabilityCalendar() {
           // Hanya tampilkan status confirmed & checked-in
           if (
             b.status &&
-            !["confirmed", "checked-in"].includes(b.status.toLowerCase())
+            !["confirmed", "checked-in", "in-house"].includes(b.status.toLowerCase())
           ) {
             return false;
           }
@@ -157,7 +154,13 @@ export default function AvailabilityCalendar() {
             return false;
           }
 
-          return currentDate >= arrDate && currentDate <= deptDate;
+          // ✅ FIX: Kurangi 1 hari dari departure date untuk availability
+          // Jika check-in 18, check-out 20 → tampil 18-19 di kalender
+          const adjustedDeptDate = new Date(deptDate);
+          adjustedDeptDate.setDate(adjustedDeptDate.getDate() - 1);
+
+          // Guest menempati room dari arrDate sampai sehari sebelum deptDate
+          return currentDate >= arrDate && currentDate <= adjustedDeptDate;
         });
 
         const cell: CalendarCell = {
@@ -167,12 +170,17 @@ export default function AvailabilityCalendar() {
         if (booking) {
           const arrDate = parseDateOnly(booking.ArrDate);
           const deptDate = parseDateOnly(booking.DeptDate);
+          
+          // ✅ Adjust departure date untuk tampilan
+          const adjustedDeptDate = new Date(deptDate);
+          adjustedDeptDate.setDate(adjustedDeptDate.getDate() - 1);
 
           cell.guestName = `${booking.FirstName} ${booking.LastName}`;
           cell.isCheckIn =
             currentDate.toDateString() === arrDate.toDateString();
+          // ✅ Check-out ditampilkan di hari terakhir stay (bukan hari check-out sebenarnya)
           cell.isCheckOut =
-            currentDate.toDateString() === deptDate.toDateString();
+            currentDate.toDateString() === adjustedDeptDate.toDateString();
           cell.isOccupied = true;
         }
 
@@ -208,14 +216,14 @@ export default function AvailabilityCalendar() {
         ? data
         : data.bookings || [];
       
-      // ✅ Debug: Log data yang diterima
       console.log("📊 Total bookings loaded:", bookingData.length);
       console.log("📊 Sample booking data:", bookingData.slice(0, 3).map(b => ({
         RoomNumber: b.RoomNumber,
         Name: `${b.FirstName} ${b.LastName}`,
         ArrDate: b.ArrDate,
         DeptDate: b.DeptDate,
-        Status: b.status
+        Status: b.status,
+        DisplayDates: `${parseDateOnly(b.ArrDate).toLocaleDateString()} - ${new Date(parseDateOnly(b.DeptDate).getTime() - 86400000).toLocaleDateString()} (Dept: ${parseDateOnly(b.DeptDate).toLocaleDateString()})`
       })));
       
       setBookings(bookingData);
@@ -278,6 +286,9 @@ export default function AvailabilityCalendar() {
             <h1 className="text-3xl font-bold text-blue-700 mb-2">
               AVAILABILITY
             </h1>
+            <p className="text-sm text-gray-600">
+              * Departure date dikurangi 1 hari untuk availability. Contoh: Check-in 18 Dec - Check-out 20 Dec = Tampil 18-19 Dec di kalender
+            </p>
           </div>
           <Button
             variant="outline"
@@ -517,11 +528,11 @@ export default function AvailabilityCalendar() {
         <div className="mt-4 flex gap-6 justify-center flex-wrap">
           <div className="flex items-center gap-2">
             <div className="w-8 h-8 bg-blue-300 border-2 border-gray-400"></div>
-            <span className="text-sm font-medium text-gray-700">Check-in</span>
+            <span className="text-sm font-medium text-gray-700">Check-in Day</span>
           </div>
           <div className="flex items-center gap-2">
             <div className="w-8 h-8 bg-green-400 border-2 border-gray-400"></div>
-            <span className="text-sm font-medium text-gray-700">Occupied</span>
+            <span className="text-sm font-medium text-gray-700">Occupied / Last Stay Day</span>
           </div>
           <div className="flex items-center gap-2">
             <div className="w-8 h-8 bg-white border-2 border-gray-400"></div>
