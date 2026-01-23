@@ -3,7 +3,6 @@
 # 📗 README FRONTEND  
 **Repository:** `damaga-suite-frontend`
 
-```md
 # Damaga Suite – Frontend System
 
 Frontend application untuk sistem manajemen hotel **Damaga Suite**.  
