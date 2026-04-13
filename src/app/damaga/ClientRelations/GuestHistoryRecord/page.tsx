@@ -2,7 +2,7 @@
 
 import { Suspense } from "react";
 import { useState, useEffect } from "react";
-import { useSearchParams } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
@@ -34,7 +34,7 @@ export default function GuestHistoryRecordPage() {
 /* ---------------------------------------------------------------- */
 
 function GuestHistoryRecord() {
-  // const router = useRouter();
+  const router = useRouter();
   const searchParams = useSearchParams();
   const [searchState, setSearchState] = useState({
     LastName: "",
@@ -313,6 +313,7 @@ function GuestHistoryRecord() {
                         "Nationality",
                         "Status",
                         "Note",
+                        "Action",
                       ].map((head) => (
                         <th
                           key={head}
@@ -357,6 +358,19 @@ function GuestHistoryRecord() {
                         </td>
                         <td className="px-4 py-3 text-sm text-gray-700">
                           {guest.Request || "-"}
+                        </td>
+                        <td className="px-4 py-3 text-sm">
+                          <Button
+                            size="sm"
+                            onClick={() =>
+                              router.push(
+                                `/damaga/FrontDesk/Registration?bookingId=${guest._id}`
+                              )
+                            }
+                            className="bg-sky-600 hover:bg-sky-700 text-white"
+                          >
+                            View Details
+                          </Button>
                         </td>
                       </tr>
                     ))}

@@ -762,76 +762,34 @@ useEffect(() => {
                   />
                 </div>
                 <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-  Date of Issue
-</label>
-
-<Popover>
-  <PopoverTrigger asChild>
-    <Button
-      variant="outline"
-      className="w-full justify-start text-left font-normal"
-      disabled={isViewMode}
-    >
-      <CalendarIcon className="mr-2 h-4 w-4" />
-      {dateOfIssueDate
-        ? format(dateOfIssueDate, "yyyy-MM-dd")
-        : "Select date"}
-    </Button>
-  </PopoverTrigger>
-
-  <PopoverContent className="w-auto p-0" align="start">
-    {mounted && (
-      <Calendar
-        mode="single"
-        selected={dateOfIssueDate}
-        onSelect={setDateOfIssueDate}
-        captionLayout="dropdown"
-        fromYear={2000}
-        toYear={new Date().getFullYear()}
-        initialFocus
-      />
-    )}
-  </PopoverContent>
-</Popover>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Date of Issue
+                  </label>
+                  <Input
+                    name="dateOfIssue"
+                    type="date"
+                    value={formData.dateOfIssue}
+                    onChange={handleChange}
+                    className="w-full"
+                    disabled={isViewMode}
+                  />
 
 
                 </div>
               </div>
 
               <div>
-               <label className="block text-sm font-medium text-gray-700 mb-2">
-  Date of Birth
-</label>
-
-<Popover>
-  <PopoverTrigger asChild>
-    <Button
-      variant="outline"
-      className="w-full max-w-xs justify-start text-left font-normal"
-      disabled={isViewMode}
-    >
-      <CalendarIcon className="mr-2 h-4 w-4" />
-      {dateOfBirthDate
-        ? format(dateOfBirthDate, "yyyy-MM-dd")
-        : "Select birth date"}
-    </Button>
-  </PopoverTrigger>
-
-  <PopoverContent className="w-auto p-0" align="start">
-    {mounted && (
-      <Calendar
-        mode="single"
-        selected={dateOfBirthDate}
-        onSelect={setDateOfBirthDate}
-        captionLayout="dropdown"
-        fromYear={1900}
-        toYear={new Date().getFullYear()}
-        initialFocus
-      />
-    )}
-  </PopoverContent>
-</Popover>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Date of Birth
+                  </label>
+                  <Input
+                    name="dateOfBirth"
+                    type="date"
+                    value={formData.dateOfBirth}
+                    onChange={handleChange}
+                    className="w-full max-w-xs"
+                    disabled={isViewMode}
+                  />
 
               </div>
 

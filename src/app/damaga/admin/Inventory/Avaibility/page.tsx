@@ -55,6 +55,7 @@ export default function AvailabilityCalendar() {
   const [calendar, setCalendar] = useState<RoomCalendar[]>([]);
   const [loading, setLoading] = useState(false);
   const [userRole, setUserRole] = useState<string>("");
+  const [mounted, setMounted] = useState(false);
 
   const [filters, setFilters] = useState({
     month: (new Date().getMonth() + 1).toString(),
@@ -75,6 +76,7 @@ export default function AvailabilityCalendar() {
         console.error("Failed to parse user", error);
       }
     }
+    setMounted(true);
   }, []);
 
   const generateCalendar = (sourceBookings: RoomBooking[] = bookings) => {
@@ -255,6 +257,8 @@ export default function AvailabilityCalendar() {
       month: "long",
     });
   };
+
+  if (!mounted) return null;
 
   if (userRole.toLowerCase() !== "admin") {
     return (

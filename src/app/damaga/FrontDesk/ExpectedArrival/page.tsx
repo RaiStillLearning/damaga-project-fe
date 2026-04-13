@@ -111,8 +111,8 @@ function ReservationHistory() {
   };
 
   useEffect(() => {
-    // Set default date to today
-    setSelectedDate(getTodayString());
+    // Show all dates by default
+    setSelectedDate("");
     fetchAllData();
     fetchRoomStatus();
 
@@ -138,9 +138,8 @@ function ReservationHistory() {
     }
   }, [searchParams]);
 
-  // Filter data whenever selectedDate changes
   useEffect(() => {
-    if (selectedDate && allData.length > 0) {
+    if (allData.length > 0) {
       filterByDate(selectedDate);
     }
   }, [selectedDate, allData]);

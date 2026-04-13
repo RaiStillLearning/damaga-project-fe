@@ -1,5 +1,7 @@
 "use client";
 
+import { useEffect, useState } from "react";
+
 import {
   UserPlus,
   NotebookPen,
@@ -85,6 +87,11 @@ const adminNav = [
 
 export function AppSidebar(props: React.ComponentProps<typeof Sidebar>) {
   const { user } = useUserContext();
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   const isAdmin = user?.role === "admin";
 
@@ -94,13 +101,13 @@ export function AppSidebar(props: React.ComponentProps<typeof Sidebar>) {
   return (
     <Sidebar collapsible="icon" {...props}>
       <SidebarHeader>
-        <NavUser />
+        {mounted && <NavUser />}
       </SidebarHeader>
 
       <SidebarContent>
         {/* Bisa kasih loading state kalau mau */}
         {/* {loading ? <div className="p-2 text-xs text-muted-foreground">Loading menu...</div> : null} */}
-        <NavMain items={navItems} />
+        {mounted && <NavMain items={navItems} />}
       </SidebarContent>
 
       <SidebarFooter>{/* tombol logout dll */}</SidebarFooter>

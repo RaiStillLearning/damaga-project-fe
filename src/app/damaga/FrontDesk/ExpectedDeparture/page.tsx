@@ -102,7 +102,7 @@ function ExpectedDeparture() {
   };
 
   useEffect(() => {
-    setSelectedDate(getTodayString());
+    setSelectedDate("");
     fetchAllData();
 
     const interval = setInterval(() => {
@@ -126,7 +126,7 @@ function ExpectedDeparture() {
   }, [searchParams]);
 
   useEffect(() => {
-    if (selectedDate && allData.length > 0) {
+    if (allData.length > 0) {
       filterByDate(selectedDate);
     }
   }, [selectedDate, allData]);
@@ -152,11 +152,10 @@ function ExpectedDeparture() {
 
       console.log("📊 Total bookings fetched:", bookings.length);
 
-      // PERUBAHAN: Tidak filter berdasarkan status, tampilkan semua yang belum check-out
+      // PERUBAHAN: Hanya filter tamu yang memang sudah check-in/in-house/stay-over
       const validDepartures = bookings.filter((b) => {
         const statusLower = (b.status || "").toLowerCase();
-        // Hanya exclude yang sudah checked-out atau cancelled
-        return statusLower !== "checked-out" && statusLower !== "cancelled";
+        return ["checked-in", "in-house", "stay-over"].includes(statusLower);
       });
 
       console.log("✅ Valid departures (not checked-out/cancelled):", validDepartures.length);

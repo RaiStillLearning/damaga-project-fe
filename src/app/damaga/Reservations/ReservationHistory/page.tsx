@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { Suspense } from "react";
-import { useSearchParams } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
@@ -51,7 +51,7 @@ interface ReservationBooking {
 }
 
 function ReservationHistory() {
-  // const router = useRouter();
+  const router = useRouter();
   const searchParams = useSearchParams();
   const [searchState, setSearchState] = useState({
     FirstName: "",
@@ -545,6 +545,7 @@ function ReservationHistory() {
                         "Status",
                         "Source",
                         "Note",
+                        "Action",
                       ].map((head) => (
                         <th
                           key={head}
@@ -605,6 +606,19 @@ function ReservationHistory() {
                         <td className="px-4 py-3 text-sm">{r.Source || "-"}</td>
                         <td className="px-4 py-3 text-sm max-w-xs truncate">
                           {r.Note || "-"}
+                        </td>
+                        <td className="px-4 py-3 text-sm">
+                          <Button
+                            size="sm"
+                            onClick={() =>
+                              router.push(
+                                `/damaga/FrontDesk/Registration?bookingId=${r._id}`
+                              )
+                            }
+                            className="bg-sky-600 hover:bg-sky-700 text-white"
+                          >
+                            View Details
+                          </Button>
                         </td>
                       </tr>
                     ))}

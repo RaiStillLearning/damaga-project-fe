@@ -29,8 +29,9 @@ export function LoginForm({
     e.preventDefault();
 
     try {
+      const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5001";
       const res = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL}/api/auth/login`,
+        `${API_URL}/api/auth/login`,
         {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -39,7 +40,12 @@ export function LoginForm({
       );
 
       if (!res.ok) {
-        const errData = await res.json();
+        let errData;
+        try {
+          errData = await res.json();
+        } catch {
+          errData = { error: res.statusText };
+        }
         return alert("Login gagal: " + (errData.error || res.statusText));
       }
 
@@ -82,7 +88,8 @@ export function LoginForm({
             alt="DAMAGA Logo"
             width={150}
             height={150}
-            className="mx-auto"
+            priority
+            className="mx-auto w-auto h-auto"
           />
           <CardTitle className="text-xl text-gray-800 font-bold">
             Welcome back
