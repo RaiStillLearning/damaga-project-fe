@@ -30,7 +30,7 @@ export function LoginForm({
 
     try {
       const API_URL =
-        process.env.NEXT_PUBLIC_API_URL || "http://187.77.113.216:5001";
+        process.env.NEXT_PUBLIC_API_URL || "https://api.damaga.my.id";
       const res = await fetch(`${API_URL}/api/auth/login`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
