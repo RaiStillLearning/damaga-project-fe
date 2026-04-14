@@ -29,15 +29,13 @@ export function LoginForm({
     e.preventDefault();
 
     try {
-      const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5001";
-      const res = await fetch(
-        `${API_URL}/api/auth/login`,
-        {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ email, password }),
-        }
-      );
+      const API_URL =
+        process.env.NEXT_PUBLIC_API_URL || "http://187.77.113.216:5001";
+      const res = await fetch(`${API_URL}/api/auth/login`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email, password }),
+      });
 
       if (!res.ok) {
         let errData;
@@ -67,7 +65,7 @@ export function LoginForm({
           divisi: data.user.divisi || "",
           role: data.user.role,
         },
-        data.token
+        data.token,
       );
       localStorage.setItem("user", JSON.stringify(data.user));
 
