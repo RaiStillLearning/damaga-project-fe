@@ -22,32 +22,61 @@ export default function AccountPage() {
   const [user, setUser] = useState({
     username: "",
     email: "",
-    avatar: "/placeholder-avatar.jpg",
+    avatar: "",
   });
   const [isLoading, setIsLoading] = useState(false);
   const [avatarFile, setAvatarFile] = useState<File | null>(null);
 
   const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
 
-  // ✅ Ambil profile dari token
+  // ✅ Ambil profile dari token, fallback ke localStorage
   useEffect(() => {
     const token = localStorage.getItem("token");
     if (!token) return router.push("/login");
 
+    // Try to load from localStorage first as fallback
+    const loadFromLocalStorage = () => {
+      const stored = localStorage.getItem("user");
+      if (stored) {
+        try {
+          const parsed = JSON.parse(stored);
+          setUser({
+            username: parsed.username || "",
+            email: parsed.email || "",
+            avatar: parsed.avatar || "",
+          });
+        } catch {}
+      }
+    };
+
     fetch(`${API_URL}/api/profile`, {
       headers: { Authorization: `Bearer ${token}` },
     })
-      .then((res) => res.json())
+      .then((res) => {
+        if (!res.ok) {
+          // API endpoint not available, use localStorage
+          loadFromLocalStorage();
+          return null;
+        }
+        return res.json();
+      })
       .then((data) => {
-        if (data.user) {
+        if (data?.user) {
           setUser({
             username: data.user.username || "",
             email: data.user.email || "",
-            avatar: data.user.avatar || "/placeholder-avatar.jpg",
+            avatar: data.user.avatar || "",
           });
+        } else if (data === null) {
+          // Already handled above
+        } else {
+          loadFromLocalStorage();
         }
       })
-      .catch(() => console.log("Failed to load profile"));
+      .catch(() => {
+        console.log("Failed to load profile from API, using localStorage");
+        loadFromLocalStorage();
+      });
   }, [router]);
 
   // ✅ Upload avatar preview
@@ -107,7 +136,22 @@ export default function AccountPage() {
         });
       }
 
-      if (!res.ok) throw new Error("Update failed");
+      if (!res.ok) {
+        if (res.status === 404) {
+          // API endpoint not available yet, save locally
+          const localUser = {
+            username: user.username,
+            email: user.email,
+            avatar: avatarFile ? user.avatar : (user.avatar || ""),
+          };
+          setUser(localUser);
+          localStorage.setItem("user", JSON.stringify(localUser));
+          setAvatarFile(null);
+          alert("Profile updated locally! (Backend profile API belum tersedia)");
+          return;
+        }
+        throw new Error("Update failed");
+      }
 
       const updated = await res.json();
 
@@ -118,7 +162,7 @@ export default function AccountPage() {
       setUser({
         username: payloadUser.username,
         email: payloadUser.email,
-        avatar: payloadUser.avatar || "/placeholder-avatar.jpg",
+        avatar: payloadUser.avatar || "",
       });
 
       localStorage.setItem("user", JSON.stringify(payloadUser));
@@ -127,7 +171,7 @@ export default function AccountPage() {
       alert("Profile updated successfully!");
     } catch (err) {
       console.error(err);
-      alert("Failed to update profile");
+      alert("Failed to update profile. Pastikan backend /api/profile endpoint tersedia.");
     } finally {
       setIsLoading(false);
     }

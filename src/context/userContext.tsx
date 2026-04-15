@@ -59,7 +59,17 @@ export function UserProvider({ children }: { children: ReactNode }) {
 
         if (!res.ok) {
           if (res.status === 401) throw new Error("Unauthorized");
-          throw new Error("Failed to fetch profile");
+          // For 404 or other errors, try localStorage fallback
+          const storedUser = localStorage.getItem("user");
+          if (storedUser) {
+            try {
+              const parsed = JSON.parse(storedUser);
+              setUserState(parsed as AppUser);
+            } catch {
+              clearUser();
+            }
+          }
+          return;
         }
 
         const data = await res.json();
@@ -69,11 +79,37 @@ export function UserProvider({ children }: { children: ReactNode }) {
           setUserState(data.user as AppUser);
           localStorage.setItem("user", JSON.stringify(data.user));
         } else {
-          clearUser();
+          // Try localStorage fallback
+          const storedUser = localStorage.getItem("user");
+          if (storedUser) {
+            try {
+              const parsed = JSON.parse(storedUser);
+              setUserState(parsed as AppUser);
+            } catch {
+              clearUser();
+            }
+          } else {
+            clearUser();
+          }
         }
       } catch (err) {
         console.error("Profile fetch error:", err);
-        clearUser();
+        // On unauthorized, clear user. Otherwise try localStorage
+        if (err instanceof Error && err.message === "Unauthorized") {
+          clearUser();
+        } else {
+          const storedUser = localStorage.getItem("user");
+          if (storedUser) {
+            try {
+              const parsed = JSON.parse(storedUser);
+              setUserState(parsed as AppUser);
+            } catch {
+              clearUser();
+            }
+          } else {
+            clearUser();
+          }
+        }
       } finally {
         setLoading(false);
       }

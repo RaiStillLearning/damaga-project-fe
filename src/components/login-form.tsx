@@ -61,7 +61,7 @@ export function LoginForm({
         {
           username: data.user.username,
           email: data.user.email,
-          avatar: data.user.avatar || "/default-avatar.png",
+          avatar: data.user.avatar || "",
           divisi: data.user.divisi || "",
           role: data.user.role,
         },
