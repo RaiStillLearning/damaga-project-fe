@@ -29,6 +29,13 @@ export default function AccountPage() {
 
   const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
 
+  // ✅ Helper untuk mendapatkan URL avatar yang benar
+  const getAvatarUrl = (path: string) => {
+    if (!path) return "";
+    if (path.startsWith("data:") || path.startsWith("http")) return path;
+    return `${API_URL}${path}`;
+  };
+
   // ✅ Ambil profile dari token, fallback ke localStorage
   useEffect(() => {
     const token = localStorage.getItem("token");
@@ -215,7 +222,7 @@ export default function AccountPage() {
               <div className="h-24 w-24 rounded-lg bg-muted flex items-center justify-center overflow-hidden">
                 {user.avatar ? (
                   <img
-                    src={user.avatar}
+                    src={getAvatarUrl(user.avatar)}
                     alt={user.username || "User"}
                     className="h-full w-full object-cover"
                   />
