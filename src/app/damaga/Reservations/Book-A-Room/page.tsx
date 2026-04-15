@@ -136,6 +136,65 @@ export default function BookARoomForm() {
   const [selectedRooms, setSelectedRooms] = useState<string[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
+  // State for existing bookings to filter out already-booked rooms
+  const [existingBookings, setExistingBookings] = useState<Array<{
+    RoomNumber?: string;
+    ArrDate: string;
+    DeptDate: string;
+    status?: string;
+  }>>([]);
+
+  // Fetch existing bookings to check room availability
+  const fetchExistingBookings = async () => {
+    try {
+      const res = await fetch(
+        `${process.env.NEXT_PUBLIC_API_URL}/api/book-a-room?t=${Date.now()}`,
+        {
+          method: "GET",
+          headers: { "Content-Type": "application/json" },
+          cache: "no-store",
+        }
+      );
+      if (!res.ok) return;
+      const data = await res.json();
+      const bookings = Array.isArray(data) ? data : data.bookings || [];
+      setExistingBookings(bookings);
+    } catch (err) {
+      console.error("Failed to fetch existing bookings:", err);
+    }
+  };
+
+  // Compute available rooms by filtering out rooms booked for overlapping dates
+  const getAvailableRooms = () => {
+    if (!formData.ArrDate || !formData.DeptDate) return roomNumbers;
+
+    const selectedArr = new Date(formData.ArrDate).getTime();
+    const selectedDept = new Date(formData.DeptDate).getTime();
+
+    // Active statuses that occupy a room
+    const activeStatuses = ["confirmed", "checked-in", "in-house", "stay-over", "pending"];
+
+    const bookedRooms = new Set<string>();
+
+    existingBookings.forEach((booking) => {
+      if (!booking.RoomNumber) return;
+      const statusLower = (booking.status || "").toLowerCase();
+      if (!activeStatuses.includes(statusLower)) return;
+
+      const bookingArr = new Date(booking.ArrDate).getTime();
+      const bookingDept = new Date(booking.DeptDate).getTime();
+
+      // Check date overlap: two ranges overlap if one starts before the other ends
+      if (selectedArr < bookingDept && selectedDept > bookingArr) {
+        bookedRooms.add(booking.RoomNumber);
+      }
+    });
+
+    return roomNumbers.filter((room) => !bookedRooms.has(room));
+  };
+
+  const availableRooms = getAvailableRooms();
+
   const getCurrencySymbol = () => {
     return currency === "USD" ? "$" : "Rp";
   };
@@ -359,7 +418,18 @@ export default function BookARoomForm() {
         }));
       } catch {}
     }
+    fetchExistingBookings();
   }, []);
+
+  // Re-fetch bookings when dates change to update available rooms
+  useEffect(() => {
+    fetchExistingBookings();
+    // Clear selected rooms that are no longer available
+    setSelectedRooms((prev) => {
+      const newAvailable = getAvailableRooms();
+      return prev.filter((room) => newAvailable.includes(room));
+    });
+  }, [formData.ArrDate, formData.DeptDate]);
 
   useEffect(() => {
     const fetchRoomRates = async () => {
@@ -651,7 +721,7 @@ export default function BookARoomForm() {
                     <CommandInput placeholder="Search room..." />
                     <CommandEmpty>No room found.</CommandEmpty>
                     <CommandGroup className="max-h-64 overflow-auto">
-                      {roomNumbers.map((roomNo) => {
+                      {availableRooms.map((roomNo) => {
                         const isSelected = selectedRooms.includes(roomNo);
                         return (
                           <CommandItem

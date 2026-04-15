@@ -14,7 +14,6 @@ import {
   CardDescription,
 } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
-import Image from "next/image";
 
 export default function AccountPage() {
   const router = useRouter();
@@ -26,6 +25,7 @@ export default function AccountPage() {
     avatar: "/placeholder-avatar.jpg",
   });
   const [isLoading, setIsLoading] = useState(false);
+  const [avatarFile, setAvatarFile] = useState<File | null>(null);
 
   const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
 
@@ -60,6 +60,9 @@ export default function AccountPage() {
     if (file.size > 5 * 1024 * 1024)
       return alert("Image size should be less than 5MB.");
 
+    // Store the actual file for upload
+    setAvatarFile(file);
+
     const reader = new FileReader();
     reader.onload = (e) => {
       const result = e.target?.result as string;
@@ -69,24 +72,40 @@ export default function AccountPage() {
   };
 
   // ✅ Save profile (PUT ke backend)
-  // ✅ Save profile (PUT ke backend)
   const handleSave = async () => {
     setIsLoading(true);
     try {
       const token = localStorage.getItem("token");
       if (!token) return router.push("/login");
 
-      const res = await fetch(`${API_URL}/api/profile`,  {
-        method: "PUT",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify({
-          username: user.username,
-          avatar: user.avatar,
-        }),
-      });
+      let res: Response;
+
+      if (avatarFile) {
+        // Use FormData for file upload
+        const formData = new FormData();
+        formData.append("username", user.username);
+        formData.append("avatar", avatarFile);
+
+        res = await fetch(`${API_URL}/api/profile`, {
+          method: "PUT",
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+          body: formData,
+        });
+      } else {
+        // No file change, send JSON
+        res = await fetch(`${API_URL}/api/profile`, {
+          method: "PUT",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+          body: JSON.stringify({
+            username: user.username,
+          }),
+        });
+      }
 
       if (!res.ok) throw new Error("Update failed");
 
@@ -103,6 +122,7 @@ export default function AccountPage() {
       });
 
       localStorage.setItem("user", JSON.stringify(payloadUser));
+      setAvatarFile(null);
 
       alert("Profile updated successfully!");
     } catch (err) {
@@ -150,12 +170,10 @@ export default function AccountPage() {
             <div className="relative">
               <div className="h-24 w-24 rounded-lg bg-muted flex items-center justify-center overflow-hidden">
                 {user.avatar ? (
-                  <Image
+                  <img
                     src={user.avatar}
                     alt={user.username || "User"}
                     className="h-full w-full object-cover"
-                    width={96}
-                    height={96}
                   />
                 ) : (
                   <span className="text-2xl text-foreground font-bold">

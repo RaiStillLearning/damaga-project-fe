@@ -205,16 +205,22 @@ function ReservationHistory() {
     }
   };
 
-  const filterByDate = (dateString: string) => {
-    if (!dateString) {
-      setReservationData(allData);
-      return;
-    }
+  // Statuses that should NOT appear in Expected Arrival
+  const excludedStatuses = ["checked-in", "in-house", "checked-out", "stay-over"];
 
-    const filtered = allData.filter((reservation) => {
-      const arrDate = new Date(reservation.ArrDate).toISOString().split("T")[0];
-      return arrDate === dateString;
+  const filterByDate = (dateString: string) => {
+    // Always filter out guests who have already checked in, are in-house, or checked out
+    let filtered = allData.filter((reservation) => {
+      const statusLower = (reservation.status || "").toLowerCase();
+      return !excludedStatuses.includes(statusLower);
     });
+
+    if (dateString) {
+      filtered = filtered.filter((reservation) => {
+        const arrDate = new Date(reservation.ArrDate).toISOString().split("T")[0];
+        return arrDate === dateString;
+      });
+    }
 
     setReservationData(filtered);
   };
@@ -232,6 +238,12 @@ function ReservationHistory() {
     setLoading(true);
     try {
       let filtered = allData;
+
+      // Filter out guests who have already checked in, are in-house, or checked out
+      filtered = filtered.filter((reservation) => {
+        const statusLower = (reservation.status || "").toLowerCase();
+        return !excludedStatuses.includes(statusLower);
+      });
 
       // First filter by selected date
       if (selectedDate) {
