@@ -164,34 +164,46 @@ export default function BookARoomForm() {
     }
   };
 
+const roomTypeMapping: Record<string, string> = {
+  "201": "DSD", "202": "DST", "203": "DDD", "204": "DDT", "205": "DSDT", "206": "DSTT", "207": "DDT", "208": "DSDT", "209": "DSTT", "210": "DSTT",
+  "301": "DSD", "302": "DST", "303": "DDD", "304": "DDT", "305": "DSDT", "306": "DSTT", "307": "DDT", "308": "DSDT", "309": "DSTT", "310": "DSTT",
+  "401": "DSD", "402": "DST", "403": "DDD", "404": "DDT", "405": "DSDT", "406": "DSTT", "407": "DDT", "408": "DSDT", "409": "DSTT", "410": "DSTT",
+};
+
   // Compute available rooms by filtering out rooms booked for overlapping dates
   const getAvailableRooms = () => {
-    if (!formData.ArrDate || !formData.DeptDate) return roomNumbers;
-
-    const selectedArr = new Date(formData.ArrDate).getTime();
-    const selectedDept = new Date(formData.DeptDate).getTime();
-
     // Active statuses that occupy a room
     const activeStatuses = ["confirmed", "checked-in", "in-house", "stay-over", "pending"];
-
     const bookedRooms = new Set<string>();
 
-    existingBookings.forEach((booking) => {
-      if (!booking.RoomNumber) return;
-      const statusLower = (booking.status || "").toLowerCase();
-      if (!activeStatuses.includes(statusLower)) return;
+    if (formData.ArrDate && formData.DeptDate) {
+      const selectedArr = new Date(formData.ArrDate).getTime();
+      const selectedDept = new Date(formData.DeptDate).getTime();
 
-      const bookingArr = new Date(booking.ArrDate).getTime();
-      const bookingDept = new Date(booking.DeptDate).getTime();
+      existingBookings.forEach((booking) => {
+        if (!booking.RoomNumber) return;
+        const statusLower = (booking.status || "").toLowerCase();
+        if (!activeStatuses.includes(statusLower)) return;
 
-      // Check date overlap: two ranges overlap if one starts before the other ends
-      if (selectedArr < bookingDept && selectedDept > bookingArr) {
-        bookedRooms.add(booking.RoomNumber);
-      }
+        const bookingArr = new Date(booking.ArrDate).getTime();
+        const bookingDept = new Date(booking.DeptDate).getTime();
+
+        // Check date overlap: two ranges overlap if one starts before the other ends
+        if (selectedArr < bookingDept && selectedDept > bookingArr) {
+          bookedRooms.add(booking.RoomNumber);
+        }
+      });
+    }
+
+    return roomNumbers.filter((room) => {
+      // Must not be booked
+      if (bookedRooms.has(room)) return false;
+      // Must match selected room type, if a room type is selected
+      if (formData.RoomType && roomTypeMapping[room] !== formData.RoomType) return false;
+      return true;
     });
-
-    return roomNumbers.filter((room) => !bookedRooms.has(room));
   };
+
 
   const availableRooms = getAvailableRooms();
 
