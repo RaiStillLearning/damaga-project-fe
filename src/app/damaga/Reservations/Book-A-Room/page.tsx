@@ -170,8 +170,8 @@ const roomTypeMapping: Record<string, string> = {
   "401": "DSD", "402": "DST", "403": "DDD", "404": "DDT", "405": "DSDT", "406": "DSTT", "407": "DDT", "408": "DSDT", "409": "DSTT", "410": "DSTT",
 };
 
-  // Compute available rooms by filtering out rooms booked for overlapping dates
-  const getAvailableRooms = () => {
+  // Compute available rooms and booked rooms
+  const getRoomOptions = () => {
     // Active statuses that occupy a room
     const activeStatuses = ["confirmed", "checked-in", "in-house", "stay-over", "pending"];
     const bookedRooms = new Set<string>();
@@ -195,19 +195,22 @@ const roomTypeMapping: Record<string, string> = {
       });
     }
 
-    return roomNumbers.filter((room) => {
-      // Must not be booked
-      if (bookedRooms.has(room)) return false;
-      // Must match selected room type, if a room type is selected
-      if (formData.RoomType && roomTypeMapping[room] !== formData.RoomType) return false;
-      return true;
-    });
+    return roomNumbers
+      .filter((room) => {
+        // Must match selected room type, if a room type is selected
+        if (formData.RoomType && roomTypeMapping[room] !== formData.RoomType) return false;
+        return true;
+      })
+      .map((room) => ({
+        roomNo: room,
+        isBooked: bookedRooms.has(room)
+      }));
   };
 
-
-  const availableRooms = getAvailableRooms();
+  const roomOptions = getRoomOptions();
 
   const getCurrencySymbol = () => {
+
     return currency === "USD" ? "$" : "Rp";
   };
 
@@ -438,10 +441,12 @@ const roomTypeMapping: Record<string, string> = {
     fetchExistingBookings();
     // Clear selected rooms that are no longer available
     setSelectedRooms((prev) => {
-      const newAvailable = getAvailableRooms();
-      return prev.filter((room) => newAvailable.includes(room));
+      const validOptions = getRoomOptions()
+        .filter((r) => !r.isBooked)
+        .map((r) => r.roomNo);
+      return prev.filter((room) => validOptions.includes(room));
     });
-  }, [formData.ArrDate, formData.DeptDate]);
+  }, [formData.ArrDate, formData.DeptDate, formData.RoomType]);
 
   useEffect(() => {
     const fetchRoomRates = async () => {
@@ -733,13 +738,16 @@ const roomTypeMapping: Record<string, string> = {
                     <CommandInput placeholder="Search room..." />
                     <CommandEmpty>No room found.</CommandEmpty>
                     <CommandGroup className="max-h-64 overflow-auto">
-                      {availableRooms.map((roomNo) => {
+                      {roomOptions.map(({ roomNo, isBooked }) => {
                         const isSelected = selectedRooms.includes(roomNo);
                         return (
                           <CommandItem
                             key={roomNo}
                             value={roomNo}
+                            disabled={isBooked}
+                            className={isBooked ? "opacity-50 cursor-not-allowed text-gray-400" : ""}
                             onSelect={() => {
+                              if (isBooked) return;
                               setSelectedRooms((prev) =>
                                 isSelected
                                   ? prev.filter((r) => r !== roomNo)
@@ -752,7 +760,7 @@ const roomTypeMapping: Record<string, string> = {
                                 isSelected ? "opacity-100" : "opacity-0"
                               }`}
                             />
-                            {roomNo}
+                            {roomNo} {isBooked && "(Booked)"}
                           </CommandItem>
                         );
                       })}
