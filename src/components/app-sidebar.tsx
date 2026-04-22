@@ -69,10 +69,6 @@ const commonNav = [
   },
 
   { title: "Financial", url: "/damaga/Financial", icon: ChartNoAxesCombined },
-];
-
-// 👇 Menu khusus admin
-const adminNav = [
   {
     title: "Inventory",
     url: "#",
@@ -93,10 +89,7 @@ export function AppSidebar(props: React.ComponentProps<typeof Sidebar>) {
     setMounted(true);
   }, []);
 
-  const isAdmin = user?.role === "admin";
-
-  // Kalau admin → common + admin, kalau bukan → cuma common
-  const navItems = isAdmin ? [...commonNav, ...adminNav] : commonNav;
+  const navItems = commonNav;
 
   return (
     <Sidebar collapsible="icon" {...props}>

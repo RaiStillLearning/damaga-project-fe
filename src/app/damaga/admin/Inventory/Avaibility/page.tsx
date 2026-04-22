@@ -260,25 +260,7 @@ export default function AvailabilityCalendar() {
 
   if (!mounted) return null;
 
-  if (userRole.toLowerCase() !== "admin") {
-    return (
-      <div className="min-h-screen flex items-center justify-center p-4">
-        <Card className="w-full max-w-md">
-          <CardContent className="pt-6">
-            <div className="text-center">
-              <XCircle className="w-16 h-16 mx-auto text-red-500 mb-4" />
-              <h2 className="text-2xl font-bold text-gray-800 mb-2">
-                Access Denied
-              </h2>
-              <p className="text-gray-600">
-                This page is only accessible to administrators.
-              </p>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
-    );
-  }
+  // Availability is read-only, accessible to all roles
 
   const daysInView = getDaysInView();
 

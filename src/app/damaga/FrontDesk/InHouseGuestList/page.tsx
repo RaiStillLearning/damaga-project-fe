@@ -124,10 +124,12 @@ function InHouseGuestList() {
       const data = await res.json();
       const bookings = Array.isArray(data) ? data : data.bookings || [];
 
-      // Filter hanya yang status checked-in
+      // Filter yang status checked-in ATAU in-house
       const checkedInBookings = bookings.filter(
-        (booking: ReservationBooking) =>
-          booking.status?.toLowerCase() === "in-house"
+        (booking: ReservationBooking) => {
+          const s = booking.status?.toLowerCase();
+          return s === "in-house" || s === "checked-in";
+        }
       );
 
       setAllData(checkedInBookings);

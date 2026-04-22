@@ -359,29 +359,7 @@ export default function RoomRateManagement() {
     }).format(amount);
   };
 
-  // Check if user is admin
-  if (userRole.toLowerCase() !== "admin") {
-    return (
-      <div className="min-h-screen flex items-center justify-center p-4">
-        <Card className="w-full max-w-md">
-          <CardContent className="pt-6">
-            <div className="text-center">
-              <XCircle className="w-16 h-16 mx-auto text-red-500 mb-4" />
-              <h2 className="text-2xl font-bold text-gray-800 mb-2">
-                Access Denied
-              </h2>
-              <p className="text-gray-600">
-                This page is only accessible to administrators.
-              </p>
-              <Button onClick={() => router.back()} className="mt-4">
-                Go Back
-              </Button>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
-    );
-  }
+  const isAdmin = userRole.toLowerCase() === "admin";
 
   return (
     <div className="p-4 sm:p-6 lg:p-8 bg-gray-50 min-h-screen">
@@ -422,7 +400,8 @@ export default function RoomRateManagement() {
           </AlertDescription>
         </Alert>
 
-        {/* Add New Button */}
+        {/* Add New Button - Admin Only */}
+        {isAdmin && (
         <div className="mb-6">
           <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
             <DialogTrigger asChild>
@@ -540,6 +519,7 @@ export default function RoomRateManagement() {
             </DialogContent>
           </Dialog>
         </div>
+        )}
 
         {/* Room Rates Table */}
         <Card>
@@ -573,9 +553,11 @@ export default function RoomRateManagement() {
                       <TableHead className="text-right">Price (USD)</TableHead>
                       <TableHead className="text-right">Price (IDR)</TableHead>
                       <TableHead>Description</TableHead>
+                      {isAdmin && (
                       <TableHead className="text-center w-[120px]">
                         Actions
                       </TableHead>
+                      )}
                     </TableRow>
                   </TableHeader>
                   <TableBody>
@@ -596,6 +578,7 @@ export default function RoomRateManagement() {
                         <TableCell className="text-sm text-gray-600 max-w-xs truncate">
                           {rate.description || "-"}
                         </TableCell>
+                        {isAdmin && (
                         <TableCell>
                           <div className="flex items-center justify-center gap-2">
                             <Button
@@ -616,6 +599,7 @@ export default function RoomRateManagement() {
                             </Button>
                           </div>
                         </TableCell>
+                        )}
                       </TableRow>
                     ))}
                   </TableBody>

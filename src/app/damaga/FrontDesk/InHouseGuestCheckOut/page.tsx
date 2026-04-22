@@ -370,7 +370,7 @@ function CheckOutGuest() {
   // 🔹 Tampilan form (sebelum print)
   if (!isCheckedOut) {
     const statusLower = (bookingStatus || "").toLowerCase();
-    const canCheckOut = statusLower === "checked-in";
+    const canCheckOut = statusLower === "checked-in" || statusLower === "in-house";
 
     return (
       <div className="min-h-screen flex items-center justify-center p-4">

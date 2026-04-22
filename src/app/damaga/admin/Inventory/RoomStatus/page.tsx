@@ -196,26 +196,7 @@ export default function RoomStatusPage() {
     }
   };
 
-  // ❌ Kalau bukan admin
-  if (userRole.toLowerCase() !== "admin") {
-    return (
-      <div className="min-h-screen flex items-center justify-center p-4">
-        <Card className="w-full max-w-md">
-          <CardContent className="pt-6">
-            <div className="text-center">
-              <XCircle className="w-16 h-16 mx-auto text-red-500 mb-4" />
-              <h2 className="text-2xl font-bold text-gray-800 mb-2">
-                Access Denied
-              </h2>
-              <p className="text-gray-600">
-                This page is only accessible to administrators.
-              </p>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
-    );
-  }
+  const isAdmin = userRole.toLowerCase() === "admin";
 
   return (
     <div className="p-4 sm:p-6 lg:p-8 bg-gray-50 min-h-screen">
@@ -370,7 +351,7 @@ export default function RoomStatusPage() {
                           onValueChange={(val) =>
                             handleUpdateStatus(room.roomNumber, val)
                           }
-                          disabled={updatingRoom === room.roomNumber}
+                          disabled={!isAdmin || updatingRoom === room.roomNumber}
                         >
                           <SelectTrigger className="h-8 text-xs justify-center">
                             <SelectValue />
@@ -449,7 +430,7 @@ export default function RoomStatusPage() {
                           onValueChange={(val) =>
                             handleUpdateStatus(room.roomNumber, val)
                           }
-                          disabled={updatingRoom === room.roomNumber}
+                          disabled={!isAdmin || updatingRoom === room.roomNumber}
                         >
                           <SelectTrigger className="h-8 text-xs justify-center">
                             <SelectValue />
@@ -528,7 +509,7 @@ export default function RoomStatusPage() {
                           onValueChange={(val) =>
                             handleUpdateStatus(room.roomNumber, val)
                           }
-                          disabled={updatingRoom === room.roomNumber}
+                          disabled={!isAdmin || updatingRoom === room.roomNumber}
                         >
                           <SelectTrigger className="h-8 text-xs justify-center">
                             <SelectValue />
