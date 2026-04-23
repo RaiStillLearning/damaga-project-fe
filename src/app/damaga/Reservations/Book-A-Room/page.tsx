@@ -165,9 +165,9 @@ export default function BookARoomForm() {
   };
 
 const roomTypeMapping: Record<string, string> = {
-  "201": "DSD", "202": "DST", "203": "DDD", "204": "DDT", "205": "DSDT", "206": "DSTT", "207": "DDT", "208": "DSDT", "209": "DSTT", "210": "DSTT",
-  "301": "DSD", "302": "DST", "303": "DDD", "304": "DDT", "305": "DSDT", "306": "DSTT", "307": "DDT", "308": "DSDT", "309": "DSTT", "310": "DSTT",
-  "401": "DSD", "402": "DST", "403": "DDD", "404": "DDT", "405": "DSDT", "406": "DSTT", "407": "DDT", "408": "DSDT", "409": "DSTT", "410": "DSTT",
+  "201": "DSD", "202": "DST", "203": "DDD", "204": "DDT", "205": "DSTD", "206": "DSTT", "207": "DDT", "208": "DSTD", "209": "DSTT", "210": "DSTT",
+  "301": "DSD", "302": "DST", "303": "DDD", "304": "DDT", "305": "DSTD", "306": "DSTT", "307": "DDT", "308": "DSTD", "309": "DSTT", "310": "DSTT",
+  "401": "DSD", "402": "DST", "403": "DDD", "404": "DDT", "405": "DSTD", "406": "DSTT", "407": "DDT", "408": "DSTD", "409": "DSTT", "410": "DSTT",
 };
 
   // Compute available rooms and booked rooms
@@ -685,8 +685,8 @@ const roomTypeMapping: Record<string, string> = {
                     DDD (Damaga Deluxe Double)
                   </SelectItem>
                   <SelectItem value="DDT">DDT (Damaga Deluxe Twin)</SelectItem>
-                  <SelectItem value="DSDT">
-                    DSDT (Damaga Suite Double)
+                  <SelectItem value="DSTD">
+                    DSTD (Damaga Suite Double)
                   </SelectItem>
                   <SelectItem value="DSTT">
                     DSTT (Damaga Suite Twin)

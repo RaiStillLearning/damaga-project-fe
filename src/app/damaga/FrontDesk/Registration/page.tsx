@@ -32,7 +32,8 @@ const roomTypePrices = {
   DST: { USD: 80, IDR: 1280000 },
   DDD: { USD: 120, IDR: 1920000 },
   DDT: { USD: 125, IDR: 2000000 },
-  DSDT: { USD: 200, IDR: 3200000 },
+  DSDT: { USD: 200, IDR: 3200000 }, // Fallback support if needed
+  DSTD: { USD: 200, IDR: 3200000 },
   DSTT: { USD: 210, IDR: 3360000 },
 };
 
@@ -560,8 +561,8 @@ useEffect(() => {
                       <SelectItem value="DDT">
                         DDT (Damaga Deluxe Twin)
                       </SelectItem>
-                      <SelectItem value="DSDT">
-                        DSDT (Damaga Suite Double)
+                      <SelectItem value="DSTD">
+                        DSTD (Damaga Suite Double)
                       </SelectItem>
                       <SelectItem value="DSTT">
                         DSTT (Damaga Suite Twin)

@@ -398,6 +398,37 @@ function ReservationHistory() {
     }
   };
 
+  const handleCancel = async (bookingId: string, guestName: string) => {
+    const confirmCancel = confirm(
+      `Apakah Anda yakin ingin membatalkan bokingan atas nama ${guestName}?\n\nStatus akan berubah menjadi 'cancelled' dan kamar akan tersedia kembali.`
+    );
+
+    if (!confirmCancel) return;
+
+    try {
+      const response = await fetch(
+        `${process.env.NEXT_PUBLIC_API_URL}/api/book-a-room/${bookingId}`,
+        {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            status: "cancelled",
+          }),
+        }
+      );
+
+      if (!response.ok) {
+        throw new Error("Gagal membatalkan bokingan");
+      }
+
+      alert("✅ Bokingan berhasil dibatalkan!");
+      fetchAllData();
+    } catch (error) {
+      console.error("Cancel error:", error);
+      alert("❌ Gagal membatalkan bokingan. Silakan coba lagi.");
+    }
+  };
+
   const getStatusBadge = (status?: string) => {
     const statusLower = (status || "pending").toLowerCase();
 
@@ -820,36 +851,21 @@ function ReservationHistory() {
                           </td>
 
                           <td className="px-4 py-3 text-sm">
-                            <Button
-                              onClick={() => {
-                                if (canCheckIn) handleCheckIn(r._id);
-                              }}
-                              size="sm"
-                              disabled={!canCheckIn}
-                              className={`text-xs px-3 py-1 whitespace-nowrap ${
-                                canCheckIn
-                                  ? "bg-blue-600 hover:bg-blue-700 text-white"
-                                  : "bg-gray-300 text-gray-600 cursor-not-allowed hover:bg-gray-300"
-                              }`}
-                            >
-                              {checkInLabel}
-                            </Button>
-                          </td>
-
-                          <td className="px-4 py-3 text-sm">
                             <div className="flex gap-2">
                               <Button
                                 onClick={() => handleCheckIn(r._id)}
                                 size="sm"
-                                className="bg-green-600 hover:bg-green-700 text-white text-xs px-3 py-1 whitespace-nowrap"
+                                disabled={!canCheckIn}
+                                className={`text-xs px-3 py-1 whitespace-nowrap ${
+                                  canCheckIn
+                                    ? "bg-blue-600 hover:bg-blue-700 text-white"
+                                    : "bg-gray-300 text-gray-600 cursor-not-allowed hover:bg-gray-300"
+                                }`}
                               >
-                                View Details
+                                {checkInLabel}
                               </Button>
                               <Button
-                                onClick={() => {
-                                  if (!canInHouse) return;
-                                  handleInHouse(r._id);
-                                }}
+                                onClick={() => handleInHouse(r._id)}
                                 size="sm"
                                 disabled={!canInHouse}
                                 className={`text-xs px-3 py-1 whitespace-nowrap ${
@@ -859,6 +875,14 @@ function ReservationHistory() {
                                 }`}
                               >
                                 In-House
+                              </Button>
+                              <Button
+                                size="sm"
+                                variant="destructive"
+                                onClick={() => handleCancel(r._id, `${r.FirstName} ${r.LastName}`)}
+                                className="bg-red-500 hover:bg-red-600 text-white text-xs px-3 py-1"
+                              >
+                                Cancel
                               </Button>
                             </div>
                           </td>
