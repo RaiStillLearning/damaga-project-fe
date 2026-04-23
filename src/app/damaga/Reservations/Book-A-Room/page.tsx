@@ -688,6 +688,9 @@ const roomTypeMapping: Record<string, string> = {
                   <SelectItem value="DSDT">
                     DSDT (Damaga Suite Double)
                   </SelectItem>
+                  <SelectItem value="DSTT">
+                    DSTT (Damaga Suite Twin)
+                  </SelectItem>
                 </SelectContent>
               </Select>
             </div>

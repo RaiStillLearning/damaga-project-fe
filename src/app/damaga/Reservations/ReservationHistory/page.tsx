@@ -289,6 +289,37 @@ function ReservationHistory() {
   //     );
   //   }
   // };
+  const handleCancel = async (bookingId: string, guestName: string) => {
+    const confirmCancel = confirm(
+      `Apakah Anda yakin ingin membatalkan bokingan atas nama ${guestName}?\n\nStatus akan berubah menjadi 'cancelled' dan kamar akan tersedia kembali.`
+    );
+
+    if (!confirmCancel) return;
+
+    try {
+      const response = await fetch(
+        `${process.env.NEXT_PUBLIC_API_URL}/api/book-a-room/${bookingId}`,
+        {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            status: "cancelled",
+          }),
+        }
+      );
+
+      if (!response.ok) {
+        throw new Error("Gagal membatalkan bokingan");
+      }
+
+      alert("✅ Bokingan berhasil dibatalkan!");
+      fetchAllData();
+    } catch (error) {
+      console.error("Cancel error:", error);
+      alert("❌ Gagal membatalkan bokingan. Silakan coba lagi.");
+    }
+  };
+
 
   const getStatusBadge = (status?: string) => {
     const statusLower = (status || "pending").toLowerCase();
@@ -608,17 +639,30 @@ function ReservationHistory() {
                           {r.Note || "-"}
                         </td>
                         <td className="px-4 py-3 text-sm">
-                          <Button
-                            size="sm"
-                            onClick={() =>
-                              router.push(
-                                `/damaga/FrontDesk/Registration?bookingId=${r._id}`
-                              )
-                            }
-                            className="bg-sky-600 hover:bg-sky-700 text-white"
-                          >
-                            View Details
-                          </Button>
+                          <div className="flex gap-2">
+                            <Button
+                              size="sm"
+                              onClick={() =>
+                                router.push(
+                                  `/damaga/FrontDesk/Registration?bookingId=${r._id}`
+                                )
+                              }
+                              className="bg-sky-600 hover:bg-sky-700 text-white"
+                            >
+                              Details
+                            </Button>
+                            {r.status?.toLowerCase() !== "cancelled" &&
+                              r.status?.toLowerCase() !== "checked-out" && (
+                                <Button
+                                  size="sm"
+                                  variant="destructive"
+                                  onClick={() => handleCancel(r._id, `${r.FirstName} ${r.LastName}`)}
+                                  className="bg-red-500 hover:bg-red-600 text-white"
+                                >
+                                  Cancel
+                                </Button>
+                              )}
+                          </div>
                         </td>
                       </tr>
                     ))}

@@ -30,6 +30,7 @@ const roomTypePrices = {
   DDD: { USD: 120, IDR: 1920000 },
   DDT: { USD: 125, IDR: 2000000 },
   DSDT: { USD: 200, IDR: 3200000 },
+  DSTT: { USD: 210, IDR: 3360000 },
 };
 
 interface RegistrationFormData {
@@ -398,6 +399,9 @@ function InHouseGuest() {
                       </SelectItem>
                       <SelectItem value="DSDT">
                         DSDT (Damaga Suite Double)
+                      </SelectItem>
+                      <SelectItem value="DSTT">
+                        DSTT (Damaga Suite Twin)
                       </SelectItem>
                     </SelectContent>
                   </Select>
