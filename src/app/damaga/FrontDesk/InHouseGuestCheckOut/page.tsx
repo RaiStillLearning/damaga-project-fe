@@ -48,6 +48,7 @@ interface RegistrationFormData {
   companyName: string;
   companyPhone: string;
   companyAddress: string;
+  personalPhone: string;
   dateOfBirth: string;
   passportId: string;
   nationality: string;
@@ -89,6 +90,7 @@ function CheckOutGuest() {
     companyName: "",
     companyPhone: "",
     companyAddress: "",
+    personalPhone: "",
     dateOfBirth: "",
     passportId: "",
     nationality: "",
@@ -234,6 +236,7 @@ function CheckOutGuest() {
           booking.CompanyPhone || booking.Phone || booking.companyPhone
         ),
         companyAddress: booking.CompanyAddress || booking.companyAddress || "",
+        personalPhone: booking.PersonalPhone || booking.personalPhone || "",
         dateOfBirth: formatDate(booking.DateOfBirth || booking.dateOfBirth),
         passportId:
           booking.IDNumber || booking.passportId || booking.PassportId || "",
@@ -255,7 +258,7 @@ function CheckOutGuest() {
           booking.remark ||
           booking.note ||
           "",
-        clerk: booking.Clerk || booking.clerk || prev.clerk,
+        clerk: prev.clerk,
         roomNo: booking.RoomNumber || booking.roomNo || booking.NoOfRoom || "",
         discount: toString(booking.Discount || booking.discount),
         person: toString(
@@ -571,6 +574,18 @@ function CheckOutGuest() {
                   </div>
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Personal Phone Number
+                    </label>
+                    <Input
+                      name="personalPhone"
+                      value={formData.personalPhone}
+                      onChange={handleChange}
+                      placeholder="e.g., +62 812 3456 7890"
+                      disabled={isViewMode}
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
                       Advance Deposit
                     </label>
                     <Input
@@ -863,10 +878,14 @@ function CheckOutGuest() {
       <div className="max-w-5xl mx-auto">
         <style>{`
           @media print {
-            body { margin: 0; padding: 15px; }
+            @page { size: A4; margin: 8mm; }
+            body * { visibility: hidden; }
+            .print-area, .print-area * { visibility: visible; }
+            .print-area { position: absolute; left: 0; top: 0; width: 100%; padding: 4px !important; }
+            body { margin: 0; padding: 6px; }
             .no-print { display: none !important; }
             table { page-break-inside: avoid; border-collapse: collapse; width: 100%; }
-            td, th { border: 2px solid #000; padding: 6px; font-size: 10px; }
+            td, th { border: 1px solid #000; padding: 3px; font-size: 9px; }
             .blue-bg { background-color: #6CB4EE !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
           }
         `}</style>
@@ -884,16 +903,16 @@ function CheckOutGuest() {
           </Button>
         </div>
 
-        <div className="bg-white border-4 border-blue-600 p-6 print:border-4">
-          <div className="flex justify-between items-center mb-4">
+        <div className="print-area bg-white border-4 border-blue-600 p-4 print:border-4">
+          <div className="flex justify-between items-center mb-2">
             <Image
               src="/logo/DAMAGA SUITES MRR.png"
               alt="DAMAGA Logo"
-              width={120}
-              height={120}
+              width={100}
+              height={100}
               className="object-contain"
             />
-            <h1 className="text-4xl font-bold tracking-wider">
+            <h1 className="text-3xl font-bold tracking-wider">
               CHECK-OUT FORM
             </h1>
           </div>
@@ -946,30 +965,57 @@ function CheckOutGuest() {
                   className="border-2 border-black p-2 w-2/3 align-top"
                   colSpan={3}
                 >
-                  <div className="blue-bg bg-blue-300 font-bold text-xs mb-2 p-1 text-center">
+                  <div className="blue-bg bg-blue-300 font-bold text-xs mb-1 p-1 text-center">
                     PLEASE USE BLOCK LETTERS
                   </div>
-                  <div className="space-y-1 text-xs">
+                  <div className="space-y-0.5 text-xs">
                     <div className="flex items-center gap-1">
-                      <span className="font-semibold">
-                        Family Name/Last Name
-                      </span>
+                      <span className="font-semibold">Family Name/Last Name</span>
                       <span>:</span>
-                      <span className="uppercase font-bold">
-                        {formData.lastName}
-                      </span>
+                      <span className="uppercase font-bold">{formData.lastName}</span>
                     </div>
                     <div className="flex items-center gap-1">
                       <span className="font-semibold">First Name</span>
                       <span>:</span>
-                      <span className="uppercase font-bold">
-                        {formData.firstName}
-                      </span>
+                      <span className="uppercase font-bold">{formData.firstName}</span>
                     </div>
                     <div className="flex items-center gap-1">
                       <span className="font-semibold">Address</span>
                       <span>:</span>
                       <span>{formData.address}</span>
+                    </div>
+                    <div className="flex items-center gap-1">
+                      <span className="font-semibold">Phone Number</span>
+                      <span>:</span>
+                      <span>{formData.personalPhone || "-"}</span>
+                    </div>
+                    <div className="border-t border-gray-400 my-1 pt-1">
+                      <div className="font-semibold text-xs mb-0.5">Form of Settlement</div>
+                      <div className="grid grid-cols-2 gap-x-4 gap-y-0.5">
+                        <div className="flex items-center gap-1">
+                          <span className="font-semibold">CASH</span>
+                          <span>{formData.paymentCash ? "☑" : "☐"}</span>
+                        </div>
+                        <div className="flex items-center gap-1">
+                          <span className="font-semibold">VOUCHER</span>
+                          <span>:</span>
+                          <span>{formData.voucherNumber || "-"}</span>
+                        </div>
+                        <div className="flex items-center gap-1">
+                          <span className="font-semibold">CREDIT CARD</span>
+                          <span>{formData.paymentCredit ? "☑" : "☐"}</span>
+                        </div>
+                        <div className="flex items-center gap-1">
+                          <span className="font-semibold">Number</span>
+                          <span>:</span>
+                          <span>{formData.creditCardNumber || "-"}</span>
+                        </div>
+                        <div className="flex items-center gap-1 col-span-2">
+                          <span className="font-semibold">Approval Code</span>
+                          <span>:</span>
+                          <span>{formData.approvalCode || "-"}</span>
+                        </div>
+                      </div>
                     </div>
                   </div>
                 </td>
@@ -1041,43 +1087,6 @@ function CheckOutGuest() {
             </tbody>
           </table>
 
-          <table className="w-full border-2 border-black border-t-0 mb-0">
-            <tbody>
-              <tr>
-                <td className="border-2 border-black p-2" colSpan={4}>
-                  <div className="blue-bg bg-blue-300 font-bold text-xs mb-2 p-1 text-center">
-                    Form of Settlement
-                  </div>
-                  <div className="grid grid-cols-4 gap-2 text-xs">
-                    <div className="flex items-center gap-2">
-                      <span className="font-semibold">CASH</span>
-                      <span>{formData.paymentCash ? "☑" : "☐"}</span>
-                    </div>
-                    <div className="flex items-center gap-1">
-                      <span className="font-semibold">VOUCHER</span>
-                      <span>:</span>
-                      <span>{formData.voucherNumber || "-"}</span>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <span className="font-semibold">CREDIT CARD</span>
-                      <span>{formData.paymentCredit ? "☑" : "☐"}</span>
-                    </div>
-                    <div className="flex items-center gap-1">
-                      <span className="font-semibold">Number</span>
-                      <span>:</span>
-                      <span>{formData.creditCardNumber || "-"}</span>
-                    </div>
-                    <div className="col-span-2"></div>
-                    <div className="col-span-2 flex items-center gap-1">
-                      <span className="font-semibold">Approval Code</span>
-                      <span>:</span>
-                      <span>{formData.approvalCode || "-"}</span>
-                    </div>
-                  </div>
-                </td>
-              </tr>
-            </tbody>
-          </table>
 
           <table className="w-full border-2 border-black border-t-0 mb-0">
             <tbody>
