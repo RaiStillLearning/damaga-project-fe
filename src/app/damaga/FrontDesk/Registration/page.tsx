@@ -1003,30 +1003,22 @@ useEffect(() => {
         <style>{`
     @media print {
       @page { size: A4 portrait; margin: 6mm; }
-      html, body { margin: 0 !important; padding: 0 !important; }
+      html, body { margin: 0 !important; padding: 0 !important; height: auto !important; min-height: 0 !important; overflow: visible !important; }
       body * { visibility: hidden; }
       .print-area, .print-area * { visibility: visible; }
       .print-area {
         position: absolute; left: 0; top: 0;
-        width: 100%; padding: 2px !important;
-        transform: scale(0.88);
-        transform-origin: top left;
+        width: 100%; padding: 4px !important;
+        min-height: 0 !important;
+        height: auto !important;
+        page-break-inside: avoid;
       }
       .no-print { display: none !important; }
+      .min-h-screen { min-height: 0 !important; }
       table { page-break-inside: avoid; border-collapse: collapse; width: 100%; }
-      td, th { border: 1px solid #000; padding: 2px 3px; font-size: 8px; line-height: 1.2; }
+      td, th { border: 1px solid #000; padding: 3px; font-size: 9px; }
       .blue-bg { background-color: #6CB4EE !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
-      h1 { font-size: 20px !important; }
-      .mb-2 { margin-bottom: 4px !important; }
-      .mb-0 { margin-bottom: 0 !important; }
-      .p-4 { padding: 3px !important; }
-      .p-3 { padding: 2px !important; }
-      .p-2 { padding: 2px !important; }
-      .h-16 { height: 2.5rem !important; }
-      .h-12 { height: 2rem !important; }
-      .space-y-1 > * + * { margin-top: 1px !important; }
-      .space-y-0\\.5 > * + * { margin-top: 0px !important; }
-      img { max-height: 60px !important; width: auto !important; }
+      img { max-height: 70px !important; width: auto !important; }
     }
   `}</style>
 
